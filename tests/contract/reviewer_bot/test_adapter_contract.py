@@ -543,7 +543,18 @@ def test_bootstrap_runtime_wires_explicit_adapter_services():
     assert hasattr(runtime.adapters.review_state, "ensure_review_entry")
     assert hasattr(runtime.adapters.commands, "handle_pass_command")
     assert hasattr(runtime.adapters.queue, "get_next_reviewer")
+    assert hasattr(runtime.adapters.state_lock, "assert_lock_held")
     assert hasattr(runtime.adapters.state_lock, "render_state_issue_body")
+
+
+def test_bootstrapped_runtime_state_lock_assertion_delegates_through_adapter_surface():
+    runtime = reviewer_bot._runtime_bot()
+
+    with pytest.raises(RuntimeError, match="Mutating path reached without lease lock: contract-check"):
+        runtime.assert_lock_held("contract-check")
+
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    runtime.assert_lock_held("contract-check")
 
 
 def test_status_label_sync_contract_stays_on_workflow_adapter_surface():
@@ -586,6 +597,12 @@ def test_f2a_runtime_surface_inventory_matches_bootstrap_adapter_examples():
     capabilities = {entry["capability"]: entry for entry in inventory["capability_triples"]}
 
     assert capabilities["comment-event dispatch"]["bootstrap_adapter"].endswith("handle_comment_event")
+    assert capabilities["state-lock assertion delegation"]["runtime_forwarder"].endswith(
+        "assert_lock_held"
+    )
+    assert capabilities["state-lock assertion delegation"]["bootstrap_adapter"].endswith(
+        "assert_lock_held"
+    )
     assert "workflow-run dispatch" not in capabilities
     assert capabilities["sync status labels"]["bootstrap_adapter"].endswith(
         "sync_status_labels_for_items"

@@ -334,6 +334,9 @@ def test_f2a_runtime_surface_inventory_matches_fake_runtime_branch_examples():
     capabilities = {entry["capability"]: entry for entry in inventory["capability_triples"]}
 
     assert capabilities["comment-event dispatch"]["fake_runtime_branch"].endswith("handle_comment_event")
+    assert capabilities["state-lock assertion delegation"]["fake_runtime_branch"].endswith(
+        "assert_lock_held"
+    )
     assert capabilities["privileged accept-no-fls-changes execution"]["fake_runtime_branch"].endswith(
         "handle_accept_no_fls_changes_command"
     )

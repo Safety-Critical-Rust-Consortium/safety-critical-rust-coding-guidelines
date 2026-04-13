@@ -66,6 +66,13 @@
       "classification": "retained final surface"
     },
     {
+      "capability": "state-lock assertion delegation",
+      "runtime_forwarder": "scripts/reviewer_bot_lib/runtime.py:assert_lock_held",
+      "bootstrap_adapter": "scripts/reviewer_bot_lib/bootstrap_runtime.py:_BootstrapStateLockAdapterServices.assert_lock_held",
+      "fake_runtime_branch": "tests/fixtures/fake_runtime.py:assert_lock_held",
+      "classification": "retained final surface"
+    },
+    {
       "capability": "privileged branch lookup",
       "runtime_forwarder": null,
       "bootstrap_adapter": "scripts/reviewer_bot_lib/bootstrap_runtime.py:_BootstrapAutomationAdapterServices.find_open_pr_for_branch_status",

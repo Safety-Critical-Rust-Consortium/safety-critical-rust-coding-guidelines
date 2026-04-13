@@ -48,6 +48,7 @@ jobs:
           EVENT_NAME: pull_request_target
           EVENT_ACTION: ${{ github.event.action }}
           ISSUE_NUMBER: ${{ github.event.pull_request.number }}
+          LABEL_NAME: ${{ github.event.label.name }}
           ISSUE_AUTHOR: ${{ github.event.pull_request.user.login }}
           ISSUE_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
           IS_PULL_REQUEST: 'true'

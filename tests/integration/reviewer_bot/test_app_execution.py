@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from scripts.reviewer_bot_lib import reconcile
+from scripts import reviewer_bot
+from scripts.reviewer_bot_lib import event_inputs, reconcile
 from tests.fixtures.app_harness import AppHarness
 from tests.fixtures.reviewer_bot import make_state, make_tracked_review_state
 
@@ -182,6 +183,107 @@ def test_execute_run_returns_failure_for_invalid_workflow_run_context(monkeypatc
 
     assert result.exit_code == 1
     assert result.state_changed is False
+
+
+def test_bootstrapped_runtime_executes_direct_issue_comment_path_with_strict_request_inputs(monkeypatch):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    seen = {}
+
+    def acquire_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = object()
+        return runtime.ACTIVE_LEASE_CONTEXT
+
+    def release_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = None
+        return True
+
+    def handle_comment_event(current_state):
+        assert current_state is state
+        seen["request"] = event_inputs.build_comment_event_request(runtime)
+        runtime.collect_touched_item(42)
+        return True
+
+    monkeypatch.setattr(runtime.locks, "acquire", acquire_lock)
+    monkeypatch.setattr(runtime.locks, "release", release_lock)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
+    monkeypatch.setattr(runtime.handlers, "handle_comment_event", handle_comment_event)
+    monkeypatch.setenv("EVENT_NAME", "issue_comment")
+    monkeypatch.setenv("EVENT_ACTION", "created")
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("IS_PULL_REQUEST", "false")
+    monkeypatch.setenv("ISSUE_STATE", "open")
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["triage"]')
+    monkeypatch.setenv("COMMENT_ID", "100")
+    monkeypatch.setenv("COMMENT_AUTHOR", "alice")
+    monkeypatch.setenv("COMMENT_AUTHOR_ID", "200")
+    monkeypatch.setenv("COMMENT_BODY", "hello")
+    monkeypatch.setenv("COMMENT_CREATED_AT", "2026-04-13T04:30:00Z")
+    monkeypatch.delenv("COMMENT_SOURCE_EVENT_KEY", raising=False)
+    monkeypatch.setenv("COMMENT_USER_TYPE", "User")
+    monkeypatch.setenv("COMMENT_SENDER_TYPE", "User")
+    monkeypatch.delenv("COMMENT_INSTALLATION_ID", raising=False)
+    monkeypatch.setenv("COMMENT_PERFORMED_VIA_GITHUB_APP", "false")
+
+    context = reviewer_bot.build_event_context(runtime)
+    result = reviewer_bot.execute_run(context, runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert seen["request"].is_pull_request is False
+    assert seen["request"].comment_author_id == 200
+    assert seen["request"].comment_source_event_key == "issue_comment:100"
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+def test_bootstrapped_runtime_executes_pr_metadata_closed_dispatch_path(monkeypatch):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    calls = []
+
+    def acquire_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = object()
+        return runtime.ACTIVE_LEASE_CONTEXT
+
+    def release_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = None
+        return True
+
+    def handle_closed_event(current_state):
+        calls.append(current_state)
+        return True
+
+    monkeypatch.setattr(runtime.locks, "acquire", acquire_lock)
+    monkeypatch.setattr(runtime.locks, "release", release_lock)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
+    monkeypatch.setattr(runtime.handlers, "handle_closed_event", handle_closed_event)
+    monkeypatch.setenv("EVENT_NAME", "pull_request_target")
+    monkeypatch.setenv("EVENT_ACTION", "closed")
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("IS_PULL_REQUEST", "true")
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["triage"]')
+    monkeypatch.setenv("PR_HEAD_SHA", "head-1")
+    monkeypatch.setenv("EVENT_CREATED_AT", "2026-04-13T04:31:00Z")
+
+    context = reviewer_bot.build_event_context(runtime)
+    result = reviewer_bot.execute_run(context, runtime)
+
+    assert context.event_name == "pull_request_target"
+    assert context.event_action == "closed"
+    assert calls == [state]
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
 
 
 def test_d4a_app_branch_to_phase_map_is_frozen_pre_edit():

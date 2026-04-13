@@ -322,6 +322,9 @@ class _BootstrapStateLockAdapterServices:
     def normalize_lock_metadata(self, lock_meta):
         return state_store.normalize_lock_metadata(lock_meta)
 
+    def assert_lock_held(self, operation):
+        return state_store.assert_lock_held(self._runtime(), operation)
+
     def parse_iso8601_timestamp(self, value):
         return state_store.parse_iso8601_timestamp(value)
 
