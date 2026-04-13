@@ -194,6 +194,20 @@ def test_fake_runtime_review_state_compatibility_surface_is_limited(monkeypatch)
         assert hasattr(runtime, name) is False
 
 
+def test_fake_runtime_adapter_views_do_not_alias_unrelated_retained_roles(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+
+    assert runtime.adapters.github is runtime.github
+    assert runtime.adapters.review_state is not runtime.adapters.commands
+    assert runtime.adapters.review_state is not runtime.adapters.queue
+    assert hasattr(runtime.adapters.review_state, "compute_reviewer_response_state")
+    assert hasattr(runtime.adapters.commands, "parse_command")
+    assert hasattr(runtime.adapters.queue, "get_next_reviewer")
+    assert hasattr(runtime.adapters.state_lock, "assert_lock_held")
+    assert hasattr(runtime.adapters.commands, "get_next_reviewer") is False
+    assert hasattr(runtime.adapters.queue, "parse_command") is False
+
+
 def test_fake_runtime_rejects_unknown_handler_names(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
 

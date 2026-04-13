@@ -87,7 +87,10 @@ def handle_manual_dispatch(bot, state: dict) -> bool:
             bot.collect_touched_item(issue_number)
         return False
     if action == "check-overdue":
-        return maintenance_schedule.handle_scheduled_check_result(bot, state).state_changed
+        result = maintenance_schedule.handle_scheduled_check_result(bot, state)
+        for issue_number in result.touched_items:
+            bot.collect_touched_item(issue_number)
+        return result.state_changed
     if action == "execute-pending-privileged-command":
         source_event_key = request.privileged_source_event_key
         if not source_event_key:

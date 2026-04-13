@@ -107,15 +107,127 @@ class FakeRuntimeDomainServices:
         self.compat = compat
 
 
+class _AdapterView:
+    def __init__(self, target, allowed: set[str]):
+        self._target = target
+        self._allowed = set(allowed)
+
+    def __getattr__(self, name: str):
+        if name not in self._allowed:
+            raise AttributeError(name)
+        return getattr(self._target, name)
+
+
 class FakeRuntimeAdapterServices:
     def __init__(self, runtime: "FakeReviewerBotRuntime"):
         self._runtime = runtime
-        self.workflow = runtime.workflow
-        self.review = runtime.compat.review
-        self.review_state = runtime.compat.review
-        self.commands = runtime.compat.review
-        self.queue = runtime.compat.review
-        self.automation = runtime.compat.automation
+        self.github = runtime.github
+        self.workflow = _AdapterView(
+            runtime.workflow,
+            {
+                "process_pass_until_expirations",
+                "sync_members_with_queue",
+                "sync_status_labels_for_items",
+                "fetch_members",
+            },
+        )
+        self.review_state = _AdapterView(
+            runtime.compat.review,
+            {
+                "maybe_record_head_observation_repair",
+                "handle_transition_notice",
+                "ensure_review_entry",
+                "set_current_reviewer",
+                "update_reviewer_activity",
+                "mark_review_complete",
+                "is_triage_or_higher",
+                "trigger_mandatory_approver_escalation",
+                "satisfy_mandatory_approver_requirement",
+                "compute_reviewer_response_state",
+                "rebuild_pr_approval_state",
+            },
+        )
+        self.commands = _AdapterView(
+            SimpleNamespace(
+                handle_pass_command=runtime.compat.review.handle_pass_command,
+                handle_pass_until_command=runtime.compat.review.handle_pass_until_command,
+                handle_label_command=runtime.compat.review.handle_label_command,
+                handle_sync_members_command=runtime.compat.review.handle_sync_members_command,
+                handle_queue_command=runtime.compat.review.handle_queue_command,
+                handle_commands_command=runtime.compat.review.handle_commands_command,
+                handle_claim_command=runtime.compat.review.handle_claim_command,
+                handle_release_command=runtime.compat.review.handle_release_command,
+                handle_rectify_command=runtime.compat.review.handle_rectify_command,
+                handle_assign_command=runtime.compat.review.handle_assign_command,
+                handle_assign_from_queue_command=runtime.compat.review.handle_assign_from_queue_command,
+                handle_accept_no_fls_changes_command=runtime.compat.automation.handle_accept_no_fls_changes_command,
+                get_commands_help=runtime.compat.review.get_commands_help,
+                strip_code_blocks=runtime.compat.review.strip_code_blocks,
+                parse_command=runtime.compat.review.parse_command,
+            ),
+            {
+                "handle_pass_command",
+                "handle_pass_until_command",
+                "handle_label_command",
+                "handle_sync_members_command",
+                "handle_queue_command",
+                "handle_commands_command",
+                "handle_claim_command",
+                "handle_release_command",
+                "handle_rectify_command",
+                "handle_assign_command",
+                "handle_assign_from_queue_command",
+                "handle_accept_no_fls_changes_command",
+                "get_commands_help",
+                "strip_code_blocks",
+                "parse_command",
+            },
+        )
+        self.queue = _AdapterView(
+            runtime.compat.review,
+            {
+                "get_next_reviewer",
+                "record_assignment",
+                "reposition_member_as_next",
+            },
+        )
+        self.automation = _AdapterView(
+            runtime.compat.automation,
+            {
+                "run_command",
+                "summarize_output",
+                "list_changed_files",
+                "get_default_branch",
+                "find_open_pr_for_branch_status",
+                "create_pull_request",
+                "fetch_members",
+                "handle_accept_no_fls_changes_command",
+            },
+        )
+        self.state_lock = _AdapterView(
+            runtime.compat.state_lock,
+            {
+                "assert_lock_held",
+                "parse_iso8601_timestamp",
+                "normalize_lock_metadata",
+                "get_state_issue",
+                "clear_lock_metadata",
+                "get_state_issue_snapshot",
+                "conditional_patch_state_issue",
+                "render_state_issue_body",
+                "get_state_issue_html_url",
+                "get_lock_ref_display",
+                "get_lock_ref_snapshot",
+                "build_lock_metadata",
+                "create_lock_commit",
+                "cas_update_lock_ref",
+                "lock_is_currently_valid",
+                "renew_state_issue_lease_lock",
+                "ensure_state_issue_lease_lock_fresh",
+                "acquire_state_issue_lease_lock",
+                "release_state_issue_lease_lock",
+            },
+        )
 
     def process_pass_until_expirations(self, state: dict):
         return self._runtime.workflow.process_pass_until_expirations(state)
@@ -277,6 +389,9 @@ class FakeRuntimeStateLockCompatibility:
 
     def normalize_lock_metadata(self, lock_meta: dict | None):
         return state_store_module.normalize_lock_metadata(lock_meta)
+
+    def assert_lock_held(self, context: str) -> None:
+        return state_store_module.assert_lock_held(self._runtime, context)
 
     def get_state_issue(self):
         return state_store_module.get_state_issue(self._runtime)

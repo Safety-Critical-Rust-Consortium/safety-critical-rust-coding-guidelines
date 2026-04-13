@@ -58,9 +58,10 @@ def _semantic_digest(value: str) -> str:
 
 
 def _write_transition_notice_marker_cutover(bot) -> None:
-    config_dir = Path(bot.get_config_value("OPENCODE_CONFIG_DIR") or "")
-    if not config_dir:
+    config_dir_value = bot.get_config_value("OPENCODE_CONFIG_DIR").strip()
+    if not config_dir_value:
         return
+    config_dir = Path(config_dir_value)
     artifact_path = config_dir / "reviewer-bot" / "maintainability-remediation" / "transition-notice-marker-cutover.json"
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     artifact_path.write_text(

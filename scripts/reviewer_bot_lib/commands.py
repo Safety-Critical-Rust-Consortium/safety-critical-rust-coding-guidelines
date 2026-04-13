@@ -9,6 +9,7 @@ from .context import AssignmentRequest
 from .event_inputs import build_assignment_request as decode_assignment_request
 from .guidance import (
     get_assignment_failure_comment,
+    get_fls_audit_guidance,
     get_issue_guidance,
     get_pr_guidance,
 )
@@ -139,7 +140,7 @@ def _apply_assignment_side_effects(
         else:
             labels = set(request.issue_labels)
             guidance = (
-                bot.get_fls_audit_guidance(reviewer, request.issue_author)
+                get_fls_audit_guidance(reviewer, request.issue_author)
                 if bot.FLS_AUDIT_LABEL in labels
                 else get_issue_guidance(reviewer, request.issue_author)
             )

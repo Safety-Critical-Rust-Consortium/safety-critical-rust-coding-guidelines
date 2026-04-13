@@ -1,14 +1,64 @@
 import json
 from pathlib import Path
+from urllib.parse import unquote
 
 import pytest
 
 from scripts import reviewer_bot
-from scripts.reviewer_bot_lib import event_inputs, reconcile
+from scripts.reviewer_bot_lib import (
+    event_inputs,
+    maintenance,
+    maintenance_schedule,
+    reconcile,
+)
+from scripts.reviewer_bot_lib.config import STATUS_AWAITING_REVIEWER_RESPONSE_LABEL
 from tests.fixtures.app_harness import AppHarness
 from tests.fixtures.reviewer_bot import make_state, make_tracked_review_state
 
 pytestmark = pytest.mark.integration
+
+
+def _configure_bootstrapped_runtime_with_real_status_projection(monkeypatch, state, *, issue_state: str):
+    runtime = reviewer_bot._runtime_bot()
+    label_ops = []
+
+    def acquire_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = object()
+        return runtime.ACTIVE_LEASE_CONTEXT
+
+    def release_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = None
+        return True
+
+    def github_api_request(method, endpoint, data=None, extra_headers=None, **kwargs):
+        if method == "POST" and endpoint == "labels":
+            return runtime.GitHubApiResult(201, {}, {}, "created", True, None, 0, None)
+        if method == "DELETE" and endpoint.startswith("issues/42/labels/"):
+            label_ops.append(("remove", unquote(endpoint.rsplit("/", 1)[-1])))
+            return runtime.GitHubApiResult(204, None, {}, "", True, None, 0, None)
+        if method == "POST" and endpoint == "issues/42/labels":
+            label_ops.append(("add", data["labels"][0]))
+            return runtime.GitHubApiResult(200, {}, {}, "ok", True, None, 0, None)
+        raise AssertionError((method, endpoint, data))
+
+    monkeypatch.setattr(runtime.locks, "acquire", acquire_lock)
+    monkeypatch.setattr(runtime.locks, "release", release_lock)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(
+        runtime.github,
+        "get_issue_or_pr_snapshot",
+        lambda issue_number: {
+            "number": issue_number,
+            "state": issue_state,
+            "labels": [{"name": STATUS_AWAITING_REVIEWER_RESPONSE_LABEL}],
+            "pull_request": {},
+        },
+    )
+    monkeypatch.setattr(runtime, "github_api_request", github_api_request)
+    return runtime, label_ops
 
 
 def test_app_harness_exposes_focused_runtime_services(monkeypatch):
@@ -283,6 +333,70 @@ def test_bootstrapped_runtime_executes_pr_metadata_closed_dispatch_path(monkeypa
     assert calls == [state]
     assert result.exit_code == 0
     assert result.state_changed is True
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+def test_bootstrapped_runtime_pr_metadata_closed_executes_real_status_label_projection_path(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    assert review is not None
+    runtime, label_ops = _configure_bootstrapped_runtime_with_real_status_projection(
+        monkeypatch, state, issue_state="closed"
+    )
+    monkeypatch.setenv("EVENT_NAME", "pull_request_target")
+    monkeypatch.setenv("EVENT_ACTION", "closed")
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("IS_PULL_REQUEST", "true")
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["triage"]')
+    monkeypatch.setenv("PR_HEAD_SHA", "head-1")
+    monkeypatch.setenv("EVENT_CREATED_AT", "2026-04-13T04:31:00Z")
+
+    result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert label_ops == [("remove", STATUS_AWAITING_REVIEWER_RESPONSE_LABEL)]
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+def test_bootstrapped_runtime_workflow_dispatch_repair_status_labels_uses_real_projection_path(monkeypatch):
+    state = make_state()
+    runtime, label_ops = _configure_bootstrapped_runtime_with_real_status_projection(
+        monkeypatch, state, issue_state="open"
+    )
+    monkeypatch.setattr(maintenance.reviews, "list_open_items_with_status_labels", lambda bot: [42])
+    monkeypatch.setenv("EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("EVENT_ACTION", "")
+    monkeypatch.setenv("MANUAL_ACTION", "repair-review-status-labels")
+
+    result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert label_ops == [("remove", STATUS_AWAITING_REVIEWER_RESPONSE_LABEL)]
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+def test_bootstrapped_runtime_workflow_dispatch_check_overdue_preserves_touched_item_projection(monkeypatch):
+    state = make_state()
+    runtime, label_ops = _configure_bootstrapped_runtime_with_real_status_projection(
+        monkeypatch, state, issue_state="open"
+    )
+    monkeypatch.setattr(
+        maintenance_schedule,
+        "handle_scheduled_check_result",
+        lambda bot, current: maintenance.ScheduleHandlerResult(False, [42]),
+    )
+    monkeypatch.setenv("EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("EVENT_ACTION", "")
+    monkeypatch.setenv("MANUAL_ACTION", "check-overdue")
+
+    result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert label_ops == [("remove", STATUS_AWAITING_REVIEWER_RESPONSE_LABEL)]
     assert runtime.ACTIVE_LEASE_CONTEXT is None
 
 

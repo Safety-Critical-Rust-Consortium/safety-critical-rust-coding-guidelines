@@ -144,6 +144,31 @@ def test_claim_command_posts_pr_guidance_on_success(monkeypatch):
     assert posted == [guidance.get_pr_guidance("felix91gr", "PLeVasseur")]
 
 
+def test_assign_command_uses_guidance_owner_for_fls_issue_guidance(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    state["queue"] = [{"github": "felix91gr", "name": "Félix Fischer"}]
+    request = harness.typed_assignment_request(
+        issue_number=42,
+        issue_author="PLeVasseur",
+        is_pull_request=False,
+        issue_labels=(FLS_AUDIT_LABEL,),
+    )
+    harness.stub_assignees([])
+    harness.stub_assignment()
+    harness.runtime.get_fls_audit_guidance = lambda *args, **kwargs: pytest.fail(
+        "commands.py should use guidance.get_fls_audit_guidance directly"
+    )
+    posted = []
+    harness.runtime.github.post_comment = lambda issue_number, body: posted.append(body) or True
+
+    response, success = harness.handle_assign(state, 42, "@felix91gr", request=request)
+
+    assert success is True
+    assert response == "✅ @felix91gr has been assigned as reviewer."
+    assert posted == [guidance.get_fls_audit_guidance("felix91gr", "PLeVasseur")]
+
+
 def test_pass_command_posts_pr_guidance_for_new_reviewer(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()

@@ -155,6 +155,21 @@ def test_finalize_schedule_result_drains_touched_items_for_projection_followup(m
     assert bot.drain_touched_items() == []
 
 
+def test_manual_dispatch_check_overdue_preserves_touched_items_for_projection_followup(monkeypatch):
+    bot = FakeReviewerBotRuntime(monkeypatch)
+    bot.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    bot.set_config_value("MANUAL_ACTION", "check-overdue")
+    monkeypatch.setattr(
+        maintenance_schedule,
+        "handle_scheduled_check_result",
+        lambda runtime, current: maintenance.ScheduleHandlerResult(False, [42, 99]),
+    )
+
+    assert maintenance.handle_manual_dispatch(bot, state) is False
+    assert bot.drain_touched_items() == [42, 99]
+
+
 def test_scheduled_check_clears_head_observation_repair_marker_after_success(monkeypatch):
     state = make_state()
     review = review_state.ensure_review_entry(state, 42, create=True)

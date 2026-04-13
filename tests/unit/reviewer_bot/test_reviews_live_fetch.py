@@ -327,12 +327,19 @@ def test_trigger_mandatory_approver_escalation_sets_required_label_and_ping(monk
     review = make_tracked_review_state(state, 42, reviewer="alice")
     comments = []
     labels = []
+
+    def github_api_request(method, endpoint, data=None, extra_headers=None, **kwargs):
+        assert method == "POST"
+        assert endpoint == "issues/42/labels"
+        labels.append((42, data["labels"][0]))
+        return SimpleNamespace(status_code=200, text="ok")
+
     runtime = SimpleNamespace(
         github=SimpleNamespace(
             ensure_label_exists=lambda label: True,
             post_comment=lambda issue_number, body: comments.append((issue_number, body)) or True,
         ),
-        add_label_with_status=lambda issue_number, label: labels.append((issue_number, label)) or True,
+        github_api_request=github_api_request,
         logger=SimpleNamespace(event=lambda *args, **kwargs: None),
     )
     monkeypatch.setattr(reviews, "_now_iso", lambda: "2026-03-21T10:00:00+00:00")
@@ -375,8 +382,15 @@ def test_satisfy_mandatory_approver_requirement_clears_required_and_records_sati
     review["mandatory_approver_required"] = True
     removed = []
     comments = []
+
+    def github_api_request(method, endpoint, data=None, extra_headers=None, **kwargs):
+        assert method == "DELETE"
+        assert endpoint.startswith("issues/42/labels/")
+        removed.append((42, reviews.MANDATORY_TRIAGE_APPROVER_LABEL))
+        return SimpleNamespace(status_code=204, text="ok")
+
     runtime = SimpleNamespace(
-        remove_label_with_status=lambda issue_number, label: removed.append((issue_number, label)) or True,
+        github_api_request=github_api_request,
         github=SimpleNamespace(post_comment=lambda issue_number, body: comments.append((issue_number, body)) or True),
         logger=SimpleNamespace(event=lambda *args, **kwargs: None),
     )

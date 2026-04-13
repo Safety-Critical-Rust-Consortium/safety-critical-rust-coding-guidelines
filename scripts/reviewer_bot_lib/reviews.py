@@ -140,6 +140,8 @@ def is_triage_or_higher(bot, username: str) -> bool:
 def trigger_mandatory_approver_escalation(bot, state: dict, issue_number: int) -> bool:
     from scripts.reviewer_bot_core import mandatory_approver_policy
 
+    from . import github_api
+
     review_data = review_state.ensure_review_entry(state, issue_number, create=True)
     if review_data is None:
         return False
@@ -156,7 +158,7 @@ def trigger_mandatory_approver_escalation(bot, state: dict, issue_number: int) -
         state_changed = True
     if decision["attempt_label_apply"]:
         try:
-            if bot.add_label_with_status(issue_number, MANDATORY_TRIAGE_APPROVER_LABEL):
+            if github_api.add_label_with_status(bot, issue_number, MANDATORY_TRIAGE_APPROVER_LABEL):
                 if decision["record_label_applied_at"]:
                     review_data["mandatory_approver_label_applied_at"] = str(decision["now"])
                     state_changed = True
@@ -172,6 +174,8 @@ def trigger_mandatory_approver_escalation(bot, state: dict, issue_number: int) -
 def satisfy_mandatory_approver_requirement(bot, state: dict, issue_number: int, approver: str) -> bool:
     from scripts.reviewer_bot_core import mandatory_approver_policy
 
+    from . import github_api
+
     review_data = review_state.ensure_review_entry(state, issue_number, create=True)
     if review_data is None:
         return False
@@ -186,7 +190,7 @@ def satisfy_mandatory_approver_requirement(bot, state: dict, issue_number: int, 
     review_data["mandatory_approver_satisfied_by"] = str(decision["approver"])
     review_data["mandatory_approver_satisfied_at"] = str(decision["now"])
     try:
-        bot.remove_label_with_status(issue_number, MANDATORY_TRIAGE_APPROVER_LABEL)
+        github_api.remove_label_with_status(bot, issue_number, MANDATORY_TRIAGE_APPROVER_LABEL)
     except RuntimeError as exc:
         _log(bot, "warning", f"Unable to remove escalation label on #{issue_number}: {exc}", issue_number=issue_number, error=str(exc))
     bot.github.post_comment(issue_number, MANDATORY_TRIAGE_SATISFIED_TEMPLATE.format(approver=approver))
@@ -332,6 +336,8 @@ def project_status_labels_for_item(
 
 
 def sync_status_labels(bot, issue_number: int, desired_labels: set[str], actual_labels: Iterable[str]) -> bool:
+    from . import github_api
+
     actual_status_labels = {label for label in actual_labels if label in STATUS_LABELS}
     to_add = desired_labels - actual_status_labels
     to_remove = actual_status_labels - desired_labels
@@ -342,11 +348,11 @@ def sync_status_labels(bot, issue_number: int, desired_labels: set[str], actual_
             raise RuntimeError(f"Unable to ensure reviewer-bot status label exists: {label}")
     changed = False
     for label in sorted(to_remove):
-        if not bot.remove_label_with_status(issue_number, label):
+        if not github_api.remove_label_with_status(bot, issue_number, label):
             raise RuntimeError(f"Unable to remove reviewer-bot status label '{label}' from #{issue_number}")
         changed = True
     for label in sorted(to_add):
-        if not bot.add_label_with_status(issue_number, label):
+        if not github_api.add_label_with_status(bot, issue_number, label):
             raise RuntimeError(f"Unable to add reviewer-bot status label '{label}' to #{issue_number}")
         changed = True
     return changed
@@ -356,7 +362,7 @@ def sync_status_labels_for_items(bot, state: dict, issue_numbers: Iterable[int])
     changed = False
     for issue_number in sorted({n for n in issue_numbers if isinstance(n, int) and n > 0}):
         issue_snapshot = bot.github.get_issue_or_pr_snapshot(issue_number)
-        desired_labels, metadata = bot.project_status_labels_for_item(issue_number, state, issue_snapshot=issue_snapshot)
+        desired_labels, metadata = project_status_labels_for_item(bot, issue_number, state, issue_snapshot=issue_snapshot)
         if desired_labels is None:
             reason = metadata.get("reason") if isinstance(metadata, dict) else "unknown"
             raise RuntimeError(f"Failed to derive reviewer-bot status labels for #{issue_number}: {reason}")
@@ -370,7 +376,7 @@ def sync_status_labels_for_items(bot, state: dict, issue_numbers: Iterable[int])
                     name = label.get("name")
                     if isinstance(name, str):
                         actual_labels.add(name)
-        if bot.sync_status_labels(issue_number, desired_labels, actual_labels):
+        if sync_status_labels(bot, issue_number, desired_labels, actual_labels):
             changed = True
     return changed
 

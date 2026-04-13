@@ -106,6 +106,24 @@ def test_handle_transition_notice_message_does_not_claim_reassignment(monkeypatc
     assert "/pass" in posted[0]
 
 
+@pytest.mark.parametrize("config_value", [None, ""])
+def test_handle_transition_notice_skips_cutover_artifact_write_when_opencode_config_dir_is_blank_or_unset(
+    monkeypatch, tmp_path, config_value
+):
+    monkeypatch.chdir(tmp_path)
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    state = make_state()
+    review_state.ensure_review_entry(state, 42, create=True)
+    runtime.github.post_comment = lambda issue_number, body: True
+    if config_value is not None:
+        runtime.set_config_value("OPENCODE_CONFIG_DIR", config_value)
+
+    assert lifecycle.handle_transition_notice(runtime, state, 42, "alice") is True
+    assert not (
+        tmp_path / "reviewer-bot" / "maintainability-remediation" / "transition-notice-marker-cutover.json"
+    ).exists()
+
+
 def test_l1_fake_runtime_and_bootstrap_keep_override_wiring_explicit_without_canonical_introspection():
     fake_runtime_text = Path("tests/fixtures/fake_runtime.py").read_text(encoding="utf-8")
     bootstrap_text = Path("scripts/reviewer_bot_lib/bootstrap_runtime.py").read_text(encoding="utf-8")

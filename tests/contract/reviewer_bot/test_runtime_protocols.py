@@ -38,6 +38,15 @@ def _assert_core_runtime_surface(runtime) -> None:
     assert runtime.domain.locks is runtime.locks
     assert runtime.domain.handlers is runtime.handlers
 
+    for helper_name in (
+        "project_status_labels_for_item",
+        "sync_status_labels",
+        "add_label_with_status",
+        "remove_label_with_status",
+        "get_fls_audit_guidance",
+    ):
+        assert hasattr(runtime, helper_name) is False
+
 
 def test_fake_runtime_default_lock_state_matches_production_contract(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
