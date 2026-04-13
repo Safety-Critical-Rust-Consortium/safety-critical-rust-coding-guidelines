@@ -69,6 +69,31 @@ def test_handle_workflow_run_event_returns_true_for_submitted_review_bookkeeping
     assert "pull_request_review:11" not in _deferred_gaps(review)
 
 
+def test_late_workflow_run_reconcile_does_not_recreate_removed_review_entry(monkeypatch):
+    state = make_state()
+    harness = ReconcileHarness(
+        monkeypatch,
+        issue_comment_payload(
+            pr_number=42,
+            comment_id=210,
+            source_event_key="issue_comment:210",
+            body="@guidelines-bot /queue",
+            comment_class="command_only",
+            has_non_command_text=False,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="bob",
+            source_run_id=610,
+            source_run_attempt=1,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="No active review entry available for PR #42"):
+        reconcile.handle_workflow_run_event_result(harness.runtime, state)
+
+    assert state["active_reviews"] == {}
+    assert harness.runtime.drain_touched_items() == []
+
+
 def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raising(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")
@@ -102,6 +127,7 @@ def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raisi
 
 def test_handle_workflow_run_event_treats_observer_noop_payload_as_no_mutation(monkeypatch):
     state = make_state(epoch="freshness_v15")
+    make_tracked_review_state(state, 42, reviewer="alice")
     harness = ReconcileHarness(
         monkeypatch,
         {

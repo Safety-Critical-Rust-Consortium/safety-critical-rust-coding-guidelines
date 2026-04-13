@@ -593,10 +593,10 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
     pr_number = parsed_payload.pr_number
     if pr_number <= 0:
         raise RuntimeError("Deferred context is missing a valid PR number")
-    bot.collect_touched_item(pr_number)
-    review_data = ensure_review_entry(state, pr_number, create=True)
+    review_data = ensure_review_entry(state, pr_number)
     if review_data is None:
-        raise RuntimeError(f"No review entry available for PR #{pr_number}")
+        raise RuntimeError(f"No active review entry available for PR #{pr_number}")
+    bot.collect_touched_item(pr_number)
     try:
         handler = _workflow_run_handler_for_payload(parsed_payload)
         if handler is None:

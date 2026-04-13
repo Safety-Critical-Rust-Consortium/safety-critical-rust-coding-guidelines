@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +15,10 @@ from tests.fixtures.fake_runtime import FakeReviewerBotRuntime
 from tests.fixtures.reconcile_harness import review_comment_payload
 from tests.fixtures.reviewer_bot import make_state
 from tests.fixtures.reviewer_bot_fakes import RouteGitHubApi, github_result
+
+
+def _load_fixture_payload(relative_path: str) -> dict:
+    return json.loads(Path(relative_path).read_text(encoding="utf-8"))["payload"]
 
 
 def test_review_comment_artifact_identity_validation(monkeypatch):
@@ -85,6 +91,56 @@ def test_validate_workflow_run_artifact_identity_accepts_matching_contract():
     }
 
     reconcile_payloads.validate_workflow_run_artifact_identity(bot, payload)
+
+
+@pytest.mark.parametrize(
+    ("fixture_path", "expected_workflow_name", "expected_workflow_file", "expected_artifact_name", "expected_payload_name"),
+    [
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json",
+            "Reviewer Bot PR Comment Router",
+            ".github/workflows/reviewer-bot-pr-comment-router.yml",
+            "reviewer-bot-comment-context-401-attempt-3",
+            "deferred-comment.json",
+        ),
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_review_comment_deferred.json",
+            "Reviewer Bot PR Review Comment Observer",
+            ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+            "reviewer-bot-review-comment-context-404-attempt-6",
+            "deferred-review-comment.json",
+        ),
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_review_submitted_deferred.json",
+            "Reviewer Bot PR Review Submitted Observer",
+            ".github/workflows/reviewer-bot-pr-review-submitted-observer.yml",
+            "reviewer-bot-review-submitted-context-402-attempt-4",
+            "deferred-review-submitted.json",
+        ),
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_review_dismissed_deferred.json",
+            "Reviewer Bot PR Review Dismissed Observer",
+            ".github/workflows/reviewer-bot-pr-review-dismissed-observer.yml",
+            "reviewer-bot-review-dismissed-context-403-attempt-5",
+            "deferred-review-dismissed.json",
+        ),
+    ],
+)
+def test_deferred_artifact_expected_helpers_match_v3_payload_contract(
+    fixture_path,
+    expected_workflow_name,
+    expected_workflow_file,
+    expected_artifact_name,
+    expected_payload_name,
+):
+    payload = _load_fixture_payload(fixture_path)
+
+    assert reconcile_payloads.expected_observer_identity(payload) == (
+        expected_workflow_name,
+        expected_workflow_file,
+    )
+    assert reconcile_payloads.artifact_expected_name(payload) == expected_artifact_name
+    assert reconcile_payloads.artifact_expected_payload_name(payload) == expected_payload_name
 
 
 def test_read_reconcile_object_fails_closed_for_unavailable(monkeypatch):

@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 pytestmark = pytest.mark.contract
 
@@ -12,6 +13,12 @@ from scripts.reviewer_bot_lib import reconcile_payloads
 def _load_fixture_payload(relative_path: str) -> dict:
     data = json.loads(Path(relative_path).read_text(encoding="utf-8"))
     return data["payload"]
+
+
+def _load_workflow_job(relative_path: str) -> dict:
+    workflow = yaml.safe_load(Path(relative_path).read_text(encoding="utf-8"))
+    job_name = "route-pr-comment" if relative_path.endswith("reviewer-bot-pr-comment-router.yml") else "observer"
+    return workflow["jobs"][job_name]
 
 
 @pytest.mark.parametrize(
@@ -75,6 +82,49 @@ def test_deferred_comment_payload_parses_without_artifact_name_field():
     parsed = reconcile_payloads.parse_deferred_context_payload(payload)
 
     assert parsed.identity.source_event_name == "issue_comment"
+
+
+@pytest.mark.parametrize(
+    ("fixture_path", "workflow_path"),
+    [
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json",
+            ".github/workflows/reviewer-bot-pr-comment-router.yml",
+        ),
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_review_submitted_deferred.json",
+            ".github/workflows/reviewer-bot-pr-review-submitted-observer.yml",
+        ),
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_review_dismissed_deferred.json",
+            ".github/workflows/reviewer-bot-pr-review-dismissed-observer.yml",
+        ),
+        (
+            "tests/fixtures/observer_payloads/workflow_pr_review_comment_deferred.json",
+            ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+        ),
+    ],
+)
+def test_deferred_payload_fixtures_match_upload_name_and_payload_name_helpers(
+    fixture_path, workflow_path
+):
+    payload = _load_fixture_payload(fixture_path)
+    job = _load_workflow_job(workflow_path)
+    build_step = job["steps"][0]
+    upload_step = job["steps"][1]
+    rendered_upload_name = (
+        upload_step["with"]["name"]
+        .replace("${{ github.run_id }}", str(payload["source_run_id"]))
+        .replace("${{ github.run_attempt }}", str(payload["source_run_attempt"]))
+    )
+
+    assert rendered_upload_name == reconcile_payloads.artifact_expected_name(payload)
+    assert build_step["env"]["PAYLOAD_PATH"].endswith(
+        reconcile_payloads.artifact_expected_payload_name(payload)
+    )
+    assert upload_step["with"]["path"].endswith(
+        reconcile_payloads.artifact_expected_payload_name(payload)
+    )
 
 
 def test_validate_workflow_run_artifact_identity_rejects_run_attempt_mismatch(monkeypatch):

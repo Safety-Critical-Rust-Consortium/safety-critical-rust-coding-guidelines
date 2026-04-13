@@ -2,6 +2,7 @@ import pytest
 
 from scripts.reviewer_bot_lib import review_state
 from tests.fixtures.app_harness import AppHarness
+from tests.fixtures.reconcile_harness import issue_comment_payload
 from tests.fixtures.reviewer_bot import make_state
 
 pytestmark = pytest.mark.integration
@@ -91,3 +92,50 @@ def test_execute_run_closed_issue_comment_without_entry_skips_save(monkeypatch):
     assert result.exit_code == 0
     assert save_called["value"] is False
     assert sync_calls == [[42]]
+
+
+def test_execute_run_late_workflow_run_reconcile_does_not_recreate_removed_review_entry(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_workflow_run_name("Reviewer Bot PR Comment Router")
+    harness.set_event(
+        EVENT_NAME="workflow_run",
+        EVENT_ACTION="completed",
+        REVIEWER_BOT_WORKFLOW_KIND="reconcile",
+        WORKFLOW_RUN_TRIGGERING_CONCLUSION="success",
+        WORKFLOW_RUN_TRIGGERING_ID="610",
+        WORKFLOW_RUN_TRIGGERING_ATTEMPT="1",
+    )
+    harness.runtime.stub_deferred_payload(
+        issue_comment_payload(
+            pr_number=42,
+            comment_id=210,
+            source_event_key="issue_comment:210",
+            body="@guidelines-bot /queue",
+            comment_class="command_only",
+            has_non_command_text=False,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="bob",
+            source_run_id=610,
+            source_run_attempt=1,
+        )
+    )
+
+    state = make_state()
+    save_called = {"value": False}
+    sync_calls = []
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.stub_save_state(lambda current: save_called.__setitem__("value", True) or True)
+    harness.stub_sync_status_labels(
+        lambda current, issue_numbers: sync_calls.append(list(issue_numbers)) or False
+    )
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 1
+    assert state["active_reviews"] == {}
+    assert save_called["value"] is False
+    assert sync_calls == []

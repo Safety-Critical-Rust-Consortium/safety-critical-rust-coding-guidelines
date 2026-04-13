@@ -138,6 +138,16 @@ def test_workflow_summaries_and_runbook_references_exist():
     assert "docs/reviewer-bot-review-freshness-operator-runbook.md" in reconcile
 
 
+def test_reconcile_workflow_selects_at_most_one_recursive_json_payload():
+    workflow_text = Path(".github/workflows/reviewer-bot-reconcile.yml").read_text(encoding="utf-8")
+
+    assert "files = sorted(Path(os.environ['RUNNER_TEMP']).joinpath('observer-artifact').rglob('*.json'))" in workflow_text
+    assert "if len(files) > 1:" in workflow_text
+    assert "Expected at most one deferred payload" in workflow_text
+    assert "if len(files) == 1:" in workflow_text
+    assert "DEFERRED_CONTEXT_PATH=" in workflow_text
+
+
 @pytest.mark.parametrize(
     ("fixture_path", "workflow_file", "payload_kind", "expected_event_name", "expected_event_action"),
     [
