@@ -18,11 +18,22 @@ def _make_bot(*, ensure_label_exists=True, add_label_result=True, post_comment_r
     comments = []
     labels_added = []
     labels_removed = []
+
+    def github_api_request(method, endpoint, data=None, extra_headers=None, **kwargs):
+        if method == "POST" and endpoint == "issues/42/labels":
+            labels_added.append((42, data["labels"][0]))
+            return SimpleNamespace(status_code=200 if add_label_result else 500, text="ok")
+        if method == "DELETE" and endpoint.startswith("issues/42/labels/"):
+            labels_removed.append((42, reviews.MANDATORY_TRIAGE_APPROVER_LABEL))
+            return SimpleNamespace(status_code=403 if remove_label_error else 204, text="ok")
+        raise AssertionError((method, endpoint, data))
+
     bot = SimpleNamespace(
         github=SimpleNamespace(
             ensure_label_exists=lambda label: ensure_label_exists,
             post_comment=lambda issue_number, body: comments.append((issue_number, body)) or post_comment_result,
         ),
+        github_api_request=github_api_request,
         add_label_with_status=lambda issue_number, label: labels_added.append((issue_number, label)) or add_label_result,
         remove_label_with_status=(
             (lambda issue_number, label: (_ for _ in ()).throw(RuntimeError("remove failed")))
