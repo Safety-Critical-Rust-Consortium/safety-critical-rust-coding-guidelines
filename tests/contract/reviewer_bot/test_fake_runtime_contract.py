@@ -164,7 +164,8 @@ def test_fake_runtime_exposes_retained_runtime_labels_and_lock_helpers(monkeypat
     assert hasattr(runtime, "normalize_lock_metadata")
     assert hasattr(runtime, "get_state_issue")
     assert hasattr(runtime, "get_state_issue_snapshot")
-    assert hasattr(runtime, "conditional_patch_state_issue")
+    assert hasattr(runtime, "patch_state_issue")
+    assert hasattr(runtime, "conditional_patch_state_issue") is False
     assert hasattr(runtime, "render_state_issue_body")
     assert hasattr(runtime, "get_lock_ref_snapshot")
     assert hasattr(runtime, "renew_state_issue_lease_lock")

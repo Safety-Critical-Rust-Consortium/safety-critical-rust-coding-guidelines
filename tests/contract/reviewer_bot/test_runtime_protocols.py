@@ -39,6 +39,7 @@ def _assert_core_runtime_surface(runtime) -> None:
     assert runtime.domain.handlers is runtime.handlers
 
     for helper_name in (
+        "conditional_patch_state_issue",
         "project_status_labels_for_item",
         "sync_status_labels",
         "add_label_with_status",

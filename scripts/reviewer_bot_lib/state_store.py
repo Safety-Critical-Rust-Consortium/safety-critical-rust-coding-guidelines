@@ -293,14 +293,12 @@ def get_state_issue_snapshot(bot: StateStoreContext) -> StateIssueSnapshot | Non
     return StateIssueSnapshot(body=body, etag=response.headers.get("etag"), html_url=html_url)
 
 
-def conditional_patch_state_issue(bot: StateStoreContext, body: str, etag: str | None = None):
+def patch_state_issue(bot: StateStoreContext, body: str):
     state_issue_number = _state_issue_number(bot)
-    extra_headers = {"If-Match": etag} if isinstance(etag, str) and etag else None
     return bot.github_api_request(
         "PATCH",
         f"issues/{state_issue_number}",
         {"body": body},
-        extra_headers=extra_headers,
         suppress_error_log=True,
     )
 
@@ -379,23 +377,10 @@ def save_state(bot: StateStoreContext, state: dict) -> bool:
 
         body = bot.render_state_issue_body(state, snapshot.body)
 
-        response = bot.conditional_patch_state_issue(body, snapshot.etag)
+        response = bot.patch_state_issue(body)
         if response.status_code == 200:
             _log(bot, "info", f"State saved to issue #{state_issue_number}", state_issue_number=state_issue_number)
             return True
-
-        if response.status_code in {409, 412}:
-            _log(
-                bot,
-                "warning",
-                f"State save hit conflict (status {response.status_code}); retrying ({attempt}/{lock_api_retry_limit})",
-                state_issue_number=state_issue_number,
-                status_code=response.status_code,
-                retry_attempt=attempt,
-            )
-            delay = _retry_delay(bot, lock_retry_base_seconds, attempt)
-            _sleep(bot, delay)
-            continue
 
         if response.status_code == 404:
             _log(bot, "error", f"State issue #{state_issue_number} not found during save_state", state_issue_number=state_issue_number)

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse
 
 import pytest
 
@@ -10,10 +10,13 @@ from scripts.reviewer_bot_lib import (
     maintenance,
     maintenance_schedule,
     reconcile,
+    state_store,
 )
 from scripts.reviewer_bot_lib.config import STATUS_AWAITING_REVIEWER_RESPONSE_LABEL
 from tests.fixtures.app_harness import AppHarness
+from tests.fixtures.http_responses import FakeGitHubResponse
 from tests.fixtures.reviewer_bot import make_state, make_tracked_review_state
+from tests.fixtures.reviewer_bot_fakes import RouteGitHubApi, github_result
 
 pytestmark = pytest.mark.integration
 
@@ -59,6 +62,27 @@ def _configure_bootstrapped_runtime_with_real_status_projection(monkeypatch, sta
     )
     monkeypatch.setattr(runtime, "github_api_request", github_api_request)
     return runtime, label_ops
+
+
+def _route_bootstrapped_rest_request(routes: RouteGitHubApi):
+    def request(method, url, *, headers=None, json_data=None, timeout_seconds=None):
+        parts = urlparse(url).path.strip("/").split("/")
+        endpoint = "/".join(parts[3:])
+        result = routes.github_api_request(
+            method,
+            endpoint,
+            data=json_data,
+            extra_headers=headers,
+            timeout_seconds=timeout_seconds,
+        )
+        return FakeGitHubResponse(
+            result.status_code or 0,
+            payload=result.payload,
+            text=result.text,
+            headers=result.headers,
+        )
+
+    return request
 
 
 def test_app_harness_exposes_focused_runtime_services(monkeypatch):
@@ -398,6 +422,83 @@ def test_bootstrapped_runtime_workflow_dispatch_check_overdue_preserves_touched_
     assert result.state_changed is True
     assert label_ops == [("remove", STATUS_AWAITING_REVIEWER_RESPONSE_LABEL)]
     assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+def test_bootstrapped_runtime_workflow_dispatch_check_overdue_uses_real_save_state_without_conditional_issue_headers(
+    monkeypatch,
+):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    state["status_projection_epoch"] = runtime.STATUS_PROJECTION_EPOCH
+    issue_number = "314"
+    issue_body = state_store.render_state_issue_body(state)
+    routes = RouteGitHubApi().add_request_sequence(
+        "GET",
+        f"issues/{issue_number}",
+        [
+            github_result(
+                200,
+                {"body": issue_body, "html_url": f"https://example.com/issues/{issue_number}"},
+                headers={"ETag": '"etag-1"'},
+            ),
+            github_result(
+                200,
+                {"body": issue_body, "html_url": f"https://example.com/issues/{issue_number}"},
+                headers={"ETag": '"etag-2"'},
+            ),
+        ],
+    ).add_request(
+        "PATCH",
+        f"issues/{issue_number}",
+        status_code=200,
+        payload={"body": "updated"},
+    )
+
+    def acquire_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = object()
+        return runtime.ACTIVE_LEASE_CONTEXT
+
+    def release_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = None
+        return True
+
+    def handle_scheduled_check_result(bot, current_state):
+        del bot
+        current_state["current_index"] = 1
+        return maintenance.ScheduleHandlerResult(True, [])
+
+    monkeypatch.setattr(runtime.locks, "acquire", acquire_lock)
+    monkeypatch.setattr(runtime.locks, "release", release_lock)
+    monkeypatch.setattr(runtime.locks, "refresh", lambda: True)
+    monkeypatch.setattr(runtime.rest_transport, "request", _route_bootstrapped_rest_request(routes))
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(maintenance_schedule, "handle_scheduled_check_result", handle_scheduled_check_result)
+    monkeypatch.setenv("EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("EVENT_ACTION", "")
+    monkeypatch.setenv("MANUAL_ACTION", "check-overdue")
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    monkeypatch.setenv("REPO_OWNER", "rustfoundation")
+    monkeypatch.setenv("REPO_NAME", "safety-critical-rust-coding-guidelines")
+    monkeypatch.setenv("STATE_ISSUE_NUMBER", issue_number)
+
+    result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+    assert sum(
+        1
+        for call in routes.request_calls
+        if call.method == "GET" and call.endpoint == f"issues/{issue_number}"
+    ) >= 2
+    patch_call = routes.request_calls[-1]
+    assert patch_call.method == "PATCH"
+    assert patch_call.endpoint == f"issues/{issue_number}"
+    assert patch_call.data is not None
+    assert "current_index: 1" in patch_call.data["body"]
+    assert patch_call.extra_headers is not None
+    assert all(header_name.lower() != "if-match" for header_name in patch_call.extra_headers)
 
 
 def test_d4a_app_branch_to_phase_map_is_frozen_pre_edit():

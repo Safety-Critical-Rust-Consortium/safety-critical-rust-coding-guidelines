@@ -80,7 +80,7 @@ def test_get_state_issue_snapshot_uses_retry_aware_read(monkeypatch):
     assert observed["retry_policy"] == "idempotent_read"
 
 
-def test_conditional_patch_state_issue_sends_if_match_header(monkeypatch):
+def test_patch_state_issue_uses_plain_issue_write_request(monkeypatch):
     observed = {}
 
     def fake_request(method, endpoint, data=None, extra_headers=None, **kwargs):
@@ -98,26 +98,12 @@ def test_conditional_patch_state_issue_sends_if_match_header(monkeypatch):
 
     bot = _bot(monkeypatch, STATE_ISSUE_NUMBER=1, github_api_request=fake_request)
 
-    state_store.conditional_patch_state_issue(bot, "updated", '"etag-1"')
-
-    assert observed["extra_headers"] == {"If-Match": '"etag-1"'}
-
-
-def test_conditional_patch_state_issue_omits_if_match_when_etag_missing(monkeypatch):
-    observed = {}
-
-    def fake_request(method, endpoint, data=None, extra_headers=None, **kwargs):
-        observed["extra_headers"] = extra_headers
-        return GitHubApiResult(200, {"body": data["body"]}, {}, "ok", True, None, 0, None)
-
-    bot = _bot(monkeypatch, STATE_ISSUE_NUMBER=1, github_api_request=fake_request)
-
-    state_store.conditional_patch_state_issue(bot, "updated", None)
+    state_store.patch_state_issue(bot, "updated")
 
     assert observed["extra_headers"] is None
 
 
-def test_save_state_retries_precondition_failed_conflict_uses_injected_time_services(monkeypatch):
+def test_save_state_retries_retryable_write_failure_uses_injected_time_services(monkeypatch):
     state = make_state()
     snapshot = StateIssueSnapshot(
         body="body",
@@ -126,7 +112,7 @@ def test_save_state_retries_precondition_failed_conflict_uses_injected_time_serv
     )
     responses = iter(
         [
-            GitHubApiResult(412, {"message": "precondition failed"}, {}, "precondition failed", False, None, 0, None),
+            GitHubApiResult(502, {"message": "bad gateway"}, {}, "bad gateway", False, None, 0, None),
             GitHubApiResult(200, {"body": "updated"}, {}, "ok", True, None, 0, None),
         ]
     )
@@ -141,9 +127,8 @@ def test_save_state_retries_precondition_failed_conflict_uses_injected_time_serv
     bot.ACTIVE_LEASE_CONTEXT = object()
     bot.locks.stub(refresh=lambda: True)
     bot.get_state_issue_snapshot = lambda: snapshot
-    bot.parse_lock_metadata_from_issue_body = lambda body: {}
     bot.render_state_issue_body = lambda state_obj, base_body: "updated"
-    bot.conditional_patch_state_issue = lambda body, etag=None: next(responses)
+    bot.patch_state_issue = lambda body: next(responses)
 
     assert state_store.save_state(bot, state) is True
     assert state["last_updated"] == clock.now().isoformat()

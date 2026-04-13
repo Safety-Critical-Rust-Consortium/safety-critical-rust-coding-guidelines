@@ -427,8 +427,8 @@ class ReviewerBotRuntime:
     def get_state_issue_snapshot(self):
         return self.adapters.state_lock.get_state_issue_snapshot()
 
-    def conditional_patch_state_issue(self, body: str, etag: str | None = None):
-        return self.adapters.state_lock.conditional_patch_state_issue(body, etag)
+    def patch_state_issue(self, body: str):
+        return self.adapters.state_lock.patch_state_issue(body)
 
     def render_state_issue_body(self, state: dict, base_body: str | None = None, *, preserve_state_block: bool = False):
         return self.adapters.state_lock.render_state_issue_body(

@@ -213,7 +213,7 @@ class FakeRuntimeAdapterServices:
                 "get_state_issue",
                 "clear_lock_metadata",
                 "get_state_issue_snapshot",
-                "conditional_patch_state_issue",
+                "patch_state_issue",
                 "render_state_issue_body",
                 "get_state_issue_html_url",
                 "get_lock_ref_display",
@@ -402,8 +402,8 @@ class FakeRuntimeStateLockCompatibility:
     def get_state_issue_snapshot(self):
         return state_store_module.get_state_issue_snapshot(self._runtime)
 
-    def conditional_patch_state_issue(self, body: str, etag: str | None = None):
-        return state_store_module.conditional_patch_state_issue(self._runtime, body, etag)
+    def patch_state_issue(self, body: str):
+        return state_store_module.patch_state_issue(self._runtime, body)
 
     def render_state_issue_body(self, state: dict, base_body: str | None = None, *, preserve_state_block: bool = False):
         return state_store_module.render_state_issue_body(state, base_body, preserve_state_block=preserve_state_block)
@@ -620,8 +620,8 @@ class FakeReviewerBotRuntime:
     def get_state_issue_snapshot(self):
         return self.compat.state_lock.get_state_issue_snapshot()
 
-    def conditional_patch_state_issue(self, body: str, etag: str | None = None):
-        return self.compat.state_lock.conditional_patch_state_issue(body, etag)
+    def patch_state_issue(self, body: str):
+        return self.compat.state_lock.patch_state_issue(body)
 
     def render_state_issue_body(self, state: dict, base_body: str | None = None, *, preserve_state_block: bool = False):
         return self.compat.state_lock.render_state_issue_body(

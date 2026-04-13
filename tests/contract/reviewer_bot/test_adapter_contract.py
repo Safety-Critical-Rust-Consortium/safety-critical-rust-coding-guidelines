@@ -544,6 +544,8 @@ def test_bootstrap_runtime_wires_explicit_adapter_services():
     assert hasattr(runtime.adapters.commands, "handle_pass_command")
     assert hasattr(runtime.adapters.queue, "get_next_reviewer")
     assert hasattr(runtime.adapters.state_lock, "assert_lock_held")
+    assert hasattr(runtime.adapters.state_lock, "patch_state_issue")
+    assert hasattr(runtime.adapters.state_lock, "conditional_patch_state_issue") is False
     assert hasattr(runtime.adapters.state_lock, "render_state_issue_body")
 
 

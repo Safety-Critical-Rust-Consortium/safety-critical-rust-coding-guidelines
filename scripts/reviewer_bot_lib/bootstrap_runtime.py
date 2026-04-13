@@ -337,8 +337,8 @@ class _BootstrapStateLockAdapterServices:
     def get_state_issue_snapshot(self):
         return state_store.get_state_issue_snapshot(self._runtime())
 
-    def conditional_patch_state_issue(self, body, etag=None):
-        return state_store.conditional_patch_state_issue(self._runtime(), body, etag)
+    def patch_state_issue(self, body):
+        return state_store.patch_state_issue(self._runtime(), body)
 
     def render_state_issue_body(self, current_state, base_body=None, *, preserve_state_block=False):
         return state_store.render_state_issue_body(current_state, base_body, preserve_state_block=preserve_state_block)
