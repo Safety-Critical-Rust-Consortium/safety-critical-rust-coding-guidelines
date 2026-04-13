@@ -252,6 +252,8 @@ def test_handle_workflow_run_event_result_collects_touched_item(monkeypatch):
         }
     )
     state = make_state(epoch="freshness_v15")
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
 
     result = reconcile.handle_workflow_run_event_result(runtime, state)
 
