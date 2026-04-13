@@ -8,7 +8,10 @@ pytestmark = pytest.mark.contract
 
 
 def _base() -> Path:
-    return Path(os.environ["OPENCODE_CONFIG_DIR"]) / "reviewer-bot" / "maintainability-remediation"
+    config_dir = os.environ.get("OPENCODE_CONFIG_DIR", "").strip()
+    if not config_dir:
+        pytest.skip("OPENCODE_CONFIG_DIR is required for the local Stage 2 completion gate")
+    return Path(config_dir) / "reviewer-bot" / "maintainability-remediation"
 
 
 def _load(name: str) -> dict:
