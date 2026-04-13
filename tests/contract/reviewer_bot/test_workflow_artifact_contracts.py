@@ -105,26 +105,24 @@ def test_deferred_comment_payload_parses_without_artifact_name_field():
         ),
     ],
 )
-def test_deferred_payload_fixtures_match_upload_name_and_payload_name_helpers(
+def test_deferred_payload_fixtures_do_not_require_exact_artifact_name_helpers(
     fixture_path, workflow_path
 ):
     payload = _load_fixture_payload(fixture_path)
     job = _load_workflow_job(workflow_path)
     build_step = job["steps"][0]
     upload_step = job["steps"][1]
-    rendered_upload_name = (
-        upload_step["with"]["name"]
-        .replace("${{ github.run_id }}", str(payload["source_run_id"]))
-        .replace("${{ github.run_attempt }}", str(payload["source_run_attempt"]))
-    )
 
-    assert rendered_upload_name == reconcile_payloads.artifact_expected_name(payload)
-    assert build_step["env"]["PAYLOAD_PATH"].endswith(
-        reconcile_payloads.artifact_expected_payload_name(payload)
-    )
-    assert upload_step["with"]["path"].endswith(
-        reconcile_payloads.artifact_expected_payload_name(payload)
-    )
+    payload_without_artifact_name = dict(payload)
+    payload_without_artifact_name.pop("source_artifact_name", None)
+
+    parsed = reconcile_payloads.parse_deferred_context_payload(payload_without_artifact_name)
+
+    assert parsed.identity.source_run_id == payload["source_run_id"]
+    assert parsed.identity.source_run_attempt == payload["source_run_attempt"]
+    assert isinstance(upload_step["with"]["name"], str) and upload_step["with"]["name"]
+    assert build_step["env"]["PAYLOAD_PATH"].endswith(".json")
+    assert upload_step["with"]["path"].endswith(".json")
 
 
 def test_validate_workflow_run_artifact_identity_rejects_run_attempt_mismatch(monkeypatch):
@@ -132,10 +130,12 @@ def test_validate_workflow_run_artifact_identity_rejects_run_attempt_mismatch(mo
     monkeypatch.setenv("WORKFLOW_RUN_TRIGGERING_ATTEMPT", "2")
     monkeypatch.setenv("WORKFLOW_RUN_TRIGGERING_CONCLUSION", "success")
     payload = {
+        "payload_kind": "deferred_comment",
+        "schema_version": 3,
         "source_event_name": "issue_comment",
         "source_event_action": "created",
-        "source_workflow_name": "Reviewer Bot PR Comment Observer",
-        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+        "source_workflow_name": "Reviewer Bot PR Comment Router",
+        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-router.yml",
         "source_run_id": 1,
         "source_run_attempt": 1,
     }
@@ -151,10 +151,12 @@ def test_validate_workflow_run_artifact_identity_requires_successful_conclusion(
     monkeypatch.setenv("WORKFLOW_RUN_TRIGGERING_ATTEMPT", "1")
     monkeypatch.setenv("WORKFLOW_RUN_TRIGGERING_CONCLUSION", "failure")
     payload = {
+        "payload_kind": "deferred_comment",
+        "schema_version": 3,
         "source_event_name": "issue_comment",
         "source_event_action": "created",
-        "source_workflow_name": "Reviewer Bot PR Comment Observer",
-        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+        "source_workflow_name": "Reviewer Bot PR Comment Router",
+        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-router.yml",
         "source_run_id": 1,
         "source_run_attempt": 1,
     }

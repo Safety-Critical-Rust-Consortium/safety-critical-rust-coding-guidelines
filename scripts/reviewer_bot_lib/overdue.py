@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from .config import TRANSITION_NOTICE_MARKER_PREFIX
 
-_TRANSITION_NOTICE_FALLBACK_FIRST_LINE = "🔔 **Transition Period Ended**"
 _TRANSITION_NOTICE_AUTHORS = {"github-actions[bot]", "guidelines-bot"}
 
 
@@ -133,7 +132,7 @@ def find_existing_transition_notice(bot, issue_number: int, transition_warning_s
                 continue
             lines = body.splitlines()
             first_line = lines[0].strip() if lines else ""
-            if first_line == marker or first_line == _TRANSITION_NOTICE_FALLBACK_FIRST_LINE:
+            if first_line == marker:
                 if first_match is None or created_dt < first_match[0]:
                     first_match = (created_dt, created_at)
         if len(response) < 100:

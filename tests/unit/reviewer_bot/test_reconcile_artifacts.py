@@ -75,17 +75,19 @@ def test_review_comment_artifact_identity_validation(monkeypatch):
 def test_validate_workflow_run_artifact_identity_accepts_matching_contract():
     bot = SimpleNamespace(
         get_config_value=lambda name, default="": {
-            "WORKFLOW_RUN_TRIGGERING_NAME": "Reviewer Bot PR Comment Observer",
+            "WORKFLOW_RUN_TRIGGERING_NAME": "Reviewer Bot PR Comment Router",
             "WORKFLOW_RUN_TRIGGERING_ID": "610",
             "WORKFLOW_RUN_TRIGGERING_ATTEMPT": "1",
             "WORKFLOW_RUN_TRIGGERING_CONCLUSION": "success",
         }.get(name, default),
     )
     payload = {
+        "payload_kind": "deferred_comment",
+        "schema_version": 3,
         "source_event_name": "issue_comment",
         "source_event_action": "created",
-        "source_workflow_name": "Reviewer Bot PR Comment Observer",
-        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+        "source_workflow_name": "Reviewer Bot PR Comment Router",
+        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-router.yml",
         "source_run_id": 610,
         "source_run_attempt": 1,
     }
@@ -94,53 +96,23 @@ def test_validate_workflow_run_artifact_identity_accepts_matching_contract():
 
 
 @pytest.mark.parametrize(
-    ("fixture_path", "expected_workflow_name", "expected_workflow_file", "expected_artifact_name", "expected_payload_name"),
+    "fixture_path",
     [
-        (
-            "tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json",
-            "Reviewer Bot PR Comment Router",
-            ".github/workflows/reviewer-bot-pr-comment-router.yml",
-            "reviewer-bot-comment-context-401-attempt-3",
-            "deferred-comment.json",
-        ),
-        (
-            "tests/fixtures/observer_payloads/workflow_pr_review_comment_deferred.json",
-            "Reviewer Bot PR Review Comment Observer",
-            ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
-            "reviewer-bot-review-comment-context-404-attempt-6",
-            "deferred-review-comment.json",
-        ),
-        (
-            "tests/fixtures/observer_payloads/workflow_pr_review_submitted_deferred.json",
-            "Reviewer Bot PR Review Submitted Observer",
-            ".github/workflows/reviewer-bot-pr-review-submitted-observer.yml",
-            "reviewer-bot-review-submitted-context-402-attempt-4",
-            "deferred-review-submitted.json",
-        ),
-        (
-            "tests/fixtures/observer_payloads/workflow_pr_review_dismissed_deferred.json",
-            "Reviewer Bot PR Review Dismissed Observer",
-            ".github/workflows/reviewer-bot-pr-review-dismissed-observer.yml",
-            "reviewer-bot-review-dismissed-context-403-attempt-5",
-            "deferred-review-dismissed.json",
-        ),
+        "tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json",
+        "tests/fixtures/observer_payloads/workflow_pr_review_comment_deferred.json",
+        "tests/fixtures/observer_payloads/workflow_pr_review_submitted_deferred.json",
+        "tests/fixtures/observer_payloads/workflow_pr_review_dismissed_deferred.json",
     ],
 )
-def test_deferred_artifact_expected_helpers_match_v3_payload_contract(
-    fixture_path,
-    expected_workflow_name,
-    expected_workflow_file,
-    expected_artifact_name,
-    expected_payload_name,
-):
+def test_deferred_payload_parsing_does_not_require_artifact_name_helpers(fixture_path):
     payload = _load_fixture_payload(fixture_path)
+    payload.pop("source_artifact_name", None)
 
-    assert reconcile_payloads.expected_observer_identity(payload) == (
-        expected_workflow_name,
-        expected_workflow_file,
-    )
-    assert reconcile_payloads.artifact_expected_name(payload) == expected_artifact_name
-    assert reconcile_payloads.artifact_expected_payload_name(payload) == expected_payload_name
+    parsed = reconcile_payloads.parse_deferred_context_payload(payload)
+
+    assert parsed.identity.source_run_id == payload["source_run_id"]
+    assert parsed.identity.source_run_attempt == payload["source_run_attempt"]
+    assert parsed.identity.source_event_key == payload["source_event_key"]
 
 
 def test_read_reconcile_object_fails_closed_for_unavailable(monkeypatch):

@@ -17,7 +17,6 @@ def test_reconcile_replay_scenario_matrix_fixture_exists_and_names_required_rows
 
     assert matrix["harness_id"] == "C4a reconcile replay scenario matrix"
     assert [row["scenario_id"] for row in matrix["scenarios"]] == [
-        "noop_artifact",
         "deferred_comment_replay_matching_live_comment",
         "deferred_comment_replay_missing_live_comment",
         "deferred_comment_replay_digest_or_classification_drift",
@@ -46,14 +45,10 @@ def test_reconcile_replay_scenario_matrix_keeps_materially_distinct_drift_cases_
 
     assert "deferred_comment_replay_missing_live_comment" in row_ids
     assert "deferred_comment_replay_digest_or_classification_drift" in row_ids
-    assert row_ids >= {"freshness_only_update", "fail_closed_gap_update", "noop_artifact"}
+    assert row_ids >= {"freshness_only_update", "fail_closed_gap_update"}
 
 
-def test_reconcile_replay_policy_covers_noop_freshness_and_fail_closed_rows():
-    noop = reconcile_replay_policy.decide_observer_noop(
-        source_event_key="issue_comment:210",
-        reason="trusted_direct_same_repo_human_comment",
-    )
+def test_reconcile_replay_policy_covers_freshness_and_fail_closed_rows():
     missing_live = reconcile_replay_policy.decide_comment_replay(
         comment_id=210,
         source_comment_class="command_plus_text",
@@ -77,7 +72,6 @@ def test_reconcile_replay_policy_covers_noop_freshness_and_fail_closed_rows():
         runbook_path="runbook/path.md",
     )
 
-    assert noop.source_event_key == "issue_comment:210"
     assert missing_live.record_source_freshness is True
     assert missing_live.failed_closed_reason == "reconcile_failed_closed"
     assert drift.failed_closed_reason == "reconcile_failed_closed"

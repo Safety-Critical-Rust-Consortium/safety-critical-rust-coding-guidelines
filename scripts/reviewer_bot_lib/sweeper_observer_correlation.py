@@ -12,7 +12,6 @@ from scripts.reviewer_bot_core import deferred_gap_diagnosis
 
 from . import deferred_gap_bookkeeping as gap_bookkeeping
 from . import retrying
-from .reconcile_payloads import artifact_expected_name, artifact_expected_payload_name
 
 
 def _now_iso(bot) -> str:
@@ -141,16 +140,10 @@ def inspect_run_artifact_payloads(bot, workflow_runs: list[dict], source_event_k
         run_attempt = run.get("run_attempt")
         if not isinstance(run_id, int) or not isinstance(run_attempt, int):
             continue
-        expected_name = artifact_expected_name({"source_event_name": event_name, "source_event_action": event_action, "source_run_id": run_id, "source_run_attempt": run_attempt})
         artifacts = _list_run_artifacts(bot, run_id)
         if artifacts is None:
             return {"status": "observer_state_unknown", "reason": "artifact_listing_unavailable", "payloads_by_run": None}
-        filtered = []
         for artifact in artifacts:
-            name = artifact.get("name")
-            if not isinstance(name, str) or name != expected_name:
-                continue
-            filtered.append(artifact)
             prior_visibility[run_id] = {"artifact_seen_at": _now_iso(bot)}
             status, payloads = _download_artifact_payloads(bot, artifact)
             if status == "ok" and isinstance(payloads, list):
@@ -161,7 +154,7 @@ def inspect_run_artifact_payloads(bot, workflow_runs: list[dict], source_event_k
                 if len(matches) == 1:
                     payloads_by_run.setdefault(run_id, []).append(matches[0])
                     artifact_scan_outcomes[run_id] = "ok"
-                else:
+                elif len(matches) > 1:
                     artifact_scan_outcomes[run_id] = "artifact_invalid"
                     payloads_by_run.setdefault(run_id, [])
             elif status == "expired":
@@ -169,13 +162,12 @@ def inspect_run_artifact_payloads(bot, workflow_runs: list[dict], source_event_k
                 artifact_scan_outcomes[run_id] = "expired"
             else:
                 artifact_scan_outcomes[run_id] = "artifact_missing" if status == "artifact_missing" else "artifact_invalid"
-        if run_id not in payloads_by_run and filtered:
+        if run_id not in payloads_by_run and artifacts:
             payloads_by_run.setdefault(run_id, [])
     result = deferred_gap_diagnosis.correlate_run_artifacts_exact(payloads_by_run, source_event_key, pr_number=pr_number)
     result["payloads_by_run"] = payloads_by_run
     result["prior_visibility"] = prior_visibility
     result["artifact_scan_outcomes"] = artifact_scan_outcomes
-    result["expected_payload_name"] = artifact_expected_payload_name({"source_event_name": event_name, "source_event_action": event_action})
     return result
 
 

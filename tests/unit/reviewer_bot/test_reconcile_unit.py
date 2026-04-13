@@ -16,7 +16,12 @@ from scripts.reviewer_bot_lib.runtime_protocols import (
     ReconcileWorkflowRuntimeContext,
 )
 from tests.fixtures.fake_runtime import FakeReviewerBotRuntime
-from tests.fixtures.reconcile_harness import ReconcileHarness, review_submitted_payload
+from tests.fixtures.reconcile_harness import (
+    ReconcileHarness,
+    issue_comment_payload,
+    review_comment_payload,
+    review_submitted_payload,
+)
 from tests.fixtures.reviewer_bot import make_state
 from tests.fixtures.reviewer_bot_env import set_workflow_run_event_payload
 
@@ -207,62 +212,6 @@ def test_build_deferred_review_replay_context_rejects_mismatched_source_event_ke
         )
 
 
-def test_parse_deferred_context_payload_returns_typed_observer_noop_payload():
-    payload = {
-        "schema_version": 1,
-        "kind": "observer_noop",
-        "reason": "not a command",
-        "source_workflow_name": "Reviewer Bot PR Comment Observer",
-        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
-        "source_run_id": 610,
-        "source_run_attempt": 1,
-        "source_event_name": "issue_comment",
-        "source_event_action": "created",
-        "source_event_key": "issue_comment:210",
-        "pr_number": 42,
-    }
-
-    parsed = reconcile.parse_deferred_context_payload(payload)
-
-    assert isinstance(parsed, reconcile.ObserverNoopPayload)
-    assert parsed.reason == "not a command"
-    assert parsed.pr_number == 42
-
-
-def test_handle_workflow_run_event_result_collects_touched_item(monkeypatch):
-    runtime = FakeReviewerBotRuntime(monkeypatch)
-    runtime.ACTIVE_LEASE_CONTEXT = object()
-    runtime.set_config_value("EVENT_NAME", "workflow_run")
-    set_workflow_run_event_payload(runtime.config, "Reviewer Bot PR Comment Observer")
-    runtime.set_config_value("WORKFLOW_RUN_TRIGGERING_ATTEMPT", "1")
-    runtime.set_config_value("WORKFLOW_RUN_TRIGGERING_CONCLUSION", "success")
-    runtime.stub_deferred_payload(
-        {
-            "schema_version": 1,
-            "kind": "observer_noop",
-            "reason": "trusted_direct_same_repo_human_comment",
-            "source_workflow_name": "Reviewer Bot PR Comment Observer",
-            "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
-            "source_run_id": 610,
-            "source_run_attempt": 1,
-            "source_event_name": "issue_comment",
-            "source_event_action": "created",
-            "source_event_key": "issue_comment:210",
-            "pr_number": 42,
-        }
-    )
-    state = make_state(epoch="freshness_v15")
-    review = review_state.ensure_review_entry(state, 42, create=True)
-    assert review is not None
-
-    result = reconcile.handle_workflow_run_event_result(runtime, state)
-
-    assert result.state_changed is False
-    assert result.touched_items == [42]
-    assert runtime.drain_touched_items() == []
-    assert "42" in state["active_reviews"]
-
-
 def test_reconcile_active_review_entry_uses_explicit_head_repair_changed_field(monkeypatch):
     state = make_state()
     review = review_state.ensure_review_entry(state, 42, create=True)
@@ -283,8 +232,22 @@ def test_reconcile_active_review_entry_uses_explicit_head_repair_changed_field(m
 
 
 def test_parse_deferred_context_payload_rejects_unsupported_payload():
-    with pytest.raises(RuntimeError, match="Unsupported deferred workflow_run payload"):
+    with pytest.raises(RuntimeError, match="schema_version is not accepted"):
         reconcile.parse_deferred_context_payload({"schema_version": 2})
+
+
+def test_parse_deferred_context_payload_rejects_observer_noop_payload():
+    with pytest.raises(RuntimeError, match="schema_version is not accepted"):
+        reconcile.parse_deferred_context_payload(
+            {
+                "schema_version": 1,
+                "kind": "observer_noop",
+                "source_event_name": "issue_comment",
+                "source_event_action": "created",
+                "source_event_key": "issue_comment:210",
+                "pr_number": 42,
+            }
+        )
 
 
 def test_reconcile_deferred_comment_fail_closes_for_command_ambiguity(monkeypatch):
@@ -454,23 +417,18 @@ def test_reconcile_module_delegates_replay_decision_logic_to_core_policy():
     ("payload", "expected_handler_name"),
     [
         (
-            {
-                "schema_version": 2,
-                "source_workflow_name": "Reviewer Bot PR Comment Observer",
-                "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
-                "source_run_id": 610,
-                "source_run_attempt": 1,
-                "source_event_name": "issue_comment",
-                "source_event_action": "created",
-                "source_event_key": "issue_comment:210",
-                "pr_number": 42,
-                "comment_id": 210,
-                "comment_class": "command_only",
-                "has_non_command_text": False,
-                "source_body_digest": "abc123",
-                "source_created_at": "2026-03-17T10:00:00Z",
-                "actor_login": "bob",
-            },
+            issue_comment_payload(
+                pr_number=42,
+                comment_id=210,
+                source_event_key="issue_comment:210",
+                body="@guidelines-bot /queue",
+                comment_class="command_only",
+                has_non_command_text=False,
+                source_created_at="2026-03-17T10:00:00Z",
+                actor_login="bob",
+                source_run_id=610,
+                source_run_attempt=1,
+            ),
             "_handle_issue_comment_workflow_run",
         ),
         (
@@ -508,40 +466,23 @@ def test_reconcile_module_delegates_replay_decision_logic_to_core_policy():
             "_handle_review_dismissed_workflow_run",
         ),
         (
-            {
-                "schema_version": 2,
-                "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
-                "source_workflow_file": ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
-                "source_run_id": 711,
-                "source_run_attempt": 1,
-                "source_event_name": "pull_request_review_comment",
-                "source_event_action": "created",
-                "source_event_key": "pull_request_review_comment:310",
-                "pr_number": 42,
-                "comment_id": 310,
-                "comment_class": "plain_text",
-                "has_non_command_text": True,
-                "source_body_digest": "abc123",
-                "source_created_at": "2026-03-17T10:00:00Z",
-                "actor_login": "alice",
-            },
+            review_comment_payload(
+                pr_number=42,
+                comment_id=310,
+                source_event_key="pull_request_review_comment:310",
+                body="plain text review comment",
+                comment_class="plain_text",
+                has_non_command_text=True,
+                source_created_at="2026-03-17T10:00:00Z",
+                actor_login="alice",
+                actor_id=11,
+                actor_class="repo_user_principal",
+                pull_request_review_id=77,
+                in_reply_to_id=0,
+                source_run_id=711,
+                source_run_attempt=1,
+            ),
             "_handle_review_comment_workflow_run",
-        ),
-        (
-            {
-                "schema_version": 1,
-                "kind": "observer_noop",
-                "reason": "not a command",
-                "source_workflow_name": "Reviewer Bot PR Comment Observer",
-                "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
-                "source_run_id": 610,
-                "source_run_attempt": 1,
-                "source_event_name": "issue_comment",
-                "source_event_action": "created",
-                "source_event_key": "issue_comment:210",
-                "pr_number": 42,
-            },
-            "_handle_observer_noop_workflow_run",
         ),
     ],
 )

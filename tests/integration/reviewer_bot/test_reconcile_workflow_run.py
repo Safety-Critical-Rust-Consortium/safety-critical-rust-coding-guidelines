@@ -125,34 +125,6 @@ def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raisi
     assert gap["failure_kind"] == "server_error"
 
 
-def test_handle_workflow_run_event_treats_observer_noop_payload_as_no_mutation(monkeypatch):
-    state = make_state(epoch="freshness_v15")
-    make_tracked_review_state(state, 42, reviewer="alice")
-    harness = ReconcileHarness(
-        monkeypatch,
-        {
-            "schema_version": 1,
-            "kind": "observer_noop",
-            "reason": "trusted_direct_same_repo_human_comment",
-            "source_workflow_name": "Reviewer Bot PR Comment Observer",
-            "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
-            "source_run_id": 900,
-            "source_run_attempt": 1,
-            "source_event_name": "issue_comment",
-            "source_event_action": "created",
-            "source_event_key": "issue_comment:210",
-            "pr_number": 42,
-        },
-    )
-
-    result = reconcile.handle_workflow_run_event_result(harness.runtime, state)
-
-    assert result.state_changed is False
-    assert result.touched_items == [42]
-    assert harness.runtime.drain_touched_items() == []
-    assert state["active_reviews"]["42"]["sidecars"]["reconciled_source_events"] == {}
-
-
 def test_deferred_comment_reconcile_returns_true_for_bookkeeping_only_mutations(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")

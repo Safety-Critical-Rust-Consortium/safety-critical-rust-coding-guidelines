@@ -22,258 +22,744 @@
   "representative_changes": [
     {
       "id": "RC1",
-      "change": "reviewer-response policy rule",
+      "change": "RC1 representative change",
       "change_class": "ordinary policy change",
-      "production_authority_categories": [
+      "semantic_owner": "scripts/reviewer_bot_core/reviewer_response_policy.py",
+      "allowed_production_categories": [
         "core-policy"
       ],
-      "proof_families": [
+      "allowed_proof_families": [
         "unit-equivalence"
       ],
-      "hotspot_files": [],
-      "semantic_inventory_entries": [
-        "tests/fixtures/equivalence/reviewer_response/scenario_matrix.json"
-      ],
-      "expected_files": [
-        "scripts/reviewer_bot_core/reviewer_response_policy.py",
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
         "tests/unit/reviewer_bot/test_reviewer_response_equivalence.py"
-      ]
-    },
-    {
-      "id": "RC4",
-      "change": "mandatory-approver policy rule",
-      "change_class": "ordinary policy change",
-      "production_authority_categories": [
-        "core-policy"
       ],
-      "proof_families": [
-        "unit-equivalence"
-      ],
-      "hotspot_files": [],
-      "semantic_inventory_entries": [
-        "tests/fixtures/equivalence/mandatory_approver_policy/decision_matrix.json"
-      ],
-      "expected_files": [
-        "scripts/reviewer_bot_core/mandatory_approver_policy.py",
-        "tests/unit/reviewer_bot/test_mandatory_approver_policy_equivalence.py"
-      ]
-    },
-    {
-      "id": "RC5",
-      "change": "mandatory-approver execution flow",
-      "change_class": "support or execution change",
-      "production_authority_categories": [
-        "lib-support"
-      ],
-      "proof_families": [
-        "unit-live-fetch"
-      ],
-      "hotspot_files": [
-        "scripts/reviewer_bot_lib/reviews.py"
-      ],
-      "semantic_inventory_entries": [],
-      "expected_files": [
-        "scripts/reviewer_bot_lib/reviews.py",
-        "tests/unit/reviewer_bot/test_reviews_live_fetch.py"
-      ]
-    },
-    {
-      "id": "RC6",
-      "change": "deferred replay fail-closed message",
-      "change_class": "orchestration or transaction change",
-      "production_authority_categories": [
-        "core-policy"
-      ],
-      "proof_families": [
-        "unit-equivalence",
-        "integration-transaction"
-      ],
-      "hotspot_files": [],
-      "semantic_inventory_entries": [],
-      "expected_files": [
-        "scripts/reviewer_bot_core/reconcile_replay_policy.py",
-        "tests/unit/reviewer_bot/test_reconcile_replay_equivalence.py",
-        "tests/integration/reviewer_bot/test_reconcile_workflow_run.py"
-      ]
-    },
-    {
-      "id": "RC7",
-      "change": "ordinary command rule",
-      "change_class": "ordinary policy change",
-      "production_authority_categories": [
-        "core-policy"
-      ],
-      "proof_families": [
-        "unit-equivalence"
-      ],
-      "hotspot_files": [],
-      "semantic_inventory_entries": [],
-      "expected_files": [
-        "scripts/reviewer_bot_core/comment_command_policy.py",
-        "tests/unit/reviewer_bot/test_comment_command_equivalence.py",
-        "tests/unit/reviewer_bot/test_commands.py"
-      ]
-    },
-    {
-      "id": "RC8",
-      "change": "reconcile workflow protocol change",
-      "change_class": "runtime or protocol change",
-      "production_authority_categories": [
-        "execution-orchestration",
-        "runtime-protocol"
-      ],
-      "proof_families": [
-        "unit-equivalence",
-        "contract-inventory"
-      ],
-      "hotspot_files": [
-        "scripts/reviewer_bot_lib/context.py",
-        "scripts/reviewer_bot_lib/reconcile.py"
-      ],
-      "semantic_inventory_entries": [
-        "tests/fixtures/equivalence/runtime_surface/deletion_manifest.json"
-      ],
-      "expected_files": [
-        "scripts/reviewer_bot_lib/context.py",
-        "scripts/reviewer_bot_lib/reconcile.py",
-        "tests/unit/reviewer_bot/test_reconcile_unit.py",
-        "tests/contract/reviewer_bot/test_runtime_protocols.py"
-      ]
-    },
-    {
-      "id": "RC9",
-      "change": "runtime compatibility surface change",
-      "change_class": "runtime or protocol change",
-      "production_authority_categories": [
-        "runtime-protocol",
-        "fixture-double"
-      ],
-      "proof_families": [
-        "contract-inventory"
-      ],
-      "hotspot_files": [
-        "scripts/reviewer_bot_lib/runtime.py",
-        "scripts/reviewer_bot_lib/bootstrap_runtime.py",
-        "tests/fixtures/fake_runtime.py",
-        "tests/fixtures/focused_fake_services.py"
-      ],
-      "semantic_inventory_entries": [
-        "tests/fixtures/equivalence/runtime_surface/triple_inventory.json",
-        "tests/fixtures/equivalence/runtime_surface/deletion_manifest.json"
-      ],
-      "expected_files": [
-        "scripts/reviewer_bot_lib/runtime.py",
-        "scripts/reviewer_bot_lib/bootstrap_runtime.py",
-        "tests/fixtures/fake_runtime.py",
-        "tests/fixtures/focused_fake_services.py",
-        "tests/contract/reviewer_bot/test_adapter_contract.py",
-        "tests/contract/reviewer_bot/test_fake_runtime_contract.py",
-        "tests/contract/reviewer_bot/test_runtime_protocols.py"
-      ]
-    },
-    {
-      "id": "RC10",
-      "change": "workflow-run transaction result field change",
-      "change_class": "orchestration or transaction change",
-      "production_authority_categories": [
-        "execution-orchestration"
-      ],
-      "proof_families": [
-        "integration-transaction"
-      ],
-      "hotspot_files": [
-        "scripts/reviewer_bot_lib/reconcile.py",
-        "scripts/reviewer_bot_lib/app.py"
-      ],
-      "semantic_inventory_entries": [],
-      "expected_files": [
-        "scripts/reviewer_bot_lib/reconcile.py",
-        "scripts/reviewer_bot_lib/app.py",
-        "tests/integration/reviewer_bot/test_app_execution.py",
-        "tests/integration/reviewer_bot/test_app_workflow_run_bookkeeping.py",
-        "tests/integration/reviewer_bot/test_app_workflow_run_paths.py"
+      "source_predicates": [
+        "scripts/reviewer_bot_core/reviewer_review_helpers.py` does not import `scripts.reviewer_bot_lib.review_state",
+        "scripts/reviewer_bot_core/reviewer_review_helpers.py:get_valid_current_reviewer_reviews_for_cycle` receives `current_cycle_boundary` as an argument",
+        "scripts/reviewer_bot_core/live_review_support.py` owns `get_current_cycle_boundary(review_data, *, parse_timestamp)",
+        "scripts/reviewer_bot_core/reviewer_response_policy.py` does not import same-seam authority from `scripts.reviewer_bot_lib.reviews"
       ]
     },
     {
       "id": "RC2",
-      "change": "live-repair rule",
+      "change": "RC2 representative change",
       "change_class": "ordinary policy change",
-      "production_authority_categories": [
+      "semantic_owner": "scripts/reviewer_bot_core/review_state_live_repair.py",
+      "allowed_production_categories": [
         "core-policy"
       ],
-      "proof_families": [
+      "allowed_proof_families": [
         "unit-equivalence"
       ],
-      "hotspot_files": [],
-      "semantic_inventory_entries": [
-        "tests/fixtures/equivalence/review_state_live_repair/scenarios.json"
-      ],
-      "expected_files": [
-        "scripts/reviewer_bot_core/review_state_live_repair.py",
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
         "tests/unit/reviewer_bot/test_review_state_equivalence.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_core/review_state_machine.py` does not define public live-repair wrappers such as `refresh_reviewer_review_from_live_preferred_review` or `repair_missing_reviewer_review_state",
+        "scripts/reviewer_bot_core/review_state_live_repair.py` does not call `_ensure_channel_map",
+        "scripts/reviewer_bot_core/review_state_live_repair.py` remains the sole public home for live-repair behavior"
       ]
     },
     {
       "id": "RC3",
-      "change": "approval rule",
+      "change": "RC3 representative change",
       "change_class": "ordinary policy change",
-      "production_authority_categories": [
+      "semantic_owner": "scripts/reviewer_bot_core/approval_policy.py",
+      "allowed_production_categories": [
         "core-policy"
       ],
-      "proof_families": [
+      "allowed_proof_families": [
         "unit-equivalence"
       ],
-      "hotspot_files": [],
-      "semantic_inventory_entries": [
-        "tests/fixtures/equivalence/approval_policy/in_scope_functions.json"
-      ],
-      "expected_files": [
-        "scripts/reviewer_bot_core/approval_policy.py",
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
         "tests/unit/reviewer_bot/test_approval_policy_equivalence.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/reviews.py` is absent from the approval-rule row's expected production files",
+        "scripts/reviewer_bot_core/approval_policy.py` remains the approval derivation owner",
+        "scripts/reviewer_bot_core/approval_policy.py` imports `get_current_cycle_boundary` from `scripts.reviewer_bot_core.live_review_support",
+        "scripts/reviewer_bot_core/approval_policy.py` does not import `scripts.reviewer_bot_lib.review_state` or `scripts.reviewer_bot_core.review_state_machine"
+      ]
+    },
+    {
+      "id": "RC4",
+      "change": "RC4 representative change",
+      "change_class": "ordinary policy change",
+      "semantic_owner": "scripts/reviewer_bot_core/mandatory_approver_policy.py",
+      "allowed_production_categories": [
+        "core-policy"
+      ],
+      "allowed_proof_families": [
+        "unit-equivalence"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_mandatory_approver_policy_equivalence.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_core/mandatory_approver_policy.py` defines the mandatory-approver decisions",
+        "scripts/reviewer_bot_lib/reviews.py` does not define those decision functions"
+      ]
+    },
+    {
+      "id": "RC5",
+      "change": "RC5 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "scripts/reviewer_bot_lib/reviews.py",
+      "allowed_production_categories": [
+        "execution-support"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_reviews_live_fetch.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/reviews.py` retains execution-side mandatory-approver helpers only",
+        "no policy decision function for mandatory approver lives in `scripts/reviewer_bot_lib/reviews.py"
+      ]
+    },
+    {
+      "id": "RC6",
+      "change": "RC6 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/event_inputs.py` plus authoritative request types in `scripts/reviewer_bot_lib/context.py`, including `PrCommentAdmission` on direct-trusted paths for admission-only facts and request-admission coherence validation",
+      "allowed_production_categories": [
+        "request-boundary"
+      ],
+      "allowed_proof_families": [
+        "contract-inventory",
+        "integration-transaction"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/contract/reviewer_bot/test_comment_application_contract.py",
+        "tests/integration/reviewer_bot/test_comment_routing_integration.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/context.py:CommentEventRequest` includes `issue_labels",
+        "scripts/reviewer_bot_lib/event_inputs.py:build_comment_event_request` reads `ISSUE_LABELS",
+        "scripts/reviewer_bot_lib/event_inputs.py:build_event_context` remains the only permissive ingress helper",
+        "scripts/reviewer_bot_lib/event_inputs.py` defines the single strict builder failure contract `InvalidEventInput",
+        "specialized request builders in `scripts/reviewer_bot_lib/event_inputs.py` do not silently synthesize sentinel defaults for required facts",
+        "scripts/reviewer_bot_lib/event_inputs.py:build_comment_event_request` retains the exact `pull_request_review_comment` env-decoding and `COMMENT_SOURCE_EVENT_KEY` derivation rule, while the retained default-path review-comment behavior is replay-built from deferred payload identity rather than from an app or runtime handler surface",
+        "scripts/reviewer_bot_lib/app.py` catches `InvalidEventInput` only at the top envelope",
+        "scripts/reviewer_bot_lib/context.py:PrCommentAdmission` includes `route_outcome`, `pr_head_full_name`, `pr_author`, and `issue_labels",
+        "scripts/reviewer_bot_lib/event_inputs.py` reads `PR_HEAD_FULL_NAME` and `PR_AUTHOR` into the admitted direct-routing boundary",
+        "scripts/reviewer_bot_lib/comment_application.py`, `scripts/reviewer_bot_lib/maintenance.py`, and `scripts/reviewer_bot_lib/reconcile.py` do not call `commands.parse_issue_labels(bot)` for authoritative label truth"
+      ]
+    },
+    {
+      "id": "RC7",
+      "change": "RC7 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "RC7a actor classification rule` -> `scripts/reviewer_bot_core/comment_routing_policy.py ; RC7b processing-target derivation rule` -> `scripts/reviewer_bot_core/comment_routing_policy.py ; RC7c direct trusted-route consumption after admission` -> `scripts/reviewer_bot_lib/comment_routing.py",
+      "allowed_production_categories": [
+        "routing-policy"
+      ],
+      "allowed_proof_families": [
+        "unit-equivalence` for `RC7a` and `RC7b",
+        "integration-transaction` only when the change is `RC7c"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_comment_routing_equivalence.py",
+        "tests/integration/reviewer_bot/test_comment_routing_integration.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_core/comment_routing_policy.py` is the sole retained home of `PrCommentRouterOutcome`, `ActorClass`, `ProcessingTarget`, `ObserverCommentClassification`, and `DirectCommentClassification",
+        "scripts/reviewer_bot_core/comment_routing_policy.py` owns actor classification and processing-target derivation through closed typed families after typed payload parse",
+        "retained deferred payload contracts do not carry `comment_class`, `has_non_command_text`, or `actor_class",
+        "scripts/reviewer_bot_lib/comment_routing.py` owns only direct trusted-route consumption after admission",
+        "scripts/reviewer_bot_lib/comment_routing.py` does not fetch PR metadata for same-repo trusted direct routing after admission"
+      ]
+    },
+    {
+      "id": "RC8",
+      "change": "RC8 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "scripts/reviewer_bot_core/comment_command_policy.py",
+      "allowed_production_categories": [
+        "command-policy"
+      ],
+      "allowed_proof_families": [
+        "unit-equivalence"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_comment_command_equivalence.py",
+        "tests/unit/reviewer_bot/test_commands.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_core/comment_command_policy.py` is the sole retained home of `OrdinaryCommandId`, `IgnoreDecision`, `InlineResponseDecision`, `DeferPrivilegedHandoffDecision`, and `ExecuteOrdinaryCommandDecision",
+        "scripts/reviewer_bot_lib/comment_application.py` is the sole retained home of `CommandExecutionResult",
+        "scripts/reviewer_bot_core/comment_command_policy.py` does not retain `handler_name`, `result_shape`, or `state_changed_from",
+        "scripts/reviewer_bot_lib/comment_application.py` does not branch on `isinstance(decision, dict)` or `getattr` command dispatch"
+      ]
+    },
+    {
+      "id": "RC9",
+      "change": "RC9 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "scripts/reviewer_bot_lib/commands.py",
+      "allowed_production_categories": [
+        "execution-support"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_commands.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/commands.py` does not define `parse_issue_labels",
+        "scripts/reviewer_bot_lib/commands.py` does not define `build_privileged_command_request",
+        "scripts/reviewer_bot_lib/commands.py` does not define `get_default_branch",
+        "scripts/reviewer_bot_lib/commands.py` does not define `find_open_pr_for_branch",
+        "scripts/reviewer_bot_lib/commands.py` does not define `resolve_workflow_run_pr_number",
+        "scripts/reviewer_bot_lib/commands.py` does not define `handle_rectify_command"
+      ]
+    },
+    {
+      "id": "RC10",
+      "change": "RC10 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "the merged privileged boundary centered on `scripts/reviewer_bot_core/privileged_command_policy.py` and authoritative request, record, or execution-context types in `scripts/reviewer_bot_lib/event_inputs.py` and `scripts/reviewer_bot_lib/context.py",
+      "allowed_production_categories": [
+        "privileged-boundary",
+        "persisted-record-codec"
+      ],
+      "allowed_proof_families": [
+        "persisted-record-contract",
+        "integration-transaction"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_privileged_command_planning_equivalence.py",
+        "tests/contract/reviewer_bot/test_privileged_commands_workflow.py",
+        "tests/integration/reviewer_bot/test_accept_no_fls_changes.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_core/privileged_command_policy.py` is the sole retained home of `PrivilegedCommandId`, `BlockedPrivilegedHandoff`, `AllowedPrivilegedHandoff`, `BlockedPrivilegedExecution`, `CompletePrivilegedExecution`, `ExecutePrivilegedPlan`, `PendingAcceptNoFlsChangesRecord`, and `PrivilegedExecutionContext",
+        "scripts/reviewer_bot_core/privileged_command_policy.py:PendingAcceptNoFlsChangesRecord` is not just `data: dict",
+        "the stored pending privileged record does not retain generic `args` and includes explicit `result_code`, `result_message`, and `opened_pr_url` fields",
+        "scripts/reviewer_bot_lib/comment_application.py:validate_accept_no_fls_changes_handoff` does not remain a `tuple[bool, dict]` bridge; comment application consumes typed privileged decisions directly",
+        "only `scripts/reviewer_bot_lib/maintenance_privileged.py` and `scripts/reviewer_bot_lib/automation.py` consume `PrivilegedExecutionContext"
+      ]
+    },
+    {
+      "id": "RC11",
+      "change": "RC11 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "RC11a core review-entry field/schema change` -> `scripts/reviewer_bot_core/state_adapters.py ; RC11b repair_markers field/schema change` -> `scripts/reviewer_bot_lib/repair_records.py ; RC11c pending_privileged_commands field/schema change` -> `scripts/reviewer_bot_core/privileged_command_policy.py ; RC11d deferred_gaps or reconciled_source_events field/schema change` -> `scripts/reviewer_bot_lib/deferred_gap_bookkeeping.py ; RC11e observer_discovery_watermarks field/schema change` -> `scripts/reviewer_bot_lib/sweeper_observer_correlation.py ; scripts/reviewer_bot_core/review_state_machine.py` participates only when core state-mutation semantics actually change",
+      "allowed_production_categories": [
+        "persisted-record-codec` for all `RC11*` changes",
+        "core-policy` only for `RC11a",
+        "execution-orchestration` only for `RC11b` through `RC11e"
+      ],
+      "allowed_proof_families": [
+        "persisted-record-contract",
+        "integration-transaction` only when the changed record alters app, reconcile, sweeper, or maintenance write/read sequencing"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/contract/reviewer_bot/test_review_state_contract.py",
+        "tests/unit/reviewer_bot/test_sweeper_logic.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_core/state_adapters.py` owns core review-entry field shape",
+        "scripts/reviewer_bot_lib/repair_records.py` owns phase-keyed `RepairMarker` records under `sidecars.repair_markers",
+        "scripts/reviewer_bot_core/privileged_command_policy.py` owns `PendingAcceptNoFlsChangesRecord",
+        "scripts/reviewer_bot_lib/deferred_gap_bookkeeping.py` owns `DeferredGapRecord` and `ReconciledSourceEventRecord",
+        "scripts/reviewer_bot_lib/sweeper_observer_correlation.py` owns `ObserverDiscoveryWatermark",
+        "scripts/reviewer_bot_core/review_state_machine.py` does not default, clear, or reshape the retained sidecar subtree",
+        "$OPENCODE_CONFIG_DIR/reviewer-bot/maintainability-remediation/g0f-persisted-record-inventory.json` names one schema owner, one constructor owner, one retained sidecar subtree path, exact record fields, and exact closed status or result families for the changed field"
+      ]
+    },
+    {
+      "id": "RC12",
+      "change": "RC12 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/maintenance_schedule.py",
+      "allowed_production_categories": [
+        "execution-orchestration"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior",
+        "integration-transaction` only when the change alters touched-item follow-up, scheduled maintenance wiring, or app-visible scheduled mutation sequencing"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_maintenance.py",
+        "tests/unit/reviewer_bot/test_lifecycle.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/maintenance_schedule.py` is the sole retained home of `ScheduleHandlerResult",
+        "scheduled repair execution lives in `scripts/reviewer_bot_lib/maintenance_schedule.py",
+        "scripts/reviewer_bot_lib/maintenance.py` only delegates into the scheduled seam",
+        "maintenance.py` delegates `check-overdue` through `maintenance_schedule.handle_scheduled_check_result(...).state_changed",
+        "bootstrap_runtime.py` exposes `handle_scheduled_check_result`, not `handle_scheduled_check",
+        "member-fetch failure does not empty the queue",
+        "scheduled pass-until expiration consumes normalized `return_date` values and does not reparsed-fail on malformed ambient shapes"
+      ]
+    },
+    {
+      "id": "RC13",
+      "change": "RC13 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/maintenance.py",
+      "allowed_production_categories": [
+        "execution-orchestration"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior",
+        "integration-transaction` only when the change alters manual action state writes, touched-item follow-up, or operator-visible mutation sequencing"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_maintenance.py",
+        "tests/unit/reviewer_bot/test_project_board.py"
+      ],
+      "source_predicates": [
+        "manual operator actions remain in `scripts/reviewer_bot_lib/maintenance.py",
+        "pending privileged execution does not remain implemented inside the manual operator shell",
+        "reviewer-board preview attention derives from typed repair markers and explicit transition markers rather than `projection_failure` alone"
+      ]
+    },
+    {
+      "id": "RC14",
+      "change": "RC14 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/maintenance_privileged.py",
+      "allowed_production_categories": [
+        "privileged-boundary",
+        "execution-orchestration"
+      ],
+      "allowed_proof_families": [
+        "persisted-record-contract",
+        "integration-transaction"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/contract/reviewer_bot/test_privileged_commands_workflow.py",
+        "tests/integration/reviewer_bot/test_accept_no_fls_changes.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/maintenance.py` does not define `build_revalidated_privileged_command_request",
+        "pending privileged execution lives in `scripts/reviewer_bot_lib/maintenance_privileged.py"
+      ]
+    },
+    {
+      "id": "RC15",
+      "change": "RC15 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/sweeper.py",
+      "allowed_production_categories": [
+        "execution-orchestration",
+        "consumer-protocol` only when the `SweeperContext` member set changes"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior",
+        "integration-transaction` only when the change alters touched-item follow-up, scheduled maintenance coupling, or app-visible failure recording"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_sweeper_logic.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/sweeper.py` mutates deferred-gap state only through `scripts/reviewer_bot_lib/deferred_gap_bookkeeping.py",
+        "scripts/reviewer_bot_lib/sweeper.py` delegates workflow-run discovery, artifact inspection, payload extraction, correlation, and watermark mutation to `scripts/reviewer_bot_lib/sweeper_observer_correlation.py",
+        "scripts/reviewer_bot_lib/sweeper.py` does not read approval-pending logic from docs or runbooks"
+      ]
+    },
+    {
+      "id": "RC16",
+      "change": "RC16 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "RC16a repair-recommendation rule change` -> `scripts/reviewer_bot_core/deferred_gap_diagnosis.py ; RC16b observer-correlation implementation change` -> `scripts/reviewer_bot_lib/sweeper_observer_correlation.py",
+      "allowed_production_categories": [
+        "core-policy` for `RC16a",
+        "execution-orchestration` for `RC16b",
+        "consumer-protocol` only when the `SweeperContext` member set changes"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior",
+        "integration-transaction` only when the change alters touched-item follow-up, scheduled maintenance coupling, or app-visible failure recording"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_sweeper_logic.py"
+      ],
+      "source_predicates": [
+        "diagnosis and recommendation logic remain owned by `scripts/reviewer_bot_core/deferred_gap_diagnosis.py",
+        "scripts/reviewer_bot_lib/sweeper_observer_correlation.py` owns correlation inputs and watermark mutation",
+        "scripts/reviewer_bot_lib/sweeper.py` does not parse runbook prose to derive repair guidance"
+      ]
+    },
+    {
+      "id": "RC17",
+      "change": "RC17 representative change",
+      "change_class": "runtime or protocol change",
+      "semantic_owner": "scripts/reviewer_bot_lib/reconcile_payloads.py",
+      "allowed_production_categories": [
+        "execution-orchestration",
+        "request-boundary` only when a payload-field change alters the replay-built `CommentEventRequest` constructor in `scripts/reviewer_bot_lib/event_inputs.py"
+      ],
+      "allowed_proof_families": [
+        "contract-inventory",
+        "unit-behavior"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_reconcile_unit.py",
+        "tests/integration/reviewer_bot/test_reconcile_workflow_run.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/reconcile_payloads.py` is the sole retained home of `DeferredPayloadKind`, `DeferredPayloadIdentity`, `DeferredCommentPayload`, `DeferredReviewSubmittedPayload`, and `DeferredReviewDismissedPayload",
+        "scripts/reviewer_bot_lib/reconcile.py` does not define `_validate_deferred_comment_artifact",
+        "scripts/reviewer_bot_lib/reconcile.py` does not define `_validate_deferred_review_artifact",
+        "scripts/reviewer_bot_lib/reconcile.py` does not define `_validate_deferred_review_comment_artifact",
+        "replay-built request construction treats `InvalidEventInput` as `artifact_invalid` through the deferred-gap owner rather than as a second local error vocabulary",
+        "scripts/reviewer_bot_lib/reconcile_payloads.py` does not branch on `source_workflow_name`, `source_workflow_file`, `source_artifact_name`, or `payload_filename` as retained contract identity",
+        "scripts/reviewer_bot_lib/reconcile_payloads.py` does not retain `ObserverNoopPayload` as retained public payload architecture; any schema-v1 noop compatibility remains private migration-only until `B6a",
+        "scripts/reviewer_bot_lib/reconcile.py` does not retain `_handle_observer_noop_workflow_run` as retained reconcile architecture; any remaining noop compatibility handler stays private migration-only until `B6a"
+      ]
+    },
+    {
+      "id": "RC18",
+      "change": "RC18 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/reconcile.py",
+      "allowed_production_categories": [
+        "execution-orchestration"
+      ],
+      "allowed_proof_families": [
+        "unit-behavior",
+        "integration-transaction"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_reconcile_unit.py"
+      ],
+      "source_predicates": [
+        "rectify-only logic remains in `scripts/reviewer_bot_lib/reconcile.py",
+        "payload parsing and validation remain absent from rectify-only logic"
+      ]
+    },
+    {
+      "id": "RC19",
+      "change": "RC19 representative change",
+      "change_class": "orchestration or transaction change",
+      "semantic_owner": "scripts/reviewer_bot_lib/reconcile.py` for workflow-run behavior and result semantics, with `scripts/reviewer_bot_lib/app.py` only when the transaction envelope itself changes",
+      "allowed_production_categories": [
+        "execution-orchestration",
+        "transaction-owner` only when `scripts/reviewer_bot_lib/app.py` envelope sequencing or projection-failure marker behavior changes"
+      ],
+      "allowed_proof_families": [
+        "integration-transaction",
+        "contract-inventory` only when workflow-run result fields or deferred-payload identity contract shape changes"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_app_event_intent.py",
+        "tests/integration/reviewer_bot/test_app_workflow_run_paths.py",
+        "tests/integration/reviewer_bot/test_app_workflow_run_bookkeeping.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/reconcile.py` is the sole retained home of `WorkflowRunHandlerResult",
+        "scripts/reviewer_bot_lib/reconcile.py` owns `WorkflowRunHandlerResult",
+        "scripts/reviewer_bot_lib/reconcile.py` treats `context.workflow_artifact_contract == \"artifact_optional_router\"` with zero deferred payload artifacts as valid no-artifact success and returns `WorkflowRunHandlerResult(state_changed=False, touched_items=[])",
+        "retained router workflow proof, not reconcile, enforces that only router outcomes `trusted_direct` or `safe_noop` may lawfully produce that artifactless case while `deferred_reconcile` emits one schema-v3 `deferred_comment` artifact",
+        "scripts/reviewer_bot_lib/reconcile.py` still treats missing deferred payloads from the retained non-router observer workflows as `artifact_missing` or `artifact_invalid",
+        "scripts/reviewer_bot_lib/app.py` does not define per-source workflow-run handlers such as `_handle_issue_comment_workflow_run`, `_handle_review_comment_workflow_run`, `_handle_review_submitted_workflow_run`, or `_handle_review_dismissed_workflow_run",
+        "scripts/reviewer_bot_lib/app.py` does not retain a direct `event_name == \"pull_request_review\"` branch",
+        ".github/workflows/reviewer-bot-issues.yml` and `.github/workflows/reviewer-bot-pr-metadata.yml` export `EVENT_CREATED_AT"
+      ]
+    },
+    {
+      "id": "RC20",
+      "change": "RC20 representative change",
+      "change_class": "runtime or protocol change",
+      "semantic_owner": "the state-lock subsystem authority frozen in `G0d`, with `scripts/reviewer_bot_lib/app.py` only when the top-level envelope changes",
+      "allowed_production_categories": [
+        "state-lock-subsystem",
+        "transaction-owner` only when `scripts/reviewer_bot_lib/app.py` envelope sequencing or projection-failure marker behavior changes"
+      ],
+      "allowed_proof_families": [
+        "contract-inventory",
+        "integration-transaction"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/unit/reviewer_bot/test_state_store.py",
+        "tests/unit/reviewer_bot/test_lease_lock.py",
+        "tests/unit/reviewer_bot/test_lock_codec.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/lock_codec.py` owns exactly `normalize_lock_metadata`, `render_lock_commit_message`, and `parse_lock_commit_message",
+        "scripts/reviewer_bot_lib/state_store.py` owns issue-body composition",
+        "scripts/reviewer_bot_lib/state_store.py` strips the legacy issue-body lock block on the first canonical save and does not retain a dual-render or dual-write period",
+        "scripts/reviewer_bot_lib/lease_lock.py` owns `acquire_state_issue_lease_lock`, `renew_state_issue_lease_lock`, `release_state_issue_lease_lock`, and `ensure_state_issue_lease_lock_fresh",
+        "scripts/reviewer_bot_lib/state_store.py` does not parse issue-body lock metadata for behavioral save logic",
+        "parse_lock_metadata_from_issue_body`, `LOCK_BLOCK_START_MARKER`, and `LOCK_BLOCK_END_MARKER` do not survive the mirror-removal slice",
+        "scripts/reviewer_bot_lib/lease_lock.py` owns lock-ref commit/ref lifecycle",
+        "runtime, bootstrap-runtime, fake-runtime, and focused-fake-services surfaces do not retain mirror-related public or contract methods in that same mirror-removal slice"
+      ]
+    },
+    {
+      "id": "RC21",
+      "change": "RC21 representative change",
+      "change_class": "runtime or protocol change",
+      "semantic_owner": "the retained runtime or override seam frozen in `G0c",
+      "allowed_production_categories": [
+        "runtime-authority",
+        "infra-authority",
+        "fixture-double"
+      ],
+      "allowed_proof_families": [
+        "contract-inventory"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/contract/reviewer_bot/test_runtime_protocols.py",
+        "tests/contract/reviewer_bot/test_adapter_contract.py",
+        "tests/contract/reviewer_bot/test_fake_runtime_contract.py"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/bootstrap_runtime.py` does not expose `parse_issue_labels` in the retained runtime contract",
+        "scripts/reviewer_bot_lib/bootstrap_runtime.py` does not expose `parse_github_timestamp` or `is_triage_or_higher` in the retained runtime contract",
+        "scripts/reviewer_bot_lib/bootstrap_runtime.py` exposes `handle_scheduled_check_result`, not `handle_scheduled_check",
+        "scripts/reviewer_bot_lib/bootstrap_runtime.py` does not expose `handle_pull_request_review_event",
+        "tests/fixtures/fake_runtime.py` does not expose retained runtime-level `parse_issue_labels`, `parse_github_timestamp`, or `is_triage_or_higher` compatibility methods",
+        "tests/fixtures/fake_runtime.py` and `tests/fixtures/focused_fake_services.py` retain `handle_scheduled_check_result`, not `handle_scheduled_check",
+        "tests/fixtures/fake_runtime.py` and `tests/fixtures/focused_fake_services.py` do not expose `handle_pull_request_review_event",
+        "scripts/reviewer_bot_lib/queue.py` does not depend on `bot.adapters.automation.fetch_members()` for retained member-fetch capability placement"
+      ]
+    },
+    {
+      "id": "RC22",
+      "change": "RC22 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "RC22a pull_request_review_comment deferred payload kind or raw edge-field contract` -> `.github/workflows/reviewer-bot-pr-review-comment-observer.yml ; RC22b pull_request_review.submitted deferred payload kind or raw edge-field contract` -> `.github/workflows/reviewer-bot-pr-review-submitted-observer.yml ; RC22c pull_request_review.dismissed deferred payload kind or raw edge-field contract` -> `.github/workflows/reviewer-bot-pr-review-dismissed-observer.yml",
+      "allowed_production_categories": [
+        "workflow-owner"
+      ],
+      "allowed_proof_families": [
+        "workflow-contract",
+        "contract-inventory"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/contract/reviewer_bot/test_observer_payload_drift.py",
+        "tests/contract/reviewer_bot/test_workflow_artifact_contracts.py"
+      ],
+      "source_predicates": [
+        "remaining observer workflows own emitted payload kind and raw edge-fact emission for review-comment and review-submitted or dismissed events",
+        "retained deferred payload contracts do not carry `comment_class`, `has_non_command_text`, or `actor_class",
+        "observer_noop` is absent from retained payload kinds",
+        "tests/fixtures/workflow_contracts/observer_payload_contract_matrix.json` does not retain `python_helper_outputs"
+      ]
+    },
+    {
+      "id": "RC23",
+      "change": "RC23 representative change",
+      "change_class": "support or execution change",
+      "semantic_owner": "RC23a PR comment route outcome, trusted direct admission, deferred payload choice, and safe-noop choice` -> `.github/workflows/reviewer-bot-pr-comment-router.yml ; RC23b direct trusted live-routing after admission` -> `scripts/reviewer_bot_lib/comment_routing.py",
+      "allowed_production_categories": [
+        "workflow-owner` for `RC23a",
+        "routing-policy` for `RC23b"
+      ],
+      "allowed_proof_families": [
+        "workflow-contract` for `RC23a",
+        "unit-equivalence` for routing-policy classification support",
+        "integration-transaction` only when the change is `RC23b"
+      ],
+      "hotspot_ids": [],
+      "supporting_evidence_files": [
+        "tests/integration/reviewer_bot/test_comment_routing_integration.py",
+        "tests/contract/reviewer_bot/test_workflow_files.py"
+      ],
+      "source_predicates": [
+        ".github/workflows/reviewer-bot-pr-comment-router.yml` owns PR comment route outcome, trusted direct admission, deferred payload choice, and safe-noop choice",
+        ".github/workflows/reviewer-bot-pr-comment-trusted.yml` and `.github/workflows/reviewer-bot-pr-comment-observer.yml` are absent from the retained PR-comment owner surface",
+        "scripts/reviewer_bot_lib/comment_routing.py` does not expose `build_pr_comment_observer_payload",
+        "direct trusted live routing consumes only the unique trusted-direct admission facts from `PrCommentAdmission",
+        "direct trusted PR comment handling returns `False` immediately when `request.issue_state != \"open\"",
+        "scripts/reviewer_bot_lib/comment_routing.py` owns direct trusted live routing after admission and does not call `github_api(\"GET\", f\"pulls/{issue_number}\")` for same-repo trusted PR direct routing"
       ]
     }
   ],
-  "surviving_final_proof_artifacts": [
+  "hotspot_budgets": [
     {
-      "path": "tests/contract/reviewer_bot/test_blast_radius_review.py",
-      "reason": "active blast-radius risk for future change"
+      "id": "HB1",
+      "dominant_owner": "scripts/reviewer_bot_lib/reviews.py",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_core/reviewer_response_policy.py",
+        "scripts/reviewer_bot_core/review_state_live_repair.py",
+        "scripts/reviewer_bot_core/approval_policy.py",
+        "scripts/reviewer_bot_core/mandatory_approver_policy.py"
+      ],
+      "allowed_reasons_to_change": [
+        "reviews.py still participates in same-seam policy cards outside RC5",
+        "support-layer migration inventory still tracks zero-importer deletion candidates"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/reviews.py` is absent from `RC1` through `RC4"
+      ]
     },
     {
-      "path": "tests/fixtures/equivalence/blast_radius/review.json",
-      "reason": "active blast-radius risk for future change"
+      "id": "HB2",
+      "dominant_owner": "typed request/routing/command boundary cluster",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_lib/maintenance.py",
+        "scripts/reviewer_bot_lib/reconcile.py",
+        "tests/contract/reviewer_bot/test_comment_application_contract.py"
+      ],
+      "allowed_reasons_to_change": [
+        "typed request and admission boundaries are not yet singular",
+        "dict-backed routing or command branching still survives",
+        "privileged vocabulary remains split across planning and execution"
+      ],
+      "source_predicates": [
+        "no dict-based decision branching remains in `scripts/reviewer_bot_lib/comment_application.py",
+        "no duplicate request/label/privileged constructors remain in `scripts/reviewer_bot_lib/commands.py`, `scripts/reviewer_bot_lib/automation.py`, or `scripts/reviewer_bot_lib/maintenance.py"
+      ]
     },
     {
-      "path": "tests/contract/reviewer_bot/test_runtime_protocols.py",
-      "reason": "active runtime/bootstrap/fake-runtime compatibility safety"
+      "id": "HB3",
+      "dominant_owner": "scripts/reviewer_bot_lib/maintenance.py",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_lib/project_board.py",
+        "scripts/reviewer_bot_lib/sweeper.py",
+        "scripts/reviewer_bot_lib/automation.py"
+      ],
+      "allowed_reasons_to_change": [
+        "scheduled, manual, and privileged execution still share one shell",
+        "queue safety, board attention, and transition-marker handling still bleed through the same hotspot"
+      ],
+      "source_predicates": [
+        "scheduled logic lives in `maintenance_schedule.py",
+        "privileged executor logic lives in `maintenance_privileged.py",
+        "maintenance.py` remains the manual/operator shell",
+        "member-fetch failure does not empty the queue",
+        "reviewer-board preview attention uses typed repair markers and explicit transition markers"
+      ]
     },
     {
-      "path": "tests/contract/reviewer_bot/test_adapter_contract.py",
-      "reason": "active runtime/bootstrap/fake-runtime compatibility safety"
+      "id": "HB4",
+      "dominant_owner": "scripts/reviewer_bot_lib/sweeper.py",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_core/deferred_gap_diagnosis.py",
+        "docs/reviewer-bot-review-freshness-operator-runbook.md"
+      ],
+      "allowed_reasons_to_change": [
+        "observer correlation, diagnosis, and mutation remain coupled in sweeper.py",
+        "runbook-derived approval-pending logic is still active"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/sweeper_observer_correlation.py` owns run discovery, artifact inspection, payload extraction, correlation, and watermark mutation",
+        "scripts/reviewer_bot_lib/sweeper.py` does not read active logic signatures from docs or runbooks",
+        "diagnosis stays in `scripts/reviewer_bot_core/deferred_gap_diagnosis.py"
+      ]
     },
     {
-      "path": "tests/contract/reviewer_bot/test_fake_runtime_contract.py",
-      "reason": "active runtime/bootstrap/fake-runtime compatibility safety"
+      "id": "HB5",
+      "dominant_owner": "reconcile and replay cluster",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_lib/app.py",
+        "tests/contract/reviewer_bot/test_workflow_artifact_contracts.py"
+      ],
+      "allowed_reasons_to_change": [
+        "parser and validator ownership remains split",
+        "raw payload and packaging identity still influence replay behavior"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/reconcile.py` has no deferred payload validators",
+        "replay comment requests are built through event-inputs-owned constructors"
+      ]
+    },
+    {
+      "id": "HB6",
+      "dominant_owner": "scripts/reviewer_bot_lib/app.py",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_lib/reconcile.py",
+        "tests/integration/reviewer_bot/test_app_workflow_run_bookkeeping.py"
+      ],
+      "allowed_reasons_to_change": [
+        "workflow-run semantic handling still bleeds into app.py",
+        "lifecycle timestamp and freshness prerequisites are not yet fully closed in production"
+      ],
+      "source_predicates": [
+        "scripts/reviewer_bot_lib/app.py` does not contain workflow-run semantic handler logic",
+        "scripts/reviewer_bot_lib/app.py` does not retain a direct `pull_request_review` branch",
+        "issue and PR lifecycle workflows export `EVENT_CREATED_AT"
+      ]
+    },
+    {
+      "id": "HB7",
+      "dominant_owner": "scripts/reviewer_bot_lib/state_store.py / scripts/reviewer_bot_lib/lease_lock.py",
+      "allowed_cross_boundary_callers": [
+        "scripts/reviewer_bot_lib/app.py",
+        "scripts/reviewer_bot_lib/runtime.py",
+        "tests/unit/reviewer_bot/test_state_store.py"
+      ],
+      "allowed_reasons_to_change": [
+        "state rendering, lock metadata, and save protocol are still coupled through mirror-era behavior",
+        "issue-body lock parsing remains part of retained save behavior"
+      ],
+      "source_predicates": [
+        "lock-ref commit metadata is recorded as authoritative in the subsystem map",
+        "the subsystem map records no issue-body lock mirror or lock block as retained architecture",
+        "the subsystem map records no dual-render or dual-write period for lock-mirror removal",
+        "transitional lock-body parsing helpers and lock-block markers are gone after mirror removal",
+        "the retained save protocol does not parse issue-body lock metadata for behavioral use"
+      ]
+    },
+    {
+      "id": "HB8",
+      "dominant_owner": "runtime/bootstrap/fake-runtime cluster",
+      "allowed_cross_boundary_callers": [
+        "tests/contract/reviewer_bot/test_runtime_protocols.py",
+        "tests/contract/reviewer_bot/test_adapter_contract.py",
+        "tests/contract/reviewer_bot/test_fake_runtime_contract.py"
+      ],
+      "allowed_reasons_to_change": [
+        "runtime, bootstrap, and fake-runtime still behave like mirrored public worlds",
+        "request-decoding and direct PR-review compatibility still survive on retained surfaces"
+      ],
+      "source_predicates": [
+        "runtime/bootstrap/fake-runtime retained surfaces match the predeclared `G0c` rows and do not reintroduce request-decoding helpers",
+        "no retained runtime, bootstrap, or fake surface exposes direct `pull_request_review` handling",
+        "member-fetch capability remains in the workflow adapter group rather than the automation adapter surface",
+        "FakeReviewerBotRuntime.assert_lock_held()` fails when no active lease exists by default",
+        "fake runtime defaults derive from production config constants rather than independent literals"
+      ]
+    },
+    {
+      "id": "HB9",
+      "dominant_owner": "proof and locality artifact cluster",
+      "allowed_cross_boundary_callers": [
+        "tests/contract/reviewer_bot/test_blast_radius_review.py",
+        "tests/contract/reviewer_bot/test_support_layer_ownership.py",
+        "tests/contract/reviewer_bot/test_workflow_artifact_contracts.py"
+      ],
+      "allowed_reasons_to_change": [
+        "proof fixtures still encode transitional path and packaging details as architecture truth",
+        "blast-radius proof is still the legacy F3 fixture rather than the final semantic locality audit"
+      ],
+      "source_predicates": [
+        "tests/fixtures/equivalence/blast_radius/review.json` is semantic-budget oriented rather than exact-file exhaustive",
+        "tests/fixtures/workflow_contracts/observer_payload_contract_matrix.json` is keyed by behavior question and payload kind rather than workflow-versus-helper producer buckets",
+        "tests/fixtures/workflow_contracts/observer_payload_contract_matrix.json` does not retain `observer_noop` as a payload kind",
+        "no final proof artifact depends on exact workflow name, exact workflow file path, exact artifact name, exact payload filename, exact helper location, exact protocol-member inventory, or exact exhaustive file-touch set where those are not the retained boundary"
+      ]
     }
-  ],
-  "active_migration_proof_artifacts": [
-    {
-      "path": "tests/contract/reviewer_bot/test_support_layer_ownership.py",
-      "reason": "active migration proof that still enforces support-layer ownership inventory"
-    },
-    {
-      "path": "tests/fixtures/equivalence/support_layer/symbol_inventory.json",
-      "reason": "active migration fixture still enforced by support-layer ownership contract proof"
-    },
-    {
-      "path": "tests/fixtures/equivalence/runtime_surface/triple_inventory.json",
-      "reason": "active migration fixture until runtime-surface inventory and deletion proof retire together"
-    },
-    {
-      "path": "tests/fixtures/equivalence/runtime_surface/deletion_manifest.json",
-      "reason": "active migration fixture until runtime-surface inventory and deletion proof retire together"
-    }
-  ],
-  "retired_migration_only_artifacts": [
-  
   ]
 }

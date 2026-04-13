@@ -62,7 +62,7 @@ def test_label_signoff_create_pr_on_pr_does_not_mark_issue_complete(monkeypatch)
     )
     trust_context = harness.typed_trust_context(
         author_association="MEMBER",
-        workflow_file=".github/workflows/reviewer-bot-pr-comment-trusted.yml",
+        workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         repository="rustfoundation/safety-critical-rust-coding-guidelines",
         ref="refs/heads/main",
     )

@@ -28,9 +28,6 @@ from .reconcile_payloads import (
     DeferredCommentPayload,
     DeferredCommentReplayContext,
     DeferredReviewPayload,
-    ObserverNoopPayload,
-    _LegacyDeferredIssueCommentPayloadV2,
-    _LegacyDeferredReviewCommentPayloadV2,
     build_deferred_comment_replay_context,
     build_deferred_review_replay_context,
     parse_deferred_context_payload,
@@ -68,9 +65,7 @@ from .runtime_protocols import (
 
 DeferredArtifactIdentity = _reconcile_payloads.DeferredArtifactIdentity
 DeferredReviewReplayContext = _reconcile_payloads.DeferredReviewReplayContext
-_artifact_expected_name = _reconcile_payloads.artifact_expected_name
-_artifact_expected_payload_name = _reconcile_payloads.artifact_expected_payload_name
-ParsedWorkflowRunPayload = DeferredReviewPayload | DeferredCommentPayload | ObserverNoopPayload | _LegacyDeferredIssueCommentPayloadV2 | _LegacyDeferredReviewCommentPayloadV2
+ParsedWorkflowRunPayload = DeferredReviewPayload | DeferredCommentPayload
 
 
 @dataclass(frozen=True)
@@ -268,15 +263,7 @@ def _reconcile_deferred_comment(
     pr_number = context.pr_number
     _read_live_pr_replay_context(bot, pr_number)
     source_freshness_eligible = context.source_freshness_eligible
-    source_classified = (
-        _classify_deferred_comment_payload(context.payload)
-        if isinstance(context.payload, DeferredCommentPayload)
-        else {
-            "comment_class": context.payload.comment_class,
-            "has_non_command_text": context.payload.has_non_command_text,
-            "command_count": 1,
-        }
-    )
+    source_classified = _classify_deferred_comment_payload(context.payload)
 
     def replay_request(comment_context: LiveCommentReplayContext | None = None, *, comment_body: str = "") -> CommentEventRequest:
         return build_replay_comment_event_request(
@@ -405,28 +392,6 @@ def _reconcile_deferred_comment(
         return changed or reconciled_changed or gap_cleared_changed
 
 
-def _handle_observer_noop_workflow_run(
-    bot: ReconcileWorkflowRuntimeContext,
-    state: dict,
-    review_data: dict,
-    parsed_payload: ObserverNoopPayload,
-) -> bool:
-    del state, review_data
-    _reconcile_payloads.validate_triggering_run_identity(bot, parsed_payload.raw_payload)
-    decision = reconcile_replay_policy.decide_observer_noop(
-        source_event_key=parsed_payload.identity.source_event_key,
-        reason=parsed_payload.reason,
-    )
-    _log(
-        bot,
-        "info",
-        f"Observer workflow produced explicit no-op payload for {decision.source_event_key}: {decision.reason}",
-        source_event_key=decision.source_event_key,
-        reason=decision.reason,
-    )
-    return False
-
-
 def _handle_issue_comment_workflow_run(
     bot: ReconcileWorkflowRuntimeContext,
     state: dict,
@@ -550,12 +515,6 @@ _WORKFLOW_RUN_HANDLER_MATRIX: dict[tuple[str, str], tuple[type[DeferredCommentPa
 
 
 def _workflow_run_handler_for_payload(parsed_payload: ParsedWorkflowRunPayload):
-    if isinstance(parsed_payload, ObserverNoopPayload):
-        return _handle_observer_noop_workflow_run
-    if isinstance(parsed_payload, _LegacyDeferredIssueCommentPayloadV2):
-        return _handle_issue_comment_workflow_run
-    if isinstance(parsed_payload, _LegacyDeferredReviewCommentPayloadV2):
-        return _handle_review_comment_workflow_run
     entry = _WORKFLOW_RUN_HANDLER_MATRIX.get(
         (
             parsed_payload.identity.source_event_name,

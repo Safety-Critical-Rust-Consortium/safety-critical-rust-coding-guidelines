@@ -8,7 +8,6 @@
   ],
   "payload_scenarios": [
     "command_plus_text",
-    "trusted_direct_observer_noop",
     "deferred_observer_payload"
   ]
 }

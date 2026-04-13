@@ -2,15 +2,6 @@
   "harness_id": "C4a reconcile replay scenario matrix",
   "scenarios": [
     {
-      "scenario_id": "noop_artifact",
-      "fixture_kind": "observer_noop",
-      "expected_state_delta": "create_tracked_review_only",
-      "expected_touched_items": [42],
-      "expected_deferred_gap_mutation": "none",
-      "expected_reconciled_source_events_mutation": "none",
-      "expected_diagnostic_output": "none"
-    },
-    {
       "scenario_id": "deferred_comment_replay_matching_live_comment",
       "fixture_kind": "deferred_comment",
       "expected_state_delta": "apply_comment_replay",

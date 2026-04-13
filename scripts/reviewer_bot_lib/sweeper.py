@@ -13,7 +13,6 @@ from . import deferred_gap_bookkeeping as gap_bookkeeping
 from . import retrying
 from . import sweeper_observer_correlation as observer_correlation
 from .config import REVIEW_FRESHNESS_RUNBOOK_PATH
-from .reconcile_payloads import artifact_expected_name as _artifact_expected_name
 from .review_state import (
     accept_reviewer_review_from_live_review,
     get_current_cycle_boundary,
@@ -460,15 +459,6 @@ def _record_gap_diagnostics(
     reason: str,
     diagnostic_reason: str,
 ) -> None:
-    payload_kind = None
-    if source_event_name == "pull_request_review" and source_event_action == "submitted":
-        payload_kind = "deferred_review_submitted"
-    elif source_event_name == "pull_request_review" and source_event_action == "dismissed":
-        payload_kind = "deferred_review_dismissed"
-    elif source_event_name == "pull_request_review_comment" and source_event_action == "created":
-        payload_kind = "deferred_review_comment"
-    elif source_event_name == "issue_comment" and source_event_action == "created":
-        payload_kind = "deferred_comment"
     gap_bookkeeping._update_deferred_gap(
         bot,
         review_data,
@@ -481,15 +471,6 @@ def _record_gap_diagnostics(
             "source_workflow_file": workflow_file,
             "source_run_id": run_correlation.get("correlated_run"),
             "source_run_attempt": run_detail.get("run_attempt") if isinstance(run_detail, dict) else None,
-            "source_artifact_name": _artifact_expected_name(
-                {
-                    "payload_kind": payload_kind,
-                    "source_event_name": source_event_name,
-                    "source_event_action": source_event_action,
-                    "source_run_id": run_correlation.get("correlated_run") or 0,
-                    "source_run_attempt": (run_detail or {}).get("run_attempt") or 0,
-                }
-            ),
         },
         reason,
         f"Trusted sweeper diagnostics for {source_event_key}: {diagnostic_reason}. See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}.",
@@ -555,7 +536,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
                 created_at = discovered["source_created_at"]
                 if _should_skip_discovered_key(bot, review_data, source_event_key, ("reviewer_comment", "contributor_comment")):
                     continue
-                workflow_file = ".github/workflows/reviewer-bot-pr-comment-observer.yml"
+                workflow_file = ".github/workflows/reviewer-bot-pr-comment-router.yml"
                 workflow_runs = _fetch_workflow_runs_for_file(bot, workflow_file, "issue_comment")
                 _diagnose_deferred_event(
                     bot,

@@ -30,7 +30,8 @@ def test_execute_run_workflow_run_bookkeeping_only_reconcile_still_saves_state(t
     payload_path.write_text(
         json.dumps(
             {
-                "schema_version": 2,
+                "payload_kind": "deferred_review_submitted",
+                "schema_version": 3,
                 "source_workflow_name": "Reviewer Bot PR Review Submitted Observer",
                 "source_workflow_file": ".github/workflows/reviewer-bot-pr-review-submitted-observer.yml",
                 "source_run_id": 700,
@@ -90,7 +91,7 @@ def test_execute_run_workflow_run_deferred_comment_bookkeeping_only_reconcile_st
     tmp_path, monkeypatch
 ):
     harness = AppHarness(monkeypatch)
-    harness.set_workflow_run_name("Reviewer Bot PR Comment Observer")
+    harness.set_workflow_run_name("Reviewer Bot PR Comment Router")
     harness.set_event(
         EVENT_NAME="workflow_run",
         EVENT_ACTION="completed",
@@ -108,9 +109,10 @@ def test_execute_run_workflow_run_deferred_comment_bookkeeping_only_reconcile_st
     payload_path.write_text(
         json.dumps(
             {
-                "schema_version": 2,
-                "source_workflow_name": "Reviewer Bot PR Comment Observer",
-                "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+                "payload_kind": "deferred_comment",
+                "schema_version": 3,
+                "source_workflow_name": "Reviewer Bot PR Comment Router",
+                "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-router.yml",
                 "source_run_id": 710,
                 "source_run_attempt": 1,
                 "source_event_name": "issue_comment",
@@ -118,11 +120,17 @@ def test_execute_run_workflow_run_deferred_comment_bookkeeping_only_reconcile_st
                 "source_event_key": "issue_comment:210",
                 "pr_number": 42,
                 "comment_id": 210,
-                "comment_class": "command_only",
-                "has_non_command_text": False,
-                    "source_body_digest": "digest",
-                "source_created_at": "2026-03-17T10:00:00Z",
-                "actor_login": "bob",
+                "comment_body": "@guidelines-bot /queue",
+                "comment_created_at": "2026-03-17T10:00:00Z",
+                "comment_author": "bob",
+                "comment_author_id": 7,
+                "comment_user_type": "User",
+                "comment_sender_type": "User",
+                "comment_installation_id": None,
+                "comment_performed_via_github_app": False,
+                "issue_author": "dana",
+                "issue_state": "open",
+                "issue_labels": ["coding guideline"],
             }
         ),
         encoding="utf-8",
@@ -185,7 +193,8 @@ def test_execute_run_workflow_run_deferred_review_comment_bookkeeping_only_recon
     payload_path.write_text(
         json.dumps(
             {
-                "schema_version": 2,
+                "payload_kind": "deferred_review_comment",
+                "schema_version": 3,
                 "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
                 "source_workflow_file": ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
                 "source_run_id": 711,
@@ -195,11 +204,17 @@ def test_execute_run_workflow_run_deferred_review_comment_bookkeeping_only_recon
                 "source_event_key": "pull_request_review_comment:310",
                 "pr_number": 42,
                 "comment_id": 310,
-                "comment_class": "plain_text",
-                "has_non_command_text": True,
-                    "source_body_digest": "digest",
-                "source_created_at": "2026-03-17T10:00:00Z",
-                "actor_login": "alice",
+                "comment_body": "plain text review comment",
+                "comment_created_at": "2026-03-17T10:00:00Z",
+                "comment_author": "alice",
+                "comment_author_id": 11,
+                "comment_user_type": "User",
+                "comment_sender_type": "User",
+                "comment_installation_id": None,
+                "comment_performed_via_github_app": False,
+                "issue_author": "dana",
+                "issue_state": "open",
+                "issue_labels": ["coding guideline"],
             }
         ),
         encoding="utf-8",

@@ -2,7 +2,7 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-from scripts.reviewer_bot_lib import comment_routing, reconcile, review_state
+from scripts.reviewer_bot_lib import comment_routing, review_state
 from scripts.reviewer_bot_lib.config import FLS_AUDIT_LABEL
 from tests.fixtures.comment_routing_harness import CommentRoutingHarness
 from tests.fixtures.reviewer_bot import make_state
@@ -122,34 +122,6 @@ def test_open_non_pr_plain_text_comment_still_updates_freshness(monkeypatch):
     assert harness.handle_comment_event(state, request=request) is True
     accepted = state["active_reviews"]["42"]["contributor_comment"]["accepted"]
     assert accepted["semantic_key"] == "issue_comment:100"
-
-def test_observer_noop_payload_is_safe_noop(tmp_path, monkeypatch):
-    state = make_state()
-    harness = CommentRoutingHarness(monkeypatch)
-    review_state.ensure_review_entry(state, 42, create=True)
-    harness.runtime.stub_deferred_payload(
-        {
-            "schema_version": 1,
-            "kind": "observer_noop",
-            "reason": "ignored_non_human_automation",
-            "source_workflow_name": "Reviewer Bot PR Comment Observer",
-            "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
-            "source_run_id": 777,
-            "source_run_attempt": 1,
-            "source_event_name": "issue_comment",
-            "source_event_action": "created",
-            "source_event_key": "issue_comment:111",
-            "pr_number": 42,
-        }
-    )
-    harness.config.set("WORKFLOW_RUN_TRIGGERING_NAME", "Reviewer Bot PR Comment Observer")
-    harness.config.set("WORKFLOW_RUN_TRIGGERING_ID", "777")
-    harness.config.set("WORKFLOW_RUN_TRIGGERING_ATTEMPT", "1")
-    harness.config.set("WORKFLOW_RUN_TRIGGERING_CONCLUSION", "success")
-
-    assert reconcile.handle_workflow_run_event_result(harness.runtime, state).state_changed is False
-    assert state["active_reviews"]["42"]["sidecars"]["deferred_gaps"] == {}
-
 
 def test_cross_repo_pr_comment_route_remains_deferred_not_direct(monkeypatch):
     harness = CommentRoutingHarness(monkeypatch)

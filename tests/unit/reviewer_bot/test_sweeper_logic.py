@@ -54,7 +54,7 @@ def test_sweeper_creates_keyed_deferred_gaps_for_visible_comments_reviews_and_di
         )
         .add_request(
             "GET",
-            "actions/workflows/.github%2Fworkflows%2Freviewer-bot-pr-comment-observer.yml/runs?event=issue_comment&per_page=100&page=1",
+            "actions/workflows/.github%2Fworkflows%2Freviewer-bot-pr-comment-router.yml/runs?event=issue_comment&per_page=100&page=1",
             status_code=200,
             payload={"workflow_runs": []},
         )
@@ -443,10 +443,10 @@ def test_stage_a_candidate_run_correlation_is_exact_to_workflow_event_pr_and_win
         source_event_kind="issue_comment:created",
         source_event_created_at="2026-03-17T10:00:00Z",
         pr_number=42,
-        workflow_file=".github/workflows/reviewer-bot-pr-comment-observer.yml",
+        workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         workflow_runs=[
-            workflow_run(1, event="issue_comment", path=".github/workflows/reviewer-bot-pr-comment-observer.yml", created_at="2026-03-17T10:05:00Z"),
-            workflow_run(2, event="issue_comment", path=".github/workflows/reviewer-bot-pr-comment-observer.yml", created_at="2026-03-17T10:40:00Z"),
+            workflow_run(1, event="issue_comment", path=".github/workflows/reviewer-bot-pr-comment-router.yml", created_at="2026-03-17T10:05:00Z"),
+            workflow_run(2, event="issue_comment", path=".github/workflows/reviewer-bot-pr-comment-router.yml", created_at="2026-03-17T10:40:00Z"),
         ],
         github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
     )

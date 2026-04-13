@@ -51,7 +51,7 @@ def test_pr_comment_direct_path_is_epoch_gated(monkeypatch):
     trust_context = harness.trust_context(
         github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
         comment_author_association="MEMBER",
-        current_workflow_file=".github/workflows/reviewer-bot-pr-comment-trusted.yml",
+        current_workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         github_ref="refs/heads/main",
     )
     harness.add_pull_request_metadata(
@@ -152,7 +152,7 @@ def test_reviewer_comment_clears_warning_and_transition_notice_markers(monkeypat
     trust_context = harness.trust_context(
         github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
         comment_author_association="MEMBER",
-        current_workflow_file=".github/workflows/reviewer-bot-pr-comment-trusted.yml",
+        current_workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         github_ref="refs/heads/main",
     )
     harness.add_pull_request_metadata(
@@ -166,7 +166,7 @@ def test_reviewer_comment_clears_warning_and_transition_notice_markers(monkeypat
     assert review["transition_notice_sent_at"] is None
 
 
-def test_scheduled_check_backfills_transition_notice_without_reposting(monkeypatch):
+def test_scheduled_check_backfills_markerized_transition_notice_without_reposting(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.ACTIVE_LEASE_CONTEXT = object()
     state = make_state()
@@ -201,7 +201,7 @@ def test_scheduled_check_backfills_transition_notice_without_reposting(monkeypat
         {
             "id": 99,
             "created_at": "2026-03-25T15:22:42Z",
-            "body": "🔔 **Transition Period Ended**\n\nExisting notice",
+            "body": "<!-- reviewer-bot:transition-notice:v1 issue=42 reviewer=alice -->\n\n🔔 **Transition Period Ended**\n\nExisting notice",
             "user": {"login": "github-actions[bot]"},
         }
     ]

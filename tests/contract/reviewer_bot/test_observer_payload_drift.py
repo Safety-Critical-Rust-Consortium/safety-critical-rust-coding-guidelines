@@ -60,24 +60,9 @@ def test_workflow_emitted_payload_fixtures_match_parseable_identity_contract(
     assert parsed.raw_payload == payload
 
 
-@pytest.mark.parametrize(
-    ("fixture_path",),
-    [
-        ("tests/fixtures/observer_payloads/helper_pr_comment_trusted_direct_noop.json",),
-        ("tests/fixtures/observer_payloads/helper_pr_comment_automation_noop.json",),
-    ],
-)
-def test_python_helper_output_fixtures_remain_parseable_migration_examples(fixture_path):
-    fixture = _load_fixture(fixture_path)
-    payload = fixture["payload"]
-    metadata = fixture["fixture_metadata"]
-    parsed = reconcile_payloads.parse_deferred_context_payload(payload)
-
-    assert metadata["contract_class"] == "python_helper_output"
-    assert metadata["contract_source"] == "production Python helper"
-    assert payload["kind"] == "observer_noop"
-    assert parsed.reason
-    assert parsed.raw_payload == payload
+def test_observer_noop_helper_fixtures_are_retired():
+    assert not Path("tests/fixtures/observer_payloads/helper_pr_comment_trusted_direct_noop.json").exists()
+    assert not Path("tests/fixtures/observer_payloads/helper_pr_comment_automation_noop.json").exists()
 
 
 def test_observer_contract_matrix_uses_final_top_level_sections_and_row_schema():

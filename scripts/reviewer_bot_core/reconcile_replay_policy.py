@@ -10,12 +10,6 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class ObserverNoopDecision:
-    source_event_key: str
-    reason: str
-
-
-@dataclass(frozen=True)
 class CommentReplayDecision:
     record_source_freshness: bool
     replay_comment_command: bool
@@ -36,10 +30,6 @@ class ReviewReplayDecision:
     actor_login: str | None
     mark_reconciled: bool
     clear_gap: bool
-
-
-def decide_observer_noop(*, source_event_key: str, reason: str) -> ObserverNoopDecision:
-    return ObserverNoopDecision(source_event_key=source_event_key, reason=reason)
 
 
 def decide_comment_replay(
