@@ -193,7 +193,9 @@ def handle_pass_command(
         current_assignees=current_assignees,
     )
     if not result.get("confirmed"):
-        return _assignment_failure_response(next_reviewer, result), False
+        return _assignment_failure_response(next_reviewer, result), False, bool(
+            result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
+        )
     issue_data["skipped"] = skipped
     bot.adapters.queue.reposition_member_as_next(state, passed_reviewer)
     assignment_line = f"@{next_reviewer} is now assigned as the reviewer."
@@ -236,17 +238,9 @@ def handle_pass_until_command(
                     entry["reason"] = reason
                 return (f"✅ Updated your return date to {normalized_return_date}.\n\nYou're already marked as away."), True
         return (f"❌ @{comment_author} is not in the reviewer queue. Only Producers can use this command."), False
-    state["queue"].remove(user_in_queue)
     pass_entry = {"github": user_in_queue["github"], "name": user_in_queue.get("name", user_in_queue["github"]), "return_date": normalized_return_date, "original_queue_position": user_index}
     if reason:
         pass_entry["reason"] = reason
-    state["pass_until"].append(pass_entry)
-    if state["queue"]:
-        if user_index is not None and user_index < state["current_index"]:
-            state["current_index"] = max(0, state["current_index"] - 1)
-        state["current_index"] = state["current_index"] % len(state["queue"])
-    else:
-        state["current_index"] = 0
     current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
     if assignee_error:
         return assignee_error, False
@@ -255,6 +249,7 @@ def handle_pass_until_command(
     reassigned_msg = ""
     if is_current_reviewer:
         skip_set = {assignment_request.issue_author} if assignment_request.issue_author else set()
+        skip_set.add(comment_author)
         next_reviewer = bot.adapters.queue.get_next_reviewer(state, skip_usernames=skip_set)
         if next_reviewer:
             result = _apply_assignment_transition(
@@ -269,6 +264,9 @@ def handle_pass_until_command(
                 reassigned_msg = f"\n\n@{next_reviewer} has been assigned as the new reviewer for this issue."
             else:
                 reassigned_msg = f"\n\n{_assignment_failure_response(next_reviewer, result)}"
+                return reassigned_msg.strip(), False, bool(
+                    result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
+                )
         else:
             release_result = assignment_flow.confirm_reviewer_release(
                 bot,
@@ -281,6 +279,18 @@ def handle_pass_until_command(
                 if release_result.get("confirmed")
                 else f"\n\n{_assignment_failure_response(comment_author, release_result)}"
             )
+            if not release_result.get("confirmed"):
+                return reassigned_msg.strip(), False, bool(
+                    release_result.get("diagnostic_changed") or release_result.get("cleared_current_reviewer")
+                )
+    state["queue"].remove(user_in_queue)
+    state["pass_until"].append(pass_entry)
+    if state["queue"]:
+        if user_index is not None and user_index < state["current_index"]:
+            state["current_index"] = max(0, state["current_index"] - 1)
+        state["current_index"] = state["current_index"] % len(state["queue"])
+    else:
+        state["current_index"] = 0
     reason_text = f" ({reason})" if reason else ""
     return (f"✅ @{comment_author} is now away until {normalized_return_date}{reason_text}.\n\nYou'll be automatically added back to the queue on that date.{reassigned_msg}"), True
 
@@ -437,7 +447,9 @@ def handle_claim_command(
     )
     prev_text = f" (previously: @{', @'.join(current_assignees)})" if current_assignees else ""
     if not result.get("confirmed"):
-        return _assignment_failure_response(comment_author, result, prefix=""), False
+        return _assignment_failure_response(comment_author, result, prefix=""), False, bool(
+            result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
+        )
     return f"✅ @{comment_author} has claimed this review{prev_text}.", True
 
 
@@ -499,7 +511,9 @@ def handle_release_command(
         reposition_reviewer=assignment_method == "round-robin",
     )
     if not result.get("confirmed"):
-        return _assignment_failure_response(target_username, result), False
+        return _assignment_failure_response(target_username, result), False, bool(
+            result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
+        )
     reason_text = f" Reason: {reason}" if reason else ""
     if releasing_other:
         return (f"✅ @{comment_author} has released @{target_username} from this review.{reason_text}\n\n_This issue/PR is now unassigned. Use `{bot.BOT_MENTION} /r? producers` to assign the next reviewer from the queue, or `{bot.BOT_MENTION} /claim` to claim it._"), True
@@ -540,7 +554,9 @@ def handle_assign_command(
     prev_text = f" (previously: @{', @'.join(current_assignees)})" if current_assignees else ""
     if result.get("confirmed"):
         return f"✅ @{username} has been assigned as reviewer{prev_text}.", True
-    return _assignment_failure_response(username, result), False
+    return _assignment_failure_response(username, result), False, bool(
+        result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
+    )
 
 
 def handle_assign_from_queue_command(
@@ -568,4 +584,6 @@ def handle_assign_from_queue_command(
     prev_text = f" (previously: @{', @'.join(current_assignees)})" if current_assignees else ""
     if result.get("confirmed"):
         return f"✅ @{next_reviewer} (next in queue) has been assigned as reviewer{prev_text}.", True
-    return _assignment_failure_response(next_reviewer, result), False
+    return _assignment_failure_response(next_reviewer, result), False, bool(
+        result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
+    )

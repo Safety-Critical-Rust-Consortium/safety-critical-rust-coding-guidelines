@@ -57,6 +57,19 @@ def _warning_marker(issue_number: int, reviewer: str, anchor_timestamp: str | No
     )
 
 
+def _authority_marker(*, phase: str, live_assignees: list[str], reason: str, recorded_at: str) -> dict:
+    return {
+        "kind": "reviewer_authority_mismatch",
+        "phase": phase,
+        "status_code": None,
+        "failure_kind": "reviewer_authority_mismatch",
+        "retry_attempts": 0,
+        "recorded_at": recorded_at,
+        "reason": reason,
+        "live_assignees": list(live_assignees),
+    }
+
+
 def _find_existing_marker_comment(
     bot,
     issue_number: int,
@@ -152,10 +165,70 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
         issue_snapshot_result = bot.github.get_issue_or_pr_snapshot_result(issue_number)
         issue_snapshot = issue_snapshot_result.payload if issue_snapshot_result.ok else None
         if not isinstance(issue_snapshot, dict):
+            if issue_snapshot_result.failure_kind in {"unauthorized", "forbidden"}:
+                raise RuntimeError(
+                    f"Permission denied reading issue snapshot for #{issue_number} (status {issue_snapshot_result.status_code})."
+                )
+            _record_transport_failure(
+                bot,
+                review_data,
+                issue_number,
+                phase="issue_snapshot_read",
+                result=issue_snapshot_result,
+            )
             _log(bot, "warning", f"Skipping overdue evaluation for #{issue_number}; issue/PR snapshot unavailable", issue_number=issue_number)
             continue
+        _clear_transport_failure(bot, review_data, issue_number, phase="issue_snapshot_read")
         if str(issue_snapshot.get("state", "")).lower() == "closed":
             continue
+        assignee_result = bot.github.get_issue_assignees_result(
+            issue_number,
+            is_pull_request=isinstance(issue_snapshot.get("pull_request"), dict),
+        )
+        if assignee_result.failure_kind in {"unauthorized", "forbidden"}:
+            raise RuntimeError(
+                f"Permission denied reading reviewer authority for #{issue_number} (status {assignee_result.status_code})."
+            )
+        if not assignee_result.ok or not isinstance(assignee_result.payload, list):
+            _record_transport_failure(
+                bot,
+                review_data,
+                issue_number,
+                phase="assignment_confirm_read",
+                result=assignee_result,
+            )
+            continue
+        live_assignees = assignee_result.payload
+        live_assignees_normalized = [assignee.lower() for assignee in live_assignees]
+        if len(live_assignees) != 1:
+            _store_assignment_marker = store_repair_marker(
+                review_data,
+                "assignment_confirm_read",
+                _authority_marker(
+                    phase="assignment_confirm_read",
+                    live_assignees=live_assignees,
+                    reason="invalid_live_assignee_count",
+                    recorded_at=bot.clock.now().isoformat(),
+                ),
+            )
+            if _store_assignment_marker:
+                bot.collect_touched_item(issue_number)
+            continue
+        if current_reviewer.lower() != live_assignees_normalized[0]:
+            _store_assignment_marker = store_repair_marker(
+                review_data,
+                "assignment_confirm_read",
+                _authority_marker(
+                    phase="assignment_confirm_read",
+                    live_assignees=live_assignees,
+                    reason="stored_reviewer_mismatch",
+                    recorded_at=bot.clock.now().isoformat(),
+                ),
+            )
+            if _store_assignment_marker:
+                bot.collect_touched_item(issue_number)
+            continue
+        _clear_transport_failure(bot, review_data, issue_number, phase="assignment_confirm_read")
         response_state = bot.adapters.review_state.compute_reviewer_response_state(
             issue_number,
             review_data,
@@ -246,6 +319,10 @@ def backfill_transition_notice_if_present(bot, state: dict, issue_number: int) -
         review_data.get("current_reviewer"),
     )
     if existing_notice.get("status") == "unavailable":
+        if existing_notice.get("failure_kind") in {"unauthorized", "forbidden"}:
+            raise RuntimeError(
+                f"Permission denied reading transition dedupe comments for #{issue_number} (status {existing_notice.get('status_code')})."
+            )
         return _record_transport_failure(
             bot,
             review_data,
@@ -278,6 +355,7 @@ def handle_overdue_review_warning(
     reviewer: str,
     *,
     anchor_reason: str | None = None,
+    anchor_timestamp: str | None = None,
 ) -> bool:
     """Post a warning comment and record that we've warned the reviewer."""
     issue_key = str(issue_number)
@@ -288,9 +366,12 @@ def handle_overdue_review_warning(
     review_data = state["active_reviews"][issue_key]
     if not isinstance(review_data, dict):
         return False
-    anchor_timestamp = review_data.get("transition_warning_sent") if isinstance(review_data.get("transition_warning_sent"), str) else None
     existing_warning = _warning_scan_result(bot, issue_number, reviewer, anchor_timestamp)
     if existing_warning.get("status") == "unavailable":
+        if existing_warning.get("failure_kind") in {"unauthorized", "forbidden"}:
+            raise RuntimeError(
+                f"Permission denied reading warning dedupe comments for #{issue_number} (status {existing_warning.get('status_code')})."
+            )
         return _record_transport_failure(
             bot,
             review_data,
@@ -313,9 +394,9 @@ def handle_overdue_review_warning(
         bot.collect_touched_item(issue_number)
         return True
 
-    warning_message = f"""⚠️ **Review Reminder**
+    warning_message = f"""{_warning_marker(issue_number, reviewer, anchor_timestamp)}
 
-{_warning_marker(issue_number, reviewer, anchor_timestamp)}
+⚠️ **Review Reminder**
 
 {_warning_anchor_sentence(bot, reviewer, anchor_reason)}
 
@@ -331,6 +412,10 @@ _Life happens! If you're dealing with something, just let us know._"""
 
     post_result = bot.github.post_comment_result(issue_number, warning_message)
     if not post_result.ok:
+        if post_result.failure_kind in {"unauthorized", "forbidden"}:
+            raise RuntimeError(
+                f"Permission denied posting overdue warning for #{issue_number} (status {post_result.status_code})."
+            )
         if (
             post_result.failure_kind in {"invalid_payload", "server_error", "transport_error", "rate_limited"}
             or (post_result.status_code is not None and post_result.status_code < 400)

@@ -192,10 +192,30 @@ class GitHubStub:
 
         return github_api_module.ensure_label_exists(self._runtime_required(), label, color=color, description=description)
 
-    def get_issue_assignees(self, issue_number: int):
+    def get_issue_assignees(self, issue_number: int, *, is_pull_request=None):
         from scripts.reviewer_bot_lib import github_api as github_api_module
 
-        return github_api_module.get_issue_assignees(self._runtime_required(), issue_number)
+        return github_api_module.get_issue_assignees(
+            self._runtime_required(),
+            issue_number,
+            is_pull_request=is_pull_request,
+        )
+
+    def get_issue_assignees_result(self, issue_number: int, *, is_pull_request=None):
+        from scripts.reviewer_bot_lib import github_api as github_api_module
+
+        override = self.__dict__.get("get_issue_assignees")
+        if callable(override):
+            assignees = override(issue_number)
+            runtime = self._runtime_required()
+            if assignees is None:
+                return runtime.GitHubApiResult(None, None, {}, "", False, "transport_error", 0, None)
+            return runtime.GitHubApiResult(200, list(assignees), {}, "ok", True, None, 0, None)
+        return github_api_module.get_issue_assignees_result(
+            self._runtime_required(),
+            issue_number,
+            is_pull_request=is_pull_request,
+        )
 
     def request_pr_reviewer_assignment(self, issue_number: int, username: str):
         from scripts.reviewer_bot_lib import github_api as github_api_module

@@ -83,8 +83,19 @@ class _BootstrapGitHubServices:
     def ensure_label_exists(self, label, *, color=None, description=None):
         return github_api.ensure_label_exists(self._runtime_getter(), label, color=color, description=description)
 
-    def get_issue_assignees(self, issue_number):
-        return github_api.get_issue_assignees(self._runtime_getter(), issue_number)
+    def get_issue_assignees(self, issue_number, *, is_pull_request=None):
+        return github_api.get_issue_assignees(
+            self._runtime_getter(),
+            issue_number,
+            is_pull_request=is_pull_request,
+        )
+
+    def get_issue_assignees_result(self, issue_number, *, is_pull_request=None):
+        return github_api.get_issue_assignees_result(
+            self._runtime_getter(),
+            issue_number,
+            is_pull_request=is_pull_request,
+        )
 
     def request_pr_reviewer_assignment(self, issue_number, username):
         return github_api.request_pr_reviewer_assignment(self._runtime_getter(), issue_number, username)

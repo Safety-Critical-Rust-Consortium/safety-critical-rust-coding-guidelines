@@ -80,5 +80,7 @@ def clear_repair_marker(review_data: dict, key: str) -> bool:
     markers = repair_markers(review_data)
     if key not in markers:
         return False
+    if not isinstance(markers.get(key), dict):
+        return False
     markers[key] = None
     return True

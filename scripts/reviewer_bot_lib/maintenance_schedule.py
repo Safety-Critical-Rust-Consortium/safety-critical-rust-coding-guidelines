@@ -132,6 +132,7 @@ def _run_overdue_pass(bot, state: dict) -> bool:
                 issue_number,
                 reviewer,
                 anchor_reason=review.get("anchor_reason"),
+                anchor_timestamp=review.get("anchor_timestamp"),
             ):
                 changed = True
         elif review["needs_transition"]:

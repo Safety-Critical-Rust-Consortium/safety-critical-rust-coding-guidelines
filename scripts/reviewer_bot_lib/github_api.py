@@ -430,6 +430,78 @@ def get_issue_or_pr_snapshot(bot: GitHubTransportContext, issue_number: int) -> 
     return response.payload
 
 
+def get_issue_assignees_result(
+    bot: GitHubTransportContext,
+    issue_number: int,
+    *,
+    is_pull_request: bool | None = None,
+):
+    pull_request_mode = _is_pull_request(bot) if is_pull_request is None else is_pull_request
+    endpoint = f"pulls/{issue_number}" if pull_request_mode else f"issues/{issue_number}"
+    field = "requested_reviewers" if pull_request_mode else "assignees"
+    response = bot.github_api_request(
+        "GET",
+        endpoint,
+        retry_policy=RETRY_POLICY_IDEMPOTENT_READ,
+    )
+    if not response.ok:
+        return response
+    payload = response.payload
+    if not isinstance(payload, dict):
+        return _build_result(
+            bot,
+            status_code=response.status_code,
+            payload=None,
+            headers=response.headers,
+            text=response.text,
+            ok=False,
+            failure_kind="invalid_payload",
+            retry_attempts=response.retry_attempts,
+            transport_error=response.transport_error,
+        )
+    assignees = payload.get(field)
+    if not isinstance(assignees, list):
+        return _build_result(
+            bot,
+            status_code=response.status_code,
+            payload=None,
+            headers=response.headers,
+            text=response.text,
+            ok=False,
+            failure_kind="invalid_payload",
+            retry_attempts=response.retry_attempts,
+            transport_error=response.transport_error,
+        )
+    logins: list[str] = []
+    for assignee in assignees:
+        if not isinstance(assignee, dict) or not isinstance(assignee.get("login"), str):
+            return _build_result(
+                bot,
+                status_code=response.status_code,
+                payload=None,
+                headers=response.headers,
+                text=response.text,
+                ok=False,
+                failure_kind="invalid_payload",
+                retry_attempts=response.retry_attempts,
+                transport_error=response.transport_error,
+            )
+        login = assignee.get("login")
+        assert isinstance(login, str)
+        logins.append(login)
+    return _build_result(
+        bot,
+        status_code=response.status_code,
+        payload=logins,
+        headers=response.headers,
+        text=response.text,
+        ok=True,
+        failure_kind=None,
+        retry_attempts=response.retry_attempts,
+        transport_error=response.transport_error,
+    )
+
+
 def list_issue_comments_result(
     bot: GitHubTransportContext,
     issue_number: int,
@@ -652,29 +724,16 @@ def assign_issue_assignee(bot: GitHubTransportContext, issue_number: int, userna
     )
 
 
-def get_issue_assignees(bot: GitHubTransportContext, issue_number: int) -> list[str] | None:
-    is_pr = _is_pull_request(bot)
-    if is_pr:
-        try:
-            response = bot.github_api_request("GET", f"pulls/{issue_number}", retry_policy=RETRY_POLICY_IDEMPOTENT_READ)
-            result = response.payload
-            if not response.ok:
-                return None
-        except SystemExit:
-            result = bot.github_api("GET", f"pulls/{issue_number}")
-        if isinstance(result, dict) and "requested_reviewers" in result:
-            return [reviewer["login"] for reviewer in result["requested_reviewers"]]
-    else:
-        try:
-            response = bot.github_api_request("GET", f"issues/{issue_number}", retry_policy=RETRY_POLICY_IDEMPOTENT_READ)
-            result = response.payload
-            if not response.ok:
-                return None
-        except SystemExit:
-            result = bot.github_api("GET", f"issues/{issue_number}")
-        if isinstance(result, dict) and "assignees" in result:
-            return [assignee["login"] for assignee in result["assignees"]]
-    return []
+def get_issue_assignees(
+    bot: GitHubTransportContext,
+    issue_number: int,
+    *,
+    is_pull_request: bool | None = None,
+) -> list[str] | None:
+    response = get_issue_assignees_result(bot, issue_number, is_pull_request=is_pull_request)
+    if not response.ok or not isinstance(response.payload, list):
+        return None
+    return response.payload
 
 
 def add_reaction(bot: GitHubTransportContext, comment_id: int, reaction: str) -> bool:

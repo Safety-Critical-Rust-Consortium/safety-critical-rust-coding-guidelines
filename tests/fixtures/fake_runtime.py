@@ -703,8 +703,11 @@ class FakeReviewerBotRuntime:
     def ensure_review_entry(self, state: dict, issue_number: int, create: bool = False):
         return review_state_module.ensure_review_entry(state, issue_number, create=create)
 
-    def get_issue_assignees(self, issue_number: int):
-        return self.compat.github.get_issue_assignees(issue_number)
+    def get_issue_assignees(self, issue_number: int, *, is_pull_request=None):
+        return self.compat.github.get_issue_assignees(issue_number, is_pull_request=is_pull_request)
+
+    def get_issue_assignees_result(self, issue_number: int, *, is_pull_request=None):
+        return self.compat.github.get_issue_assignees_result(issue_number, is_pull_request=is_pull_request)
 
     def request_pr_reviewer_assignment(self, issue_number: int, username: str):
         return self.compat.github.request_pr_reviewer_assignment(issue_number, username)

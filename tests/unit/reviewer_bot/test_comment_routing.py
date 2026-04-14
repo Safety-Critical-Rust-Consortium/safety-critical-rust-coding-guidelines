@@ -36,6 +36,7 @@ def test_record_conversation_freshness_returns_true_when_only_reviewer_activity_
         comment_created_at="2026-03-17T10:00:00Z",
         comment_source_event_key="issue_comment:100",
     )
+    harness.runtime.github.get_issue_assignees = lambda issue_number, is_pull_request=None: ["alice"]
 
     changed = comment_application.record_conversation_freshness(
         harness.runtime,
@@ -144,7 +145,7 @@ def test_comment_application_delegates_freshness_decision_to_core_policy():
         module_text = handle.read()
 
     assert "comment_freshness_policy" in module_text
-    assert "decision = comment_freshness_policy.decide_comment_freshness(review_data, request)" in module_text
+    assert "decision = comment_freshness_policy.decide_comment_freshness(effective_review_data, request)" in module_text
 
 
 def test_k2_comment_routing_entrypoints_use_narrow_comment_runtime_protocol():

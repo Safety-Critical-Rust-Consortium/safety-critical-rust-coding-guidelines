@@ -381,6 +381,13 @@ class SweeperContext(Protocol):
 
     def get_issue_or_pr_snapshot_result(self, issue_number: int) -> GitHubApiResult: ...
 
+    def get_issue_assignees_result(
+        self,
+        issue_number: int,
+        *,
+        is_pull_request: bool | None = None,
+    ) -> GitHubApiResult: ...
+
     def list_issue_comments_result(
         self,
         issue_number: int,

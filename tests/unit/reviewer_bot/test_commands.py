@@ -333,6 +333,27 @@ def test_release_command_does_not_clear_reviewer_state_when_remove_fails(monkeyp
     assert review["current_reviewer"] == "alice"
 
 
+def test_away_command_does_not_mutate_queue_when_reassignment_is_unconfirmed(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    state["queue"] = [
+        {"github": "alice", "name": "Alice"},
+        {"github": "bob", "name": "Bob"},
+    ]
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    harness.stub_assignees(["alice"])
+    harness.runtime.github.remove_issue_assignee = lambda issue_number, username: False
+
+    response, success = harness.handle_pass_until(state, 42, "alice", "2099-01-01", None)
+
+    assert success is False
+    assert "could not confirm @bob as reviewer" in response
+    assert [member["github"] for member in state["queue"]] == ["alice", "bob"]
+    assert state["pass_until"] == []
+
+
 def test_handle_accept_no_fls_changes_command_fails_closed_when_permission_unavailable(monkeypatch):
     harness = CommandHarness(monkeypatch)
     request = harness.typed_privileged_request(
@@ -444,6 +465,7 @@ def test_handle_rectify_command_reports_permission_unavailable(monkeypatch):
     state = make_state()
     harness = CommandHarness(monkeypatch)
     monkeypatch.setattr(reconcile, "ensure_review_entry", lambda current, issue_number, create=False: None)
+    harness.runtime.github.get_issue_assignees = lambda issue_number: []
     harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "unavailable"
 
     message, success, changed = harness.handle_rectify(state, 42, "alice")
@@ -457,6 +479,7 @@ def test_handle_rectify_command_reports_permission_denied(monkeypatch):
     state = make_state()
     harness = CommandHarness(monkeypatch)
     monkeypatch.setattr(reconcile, "ensure_review_entry", lambda current, issue_number, create=False: None)
+    harness.runtime.github.get_issue_assignees = lambda issue_number: []
     harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "denied"
 
     message, success, changed = harness.handle_rectify(state, 42, "alice")
@@ -464,6 +487,22 @@ def test_handle_rectify_command_reports_permission_denied(monkeypatch):
     assert success is False
     assert changed is False
     assert "Only maintainers with triage+ permission" in message
+
+
+def test_handle_rectify_command_uses_live_assignee_truth_over_stored_reviewer(monkeypatch):
+    state = make_state()
+    harness = CommandHarness(monkeypatch)
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    harness.runtime.github.get_issue_assignees = lambda issue_number: ["bob"]
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "denied"
+
+    message, success, changed = harness.handle_rectify(state, 42, "alice")
+
+    assert success is False
+    assert changed is False
+    assert "@bob" in message
 
 
 def test_validate_accept_no_fls_changes_handoff_distinguishes_permission_unavailable(monkeypatch):

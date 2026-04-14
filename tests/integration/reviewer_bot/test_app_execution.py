@@ -163,6 +163,11 @@ def test_execute_run_opened_issue_assignment_failure_does_not_persist_reviewer_s
     monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
     monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
     monkeypatch.setattr(runtime.github, "get_issue_assignees", lambda issue_number: [])
+    monkeypatch.setattr(
+        runtime.github,
+        "get_issue_assignees_result",
+        lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(200, [], {}, "ok", True, None, 0, None),
+    )
     monkeypatch.setattr(runtime.adapters.queue, "get_next_reviewer", lambda current_state, skip_usernames=None: "alice")
     monkeypatch.setattr(
         runtime.github,
@@ -187,9 +192,11 @@ def test_execute_run_opened_issue_assignment_failure_does_not_persist_reviewer_s
     result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
 
     assert result.exit_code == 0
-    assert result.state_changed is False
-    assert saved == []
-    assert state.get("active_reviews", {}).get("42") is None
+    assert result.state_changed is True
+    assert saved
+    saved_review = saved[-1]["active_reviews"]["42"]
+    assert saved_review["current_reviewer"] is None
+    assert saved_review["sidecars"]["repair_markers"]["assignment_confirm_read"]["reason"] == "final_assignee_mismatch"
 
 
 def test_execute_run_opened_issue_adopts_existing_single_live_assignee(monkeypatch):
@@ -205,6 +212,11 @@ def test_execute_run_opened_issue_adopts_existing_single_live_assignee(monkeypat
     monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
     monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
     monkeypatch.setattr(runtime.github, "get_issue_assignees", lambda issue_number: ["alice"])
+    monkeypatch.setattr(
+        runtime.github,
+        "get_issue_assignees_result",
+        lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(200, ["alice"], {}, "ok", True, None, 0, None),
+    )
     monkeypatch.setenv("EVENT_NAME", "issues")
     monkeypatch.setenv("EVENT_ACTION", "opened")
     monkeypatch.setenv("ISSUE_NUMBER", "42")

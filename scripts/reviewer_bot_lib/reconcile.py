@@ -188,8 +188,14 @@ def handle_rectify_command(
     issue_number: int,
     comment_author: str,
 ) -> tuple[str, bool, bool]:
-    review_data = ensure_review_entry(state, issue_number)
-    current_reviewer = review_data.get("current_reviewer") if review_data else None
+    current_assignees = bot.github.get_issue_assignees(issue_number)
+    if current_assignees is None:
+        return (
+            "❌ Unable to determine current assignees/reviewers from GitHub; refusing to continue.",
+            False,
+            False,
+        )
+    current_reviewer = current_assignees[0] if len(current_assignees) == 1 else None
 
     is_current_reviewer = (
         isinstance(current_reviewer, str)
@@ -216,7 +222,7 @@ def handle_rectify_command(
                 False,
             )
         return (
-            "❌ Only maintainers with triage+ permission can run `/rectify` when no assigned "
+            "❌ Only maintainers with triage+ permission can run `/rectify` when no confirmed assigned "
             "reviewer is tracked.",
             False,
             False,

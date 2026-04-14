@@ -56,7 +56,7 @@ def _write_transition_notice_marker_cutover(bot) -> None:
     if not config_dir_value:
         return
     config_dir = Path(config_dir_value)
-    artifact_path = config_dir / "reviewer-bot" / "maintainability-remediation" / "transition-notice-marker-cutover.json"
+    artifact_path = config_dir / "reviewer-bot" / "issue-428-reminder-remediation" / "transition-notice-marker-cutover.json"
     artifact_path.parent.mkdir(parents=True, exist_ok=True)
     artifact_path.write_text(
         json.dumps(
@@ -90,6 +90,10 @@ def handle_transition_notice(bot, state: dict, issue_number: int, reviewer: str)
         reviewer,
     )
     if existing_notice.get("status") == "unavailable":
+        if existing_notice.get("failure_kind") in {"unauthorized", "forbidden"}:
+            raise RuntimeError(
+                f"Permission denied reading transition dedupe comments for #{issue_number} (status {existing_notice.get('status_code')})."
+            )
         return _record_transport_failure(
             bot,
             review_data,
@@ -125,6 +129,10 @@ You may still continue this review, or use `{bot.BOT_MENTION} /pass`, `{bot.BOT_
 _If you believe this is in error or have extenuating circumstances, please reach out to the subcommittee._"""
     post_result = bot.github.post_comment_result(issue_number, notice_message)
     if not post_result.ok:
+        if post_result.failure_kind in {"unauthorized", "forbidden"}:
+            raise RuntimeError(
+                f"Permission denied posting transition notice for #{issue_number} (status {post_result.status_code})."
+            )
         if (
             post_result.failure_kind in {"invalid_payload", "server_error", "transport_error", "rate_limited"}
             or (post_result.status_code is not None and post_result.status_code < 400)
@@ -192,7 +200,11 @@ def _reconcile_lifecycle_reviewer_authority(
             emit_failure_comment=False,
             pr_head_sha=request.pr_head_sha,
         )
-        return bool(result.get("confirmed") or result.get("cleared_current_reviewer"))
+        return bool(
+            result.get("confirmed")
+            or result.get("cleared_current_reviewer")
+            or result.get("diagnostic_changed")
+        )
     if len(current_assignees) > 1:
         return assignment_flow.clear_reviewer_authority(bot, state, issue_number, reason="multiple_live_assignees")
     if not allow_auto_assign:
@@ -220,7 +232,11 @@ def _reconcile_lifecycle_reviewer_authority(
         emit_failure_comment=True,
         pr_head_sha=request.pr_head_sha,
     )
-    return bool(result.get("confirmed") or result.get("cleared_current_reviewer"))
+    return bool(
+        result.get("confirmed")
+        or result.get("cleared_current_reviewer")
+        or result.get("diagnostic_changed")
+    )
 
 
 def _clear_completion(review_data: dict) -> bool:

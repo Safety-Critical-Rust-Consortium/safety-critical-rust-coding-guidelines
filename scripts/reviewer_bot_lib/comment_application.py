@@ -58,7 +58,21 @@ def record_conversation_freshness(
     review_data = ensure_review_entry(state, issue_number, create=True)
     if review_data is None:
         return False
-    decision = comment_freshness_policy.decide_comment_freshness(review_data, request)
+    effective_review_data = dict(review_data)
+    if not (request.issue_author and request.issue_author.lower() == request.comment_author.lower()):
+        current_reviewer = review_data.get("current_reviewer")
+        confirmed_reviewer = None
+        if isinstance(current_reviewer, str) and current_reviewer.strip():
+            live_assignees = bot.github.get_issue_assignees(
+                issue_number,
+                is_pull_request=request.is_pull_request,
+            )
+            if isinstance(live_assignees, list) and len(live_assignees) == 1:
+                live_reviewer = live_assignees[0]
+                if isinstance(live_reviewer, str) and live_reviewer.lower() == current_reviewer.lower():
+                    confirmed_reviewer = current_reviewer
+        effective_review_data["current_reviewer"] = confirmed_reviewer
+    decision = comment_freshness_policy.decide_comment_freshness(effective_review_data, request)
     if decision.kind != "accept_channel_event":
         return False
     changed = accept_channel_event(
@@ -102,6 +116,9 @@ def _build_execution_result(command_id: comment_command_policy.OrdinaryCommandId
         comment_command_policy.OrdinaryCommandId.ASSIGN_SPECIFIC,
         comment_command_policy.OrdinaryCommandId.ASSIGN_FROM_QUEUE,
     }:
+        if len(result) == 3:
+            response, success, state_changed = result
+            return CommandExecutionResult(response=response, success=success, state_changed=state_changed)
         response, success = result
         return CommandExecutionResult(response=response, success=success, state_changed=success)
     if command_id in {

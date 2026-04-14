@@ -121,6 +121,16 @@ class CommandHarness:
     def stub_assignees(self, assignees):
         self._live_assignees = list(assignees)
         self.runtime.github.get_issue_assignees = lambda issue_number: list(self._live_assignees)
+        self.runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: self.runtime.GitHubApiResult(
+            200,
+            list(self._live_assignees),
+            {},
+            "ok",
+            True,
+            None,
+            0,
+            None,
+        )
         self.runtime.github.remove_pr_reviewer = self._remove_live_assignee
         self.runtime.github.remove_issue_assignee = self._remove_live_assignee
 
@@ -260,36 +270,43 @@ class CommandHarness:
     def typed_trust_context(self, **kwargs):
         return self.typed_pr_admission(**kwargs)
 
+    @staticmethod
+    def _normalize_command_result(result):
+        if isinstance(result, tuple) and len(result) == 3:
+            response, success, _state_changed = result
+            return response, success
+        return result
+
     def handle_assign(self, state: dict, issue_number: int, username: str, *, request=None):
-        return commands_module.handle_assign_command(
+        return self._normalize_command_result(commands_module.handle_assign_command(
             self.runtime,
             state,
             issue_number,
             username,
             request=request or self.assignment_request(issue_number=issue_number),
-        )
+        ))
 
     def handle_claim(self, state: dict, issue_number: int, comment_author: str, *, request=None):
-        return commands_module.handle_claim_command(
+        return self._normalize_command_result(commands_module.handle_claim_command(
             self.runtime,
             state,
             issue_number,
             comment_author,
             request=request or self.assignment_request(issue_number=issue_number),
-        )
+        ))
 
     def handle_pass(self, state: dict, issue_number: int, comment_author: str, reason: str | None, *, request=None):
-        return commands_module.handle_pass_command(
+        return self._normalize_command_result(commands_module.handle_pass_command(
             self.runtime,
             state,
             issue_number,
             comment_author,
             reason,
             request=request or self.assignment_request(issue_number=issue_number),
-        )
+        ))
 
     def handle_pass_until(self, state: dict, issue_number: int, comment_author: str, return_date: str, reason: str | None, *, request=None):
-        return commands_module.handle_pass_until_command(
+        return self._normalize_command_result(commands_module.handle_pass_until_command(
             self.runtime,
             state,
             issue_number,
@@ -297,25 +314,25 @@ class CommandHarness:
             return_date,
             reason,
             request=request or self.assignment_request(issue_number=issue_number),
-        )
+        ))
 
     def handle_release(self, state: dict, issue_number: int, comment_author: str, args=None, *, request=None):
-        return commands_module.handle_release_command(
+        return self._normalize_command_result(commands_module.handle_release_command(
             self.runtime,
             state,
             issue_number,
             comment_author,
             args,
             request=request or self.assignment_request(issue_number=issue_number),
-        )
+        ))
 
     def handle_assign_from_queue(self, state: dict, issue_number: int, *, request=None):
-        return commands_module.handle_assign_from_queue_command(
+        return self._normalize_command_result(commands_module.handle_assign_from_queue_command(
             self.runtime,
             state,
             issue_number,
             request=request or self.assignment_request(issue_number=issue_number),
-        )
+        ))
 
     def handle_rectify(self, state: dict, issue_number: int, comment_author: str):
         return reconcile_module.handle_rectify_command(

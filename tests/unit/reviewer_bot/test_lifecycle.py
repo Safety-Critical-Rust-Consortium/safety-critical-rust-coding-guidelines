@@ -175,10 +175,44 @@ def test_reviewer_comment_clears_warning_and_transition_notice_markers(monkeypat
         head_repo_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
         pr_author="dana",
     )
+    harness.runtime.github.get_issue_assignees = lambda issue_number, is_pull_request=None: ["alice"]
 
     assert comment_routing.handle_comment_event(harness.runtime, state, request, trust_context) is True
     assert review["transition_warning_sent"] is None
     assert review["transition_notice_sent_at"] is None
+
+
+def test_reviewer_comment_does_not_count_as_reviewer_activity_when_live_assignee_differs(monkeypatch):
+    harness = CommentRoutingHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["transition_warning_sent"] = "2026-03-10T00:00:00Z"
+    review["transition_notice_sent_at"] = "2026-03-25T00:00:00Z"
+    request = harness.request(
+        issue_number=42,
+        is_pull_request=True,
+        issue_author="dana",
+        comment_author="alice",
+        comment_body="hello",
+    )
+    trust_context = harness.trust_context(
+        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        comment_author_association="MEMBER",
+        current_workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
+        github_ref="refs/heads/main",
+    )
+    harness.add_pull_request_metadata(
+        issue_number=42,
+        head_repo_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        pr_author="dana",
+    )
+    harness.runtime.github.get_issue_assignees = lambda issue_number, is_pull_request=None: ["bob"]
+
+    assert comment_routing.handle_comment_event(harness.runtime, state, request, trust_context) is False
+    assert review["transition_warning_sent"] == "2026-03-10T00:00:00Z"
+    assert review["transition_notice_sent_at"] == "2026-03-25T00:00:00Z"
 
 
 def test_scheduled_check_backfills_markerized_transition_notice_without_reposting(monkeypatch):
@@ -378,6 +412,16 @@ def test_handle_issue_or_pr_opened_does_not_mutate_reviewer_state_on_assignment_
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
     runtime.github.get_issue_assignees = lambda issue_number: []
+    runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
+        200,
+        [],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
     runtime.adapters.queue.get_next_reviewer = lambda state, skip_usernames=None: "alice"
     runtime.github.assign_issue_assignee = lambda issue_number, username: runtime.AssignmentAttempt(
         success=False,
@@ -387,9 +431,11 @@ def test_handle_issue_or_pr_opened_does_not_mutate_reviewer_state_on_assignment_
     )
     runtime.github.post_comment = lambda issue_number, body: True
 
-    assert lifecycle.handle_issue_or_pr_opened(runtime, state) is False
+    assert lifecycle.handle_issue_or_pr_opened(runtime, state) is True
     review = review_state.ensure_review_entry(state, 42)
-    assert review is None or review.get("current_reviewer") is None
+    assert review is not None
+    assert review.get("current_reviewer") is None
+    assert review["sidecars"]["repair_markers"]["assignment_confirm_read"]["reason"] == "final_assignee_mismatch"
 
 
 def test_handle_issue_or_pr_opened_adopts_existing_single_live_assignee(monkeypatch):
@@ -401,6 +447,16 @@ def test_handle_issue_or_pr_opened_adopts_existing_single_live_assignee(monkeypa
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
     runtime.set_config_value("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: ["alice"]
+    runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
+        200,
+        ["alice"],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
 
     assert lifecycle.handle_issue_or_pr_opened(runtime, state) is True
     review = review_state.ensure_review_entry(state, 42)
@@ -420,6 +476,16 @@ def test_handle_assigned_event_clears_reviewer_authority_on_multiple_live_assign
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
     runtime.github.get_issue_assignees = lambda issue_number: ["alice", "bob"]
+    runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
+        200,
+        ["alice", "bob"],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
 
     assert lifecycle.handle_assigned_event(runtime, state) is True
     assert review["current_reviewer"] is None
@@ -436,6 +502,16 @@ def test_handle_unassigned_event_clears_reviewer_authority_when_live_assignee_mi
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
     runtime.github.get_issue_assignees = lambda issue_number: []
+    runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
+        200,
+        [],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
 
     assert lifecycle.handle_unassigned_event(runtime, state) is True
     assert review["current_reviewer"] is None
@@ -511,6 +587,16 @@ def test_handle_reopened_event_reopens_done_completion(monkeypatch):
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["fls-audit"]))
     runtime.github.get_issue_assignees = lambda issue_number: []
+    runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
+        200,
+        [],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
 
     assert lifecycle.handle_reopened_event(runtime, state) is True
     assert review["review_completed_at"] is None

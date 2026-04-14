@@ -21,6 +21,14 @@ _CANONICAL_REPAIR_MARKERS = (
     "review_repair",
     "head_observation_repair",
     "status_label_projection",
+    "issue_snapshot_read",
+    "warning_dedupe_read",
+    "warning_post",
+    "transition_dedupe_read",
+    "transition_post",
+    "assignment_add_write",
+    "assignment_remove_write",
+    "assignment_confirm_read",
 )
 
 _DEFERRED_GAP_MIGRATION_DROP_KEYS = {
@@ -36,9 +44,13 @@ def _migrate_repair_marker(marker: Any) -> dict[str, Any] | None:
         return None
     return {
         "kind": marker.get("kind"),
+        "phase": marker.get("phase"),
+        "status_code": marker.get("status_code"),
         "reason": marker.get("reason"),
         "failure_kind": marker.get("failure_kind"),
+        "retry_attempts": marker.get("retry_attempts"),
         "recorded_at": marker.get("recorded_at"),
+        "live_assignees": deepcopy(marker.get("live_assignees")),
     }
 
 

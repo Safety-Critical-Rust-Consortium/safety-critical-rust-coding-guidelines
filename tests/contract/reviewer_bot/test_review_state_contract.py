@@ -43,6 +43,22 @@ def _read_review_state_inventory() -> str:
     return _read("tests/fixtures/equivalence/review_state/api_inventory.md")
 
 
+def _expected_repair_markers() -> dict[str, None]:
+    return {
+        "review_repair": None,
+        "head_observation_repair": None,
+        "status_label_projection": None,
+        "issue_snapshot_read": None,
+        "warning_dedupe_read": None,
+        "warning_post": None,
+        "transition_dedupe_read": None,
+        "transition_post": None,
+        "assignment_add_write": None,
+        "assignment_remove_write": None,
+        "assignment_confirm_read": None,
+    }
+
+
 def test_ensure_review_entry_initializes_tracked_review_shape():
     state = make_state()
 
@@ -51,11 +67,7 @@ def test_ensure_review_entry_initializes_tracked_review_shape():
     assert review is not None
     assert review["current_reviewer"] is None
     assert review["reviewer_comment"]["accepted"] is None
-    assert review["sidecars"]["repair_markers"] == {
-        "review_repair": None,
-        "head_observation_repair": None,
-        "status_label_projection": None,
-    }
+    assert review["sidecars"]["repair_markers"] == _expected_repair_markers()
     assert review["sidecars"]["pending_privileged_commands"] == {}
     assert review["sidecars"]["deferred_gaps"] == {}
     assert review["sidecars"]["observer_discovery_watermarks"] == {}
@@ -100,11 +112,7 @@ def test_ensure_review_entry_lazily_upgrades_sparse_legacy_review_entries():
     assert review is state["active_reviews"]["42"]
     assert review["skipped"] == ["alice", "bob"]
     assert review["reviewer_comment"] == {"accepted": None, "seen_keys": []}
-    assert review["sidecars"]["repair_markers"] == {
-        "review_repair": None,
-        "head_observation_repair": None,
-        "status_label_projection": None,
-    }
+    assert review["sidecars"]["repair_markers"] == _expected_repair_markers()
     assert review["sidecars"]["pending_privileged_commands"] == {}
     assert review["sidecars"]["reconciled_source_events"] == {}
 
@@ -126,11 +134,7 @@ def test_ensure_review_entry_repairs_missing_nested_maps_and_legacy_list_fields(
     assert review["sidecars"]["deferred_gaps"] == {}
     assert review["sidecars"]["observer_discovery_watermarks"] == {}
     assert review["sidecars"]["pending_privileged_commands"] == {}
-    assert review["sidecars"]["repair_markers"] == {
-        "review_repair": None,
-        "head_observation_repair": None,
-        "status_label_projection": None,
-    }
+    assert review["sidecars"]["repair_markers"] == _expected_repair_markers()
     assert review["current_cycle_completion"] == {}
     assert review["current_cycle_write_approval"] == {}
     assert review["sidecars"]["reconciled_source_events"] == {}

@@ -178,7 +178,7 @@ def test_deferred_comment_missing_live_object_preserves_source_time_freshness(mo
             source_run_attempt=1,
         ),
     )
-    harness.add_pull_request(pr_number=42, author="dana")
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
     harness.add_request_failure(
         endpoint="issues/comments/99",
         status_code=404,
@@ -331,7 +331,7 @@ def test_deferred_review_comment_reconcile_records_contributor_freshness(monkeyp
             source_run_attempt=1,
         ),
     )
-    harness.add_pull_request(pr_number=42, author="dana")
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
     harness.add_review_comment(
         comment_id=301,
         body=live_body,
@@ -370,7 +370,7 @@ def test_deferred_review_comment_reconcile_records_reviewer_freshness(monkeypatc
             source_run_attempt=1,
         ),
     )
-    harness.add_pull_request(pr_number=42, author="dana")
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
     harness.add_review_comment(
         comment_id=302,
         body=live_body,
@@ -406,7 +406,7 @@ def test_deferred_review_comment_missing_live_object_preserves_source_time_fresh
             source_run_attempt=1,
         ),
     )
-    harness.add_pull_request(pr_number=42, author="dana")
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
     harness.add_request_failure(
         endpoint="pulls/comments/303",
         status_code=404,

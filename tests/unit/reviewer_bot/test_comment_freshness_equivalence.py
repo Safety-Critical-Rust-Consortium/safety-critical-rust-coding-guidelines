@@ -109,11 +109,13 @@ def test_comment_freshness_equivalence_matches_legacy_mutation_and_activity_beha
             "contributor_plain_text_freshness",
             lambda state: harness.request(issue_number=42, is_pull_request=False, issue_author="dana", comment_author="dana", comment_body="hello"),
             lambda review: None,
+            [],
         ),
         (
             "reviewer_plain_text_freshness",
             lambda state: harness.request(issue_number=42, is_pull_request=False, issue_author="dana", comment_author="alice", comment_body="hello", comment_created_at="2026-03-17T10:00:00Z"),
             lambda review: review.__setitem__("current_reviewer", "alice"),
+            ["alice"],
         ),
         (
             "reviewer_activity_only_when_semantic_key_exists",
@@ -125,22 +127,25 @@ def test_comment_freshness_equivalence_matches_legacy_mutation_and_activity_beha
                 review.__setitem__("transition_notice_sent_at", "2026-03-25T00:00:00Z"),
                 review_state.accept_channel_event(review, "reviewer_comment", semantic_key="issue_comment:100", timestamp="2026-03-17T09:00:00Z", actor="alice"),
             ),
+            ["alice"],
         ),
         (
             "non_contributor_non_reviewer_noop",
             lambda state: harness.request(issue_number=42, is_pull_request=False, issue_author="dana", comment_author="zoe", comment_body="hello"),
             lambda review: review.__setitem__("current_reviewer", "alice"),
+            ["alice"],
         ),
         (
             "command_plus_text_freshness",
             lambda state: harness.request(issue_number=42, is_pull_request=False, issue_author="dana", comment_author="dana", comment_body="hello\n@guidelines-bot /queue"),
             lambda review: None,
+            [],
         ),
     ]
 
-    assert matrix["scenarios"] == [name for name, _req, _prep in scenarios]
+    assert matrix["scenarios"] == [name for name, _req, _prep, _assignees in scenarios]
 
-    for scenario_name, make_request, prepare_review in scenarios:
+    for scenario_name, make_request, prepare_review, live_assignees in scenarios:
         legacy_state = make_state()
         new_state = make_state()
         legacy_review = review_state.ensure_review_entry(legacy_state, 42, create=True)
@@ -150,6 +155,7 @@ def test_comment_freshness_equivalence_matches_legacy_mutation_and_activity_beha
             prepare_review(legacy_review)
             prepare_review(new_review)
         request = make_request(new_state)
+        harness.runtime.github.get_issue_assignees = lambda issue_number, is_pull_request=None, assignees=live_assignees: list(assignees)
 
         legacy_changed = _legacy_record_conversation_freshness(legacy_state, request)
         new_changed = comment_application.record_conversation_freshness(harness.runtime, new_state, request)
