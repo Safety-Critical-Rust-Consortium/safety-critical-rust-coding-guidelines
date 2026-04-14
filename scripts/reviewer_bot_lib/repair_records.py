@@ -8,6 +8,14 @@ _REPAIR_MARKER_KEYS = (
     "review_repair",
     "head_observation_repair",
     "status_label_projection",
+    "issue_snapshot_read",
+    "warning_dedupe_read",
+    "warning_post",
+    "transition_dedupe_read",
+    "transition_post",
+    "assignment_add_write",
+    "assignment_remove_write",
+    "assignment_confirm_read",
 )
 
 

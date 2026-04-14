@@ -342,9 +342,12 @@ def build_manual_dispatch_request(bot: EventInputsContext) -> ManualDispatchRequ
 
 def build_issue_lifecycle_request(bot: EventInputsContext) -> IssueLifecycleRequest:
     return IssueLifecycleRequest(
+        event_action=bot.get_config_value("EVENT_ACTION").strip(),
         issue_number=_parse_optional_int(bot.get_config_value("ISSUE_NUMBER")) or 0,
         is_pull_request=bool(_parse_optional_bool(bot.get_config_value("IS_PULL_REQUEST"))),
+        issue_state=bot.get_config_value("ISSUE_STATE").strip(),
         issue_labels=_parse_labels(bot.get_config_value("ISSUE_LABELS")),
+        label_name=bot.get_config_value("LABEL_NAME").strip(),
         issue_author=bot.get_config_value("ISSUE_AUTHOR").strip(),
         sender_login=bot.get_config_value("SENDER_LOGIN").strip(),
         updated_at=bot.get_config_value("ISSUE_UPDATED_AT").strip(),

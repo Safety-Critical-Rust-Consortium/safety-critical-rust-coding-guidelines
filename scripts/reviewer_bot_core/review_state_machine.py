@@ -193,6 +193,21 @@ def set_current_reviewer(
     _reset_cycle_state(review_data)
 
 
+def clear_current_reviewer(state: dict, issue_number: int) -> bool:
+    review_data = ensure_review_entry(state, issue_number)
+    if review_data is None:
+        return False
+    changed = False
+    if review_data.get("current_reviewer") is not None:
+        review_data["current_reviewer"] = None
+        changed = True
+    if review_data.get("assignment_method") is not None:
+        review_data["assignment_method"] = None
+        changed = True
+    clear_transition_timers(review_data)
+    return changed
+
+
 def update_reviewer_activity(state: dict, issue_number: int, reviewer: str, *, now: str) -> bool:
     review_data = ensure_review_entry(state, issue_number)
     if review_data is None:

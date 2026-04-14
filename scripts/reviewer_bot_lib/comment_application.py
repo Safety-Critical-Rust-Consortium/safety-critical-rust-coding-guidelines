@@ -95,6 +95,7 @@ def _build_execution_result(command_id: comment_command_policy.OrdinaryCommandId
     if command_id in {
         comment_command_policy.OrdinaryCommandId.PASS,
         comment_command_policy.OrdinaryCommandId.AWAY,
+        comment_command_policy.OrdinaryCommandId.DONE,
         comment_command_policy.OrdinaryCommandId.SYNC_MEMBERS,
         comment_command_policy.OrdinaryCommandId.CLAIM,
         comment_command_policy.OrdinaryCommandId.RELEASE,
@@ -137,6 +138,19 @@ def _execute_away(bot, state: dict, decision, assignment_request: AssignmentRequ
             decision.actor,
             decision.raw_args[0],
             " ".join(decision.raw_args[1:]) if len(decision.raw_args) > 1 else None,
+            request=assignment_request,
+        ),
+    )
+
+
+def _execute_done(bot, state: dict, decision, assignment_request: AssignmentRequest | None) -> CommandExecutionResult:
+    return _build_execution_result(
+        decision.command_id,
+        commands_module.handle_done_command(
+            bot,
+            state,
+            decision.issue_number,
+            decision.actor,
             request=assignment_request,
         ),
     )
@@ -216,6 +230,7 @@ def _execute_assign_from_queue(bot, state: dict, decision, assignment_request: A
 ORDINARY_COMMAND_HANDLERS = {
     comment_command_policy.OrdinaryCommandId.PASS: _execute_pass,
     comment_command_policy.OrdinaryCommandId.AWAY: _execute_away,
+    comment_command_policy.OrdinaryCommandId.DONE: _execute_done,
     comment_command_policy.OrdinaryCommandId.LABEL: _execute_label,
     comment_command_policy.OrdinaryCommandId.SYNC_MEMBERS: _execute_sync_members,
     comment_command_policy.OrdinaryCommandId.QUEUE: _execute_queue,

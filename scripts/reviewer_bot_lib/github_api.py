@@ -32,10 +32,11 @@ def _sleep(bot: GitHubApiContext, seconds: float) -> None:
 
 
 def _retry_delay(bot: GitHubApiContext, base_seconds: float, retry_attempt: int) -> float:
-    return retrying.bounded_exponential_delay(
+    return retrying.retry_delay_seconds(
         base_seconds,
         retry_attempt,
         jitter=bot.jitter,
+        now=bot.clock.now(),
     )
 
 
@@ -43,27 +44,36 @@ def _is_pull_request(bot: GitHubApiContext) -> bool:
     return bot.get_config_value("IS_PULL_REQUEST", "false").lower() == "true"
 
 
-def _should_retry_status(status_code: int | None) -> bool:
-    return retrying.is_retryable_status(status_code)
+def _should_retry_status(status_code: int | None, *, headers: dict[str, str] | None = None, text: str = "") -> bool:
+    return retrying.is_rate_limited_response(status_code, headers=headers, text=text) or retrying.is_retryable_status(status_code)
 
 
-def _classify_failure(status_code: int | None, *, invalid_payload: bool = False, transport_error: bool = False) -> str | None:
+def _classify_failure(
+    status_code: int | None,
+    *,
+    headers: dict[str, str] | None = None,
+    text: str = "",
+    invalid_payload: bool = False,
+    transport_error: bool = False,
+) -> str | None:
     if invalid_payload:
         return "invalid_payload"
     if transport_error:
         return "transport_error"
     if status_code is None:
         return None
+    if retrying.is_rate_limited_response(status_code, headers=headers, text=text):
+        return "rate_limited"
     if status_code == 404:
         return "not_found"
     if status_code == 401:
         return "unauthorized"
     if status_code == 403:
         return "forbidden"
-    if status_code == 429:
-        return "rate_limited"
     if status_code >= 500:
         return "server_error"
+    if status_code >= 400:
+        return "http_error"
     return None
 
 
@@ -188,8 +198,8 @@ def github_api_request(
             except ValueError:
                 invalid_payload = True
 
-        ok = response.status_code < 400 and not invalid_payload
         normalized_headers = {key.lower(): value for key, value in response.headers.items()}
+        ok = response.status_code < 400 and not invalid_payload
         if ok:
             return _build_result(
                 bot,
@@ -202,10 +212,30 @@ def github_api_request(
                 retry_attempts=retry_attempts,
             )
 
-        failure_kind = _classify_failure(response.status_code, invalid_payload=invalid_payload)
-        if retry_policy == RETRY_POLICY_IDEMPOTENT_READ and _should_retry_status(response.status_code) and attempt < max_attempts:
+        failure_kind = _classify_failure(
+            response.status_code,
+            headers=normalized_headers,
+            text=response.text,
+            invalid_payload=invalid_payload,
+        )
+        if (
+            retry_policy == RETRY_POLICY_IDEMPOTENT_READ
+            and _should_retry_status(response.status_code, headers=normalized_headers, text=response.text)
+            and attempt < max_attempts
+        ):
             retry_attempts += 1
-            _sleep(bot, _retry_delay(bot, LOCK_RETRY_BASE_SECONDS, retry_attempts))
+            _sleep(
+                bot,
+                retrying.retry_delay_seconds(
+                    LOCK_RETRY_BASE_SECONDS,
+                    retry_attempts,
+                    jitter=bot.jitter,
+                    status_code=response.status_code,
+                    headers=normalized_headers,
+                    text=response.text,
+                    now=bot.clock.now(),
+                ),
+            )
             continue
 
         if not suppress_error_log:
@@ -313,11 +343,24 @@ def github_graphql_request(
 
         failure_kind = _classify_failure(
             response.status_code,
+            headers=normalized_headers,
+            text=response.text,
             invalid_payload=invalid_payload or bool(graphql_errors),
         )
-        if _should_retry_status(response.status_code) and attempt < max_attempts:
+        if _should_retry_status(response.status_code, headers=normalized_headers, text=response.text) and attempt < max_attempts:
             retry_attempts += 1
-            _sleep(bot, _retry_delay(bot, LOCK_RETRY_BASE_SECONDS, retry_attempts))
+            _sleep(
+                bot,
+                retrying.retry_delay_seconds(
+                    LOCK_RETRY_BASE_SECONDS,
+                    retry_attempts,
+                    jitter=bot.jitter,
+                    status_code=response.status_code,
+                    headers=normalized_headers,
+                    text=response.text,
+                    now=bot.clock.now(),
+                ),
+            )
             continue
 
         if not suppress_error_log:
@@ -360,8 +403,45 @@ def github_graphql(
     return response.payload
 
 
+def post_comment_result(bot: GitHubTransportContext, issue_number: int, body: str):
+    return bot.github_api_request(
+        "POST",
+        f"issues/{issue_number}/comments",
+        {"body": body},
+    )
+
+
 def post_comment(bot: GitHubTransportContext, issue_number: int, body: str) -> bool:
-    return bot.github_api("POST", f"issues/{issue_number}/comments", {"body": body}) is not None
+    return post_comment_result(bot, issue_number, body).ok
+
+
+def get_issue_or_pr_snapshot_result(bot: GitHubTransportContext, issue_number: int):
+    return bot.github_api_request(
+        "GET",
+        f"issues/{issue_number}",
+        retry_policy=RETRY_POLICY_IDEMPOTENT_READ,
+    )
+
+
+def get_issue_or_pr_snapshot(bot: GitHubTransportContext, issue_number: int) -> dict | None:
+    response = get_issue_or_pr_snapshot_result(bot, issue_number)
+    if not response.ok or not isinstance(response.payload, dict):
+        return None
+    return response.payload
+
+
+def list_issue_comments_result(
+    bot: GitHubTransportContext,
+    issue_number: int,
+    *,
+    page: int = 1,
+    per_page: int = 100,
+):
+    return bot.github_api_request(
+        "GET",
+        f"issues/{issue_number}/comments?per_page={per_page}&page={page}",
+        retry_policy=RETRY_POLICY_IDEMPOTENT_READ,
+    )
 
 
 def get_repo_labels(bot: GitHubTransportContext) -> set[str]:
@@ -462,32 +542,57 @@ def ensure_label_exists(
     return False
 
 
-def _request_assignment(
+def _build_assignment_attempt(bot: GitHubTransportContext, response, *, success: bool, exhausted_retryable_failure: bool = False):
+    return bot.AssignmentAttempt(
+        success=success,
+        status_code=response.status_code,
+        exhausted_retryable_failure=exhausted_retryable_failure,
+        failure_kind=response.failure_kind,
+        retry_attempts=response.retry_attempts,
+        headers=dict(response.headers),
+        transport_error=response.transport_error,
+    )
+
+
+def _request_assignment_write(
     bot: GitHubTransportContext,
+    method: str,
     endpoint: str,
     payload: dict,
     *,
     assignment_target: str,
     issue_number: int,
     username: str,
+    success_statuses: set[int],
 ):
     lock_api_retry_limit = bot.lock_api_retry_limit()
     lock_retry_base_seconds = bot.lock_retry_base_seconds()
+    retry_attempts = 0
 
     for attempt in range(1, lock_api_retry_limit + 1):
-        response = bot.github_api_request("POST", endpoint, payload, suppress_error_log=True)
-        if response.status_code in {200, 201}:
-            return bot.AssignmentAttempt(success=True, status_code=response.status_code)
+        response = bot.github_api_request(method, endpoint, payload, suppress_error_log=True)
+        response.retry_attempts = retry_attempts
+        if response.status_code in success_statuses:
+            return _build_assignment_attempt(bot, response, success=True)
         if response.status_code == 422:
-            return bot.AssignmentAttempt(success=False, status_code=422)
-        if response.status_code in {401, 403}:
+            return _build_assignment_attempt(bot, response, success=False)
+        if response.failure_kind in {"unauthorized", "forbidden"}:
             raise RuntimeError(
                 f"Permission denied requesting {assignment_target} @{username} on "
                 f"#{issue_number} (status {response.status_code}): {response.text}"
             )
-        if response.status_code == 429 or response.status_code >= 500:
+        if response.failure_kind in {"rate_limited", "server_error", "transport_error"}:
             if attempt < lock_api_retry_limit:
-                delay = _retry_delay(bot, lock_retry_base_seconds, attempt)
+                retry_attempts += 1
+                delay = retrying.retry_delay_seconds(
+                    lock_retry_base_seconds,
+                    retry_attempts,
+                    jitter=bot.jitter,
+                    status_code=response.status_code,
+                    headers=response.headers,
+                    text=response.text,
+                    now=bot.clock.now(),
+                )
                 _log(
                     bot,
                     "warning",
@@ -499,11 +604,8 @@ def _request_assignment(
                 )
                 _sleep(bot, delay)
                 continue
-            return bot.AssignmentAttempt(
-                success=False,
-                status_code=response.status_code,
-                exhausted_retryable_failure=True,
-            )
+            response.retry_attempts = retry_attempts
+            return _build_assignment_attempt(bot, response, success=False, exhausted_retryable_failure=True)
 
         _log(
             bot,
@@ -513,30 +615,40 @@ def _request_assignment(
             username=username,
             status_code=response.status_code,
         )
-        return bot.AssignmentAttempt(success=False, status_code=response.status_code)
+        return _build_assignment_attempt(bot, response, success=False)
 
-    return bot.AssignmentAttempt(success=False, status_code=None, exhausted_retryable_failure=True)
+    return bot.AssignmentAttempt(
+        success=False,
+        status_code=None,
+        exhausted_retryable_failure=True,
+        failure_kind="transport_error",
+        retry_attempts=retry_attempts,
+    )
 
 
 def request_pr_reviewer_assignment(bot: GitHubTransportContext, issue_number: int, username: str):
-    return _request_assignment(
+    return _request_assignment_write(
         bot,
+        "POST",
         f"pulls/{issue_number}/requested_reviewers",
         {"reviewers": [username]},
         assignment_target="PR reviewer",
         issue_number=issue_number,
         username=username,
+        success_statuses={200, 201},
     )
 
 
 def assign_issue_assignee(bot: GitHubTransportContext, issue_number: int, username: str):
-    return _request_assignment(
+    return _request_assignment_write(
         bot,
+        "POST",
         f"issues/{issue_number}/assignees",
         {"assignees": [username]},
         assignment_target="issue assignee",
         issue_number=issue_number,
         username=username,
+        success_statuses={200, 201},
     )
 
 
@@ -572,21 +684,29 @@ def add_reaction(bot: GitHubTransportContext, comment_id: int, reaction: str) ->
     )
 
 
-def remove_issue_assignee(bot: GitHubTransportContext, issue_number: int, username: str) -> bool:
-    return (
-        bot.github_api("DELETE", f"issues/{issue_number}/assignees", {"assignees": [username]})
-        is not None
+def remove_issue_assignee(bot: GitHubTransportContext, issue_number: int, username: str):
+    return _request_assignment_write(
+        bot,
+        "DELETE",
+        f"issues/{issue_number}/assignees",
+        {"assignees": [username]},
+        assignment_target="issue assignee removal",
+        issue_number=issue_number,
+        username=username,
+        success_statuses={200, 204},
     )
 
 
-def remove_pr_reviewer(bot: GitHubTransportContext, issue_number: int, username: str) -> bool:
-    return (
-        bot.github_api(
-            "DELETE",
-            f"pulls/{issue_number}/requested_reviewers",
-            {"reviewers": [username]},
-        )
-        is not None
+def remove_pr_reviewer(bot: GitHubTransportContext, issue_number: int, username: str):
+    return _request_assignment_write(
+        bot,
+        "DELETE",
+        f"pulls/{issue_number}/requested_reviewers",
+        {"reviewers": [username]},
+        assignment_target="PR reviewer removal",
+        issue_number=issue_number,
+        username=username,
+        success_statuses={200, 204},
     )
 
 

@@ -2,7 +2,7 @@ name: Reviewer Bot Issues
 
 on:
   issues:
-    types: [opened, labeled, edited, closed]
+    types: [opened, edited, labeled, unlabeled, assigned, unassigned, reopened, closed]
 
 permissions:
   contents: read
@@ -50,6 +50,8 @@ jobs:
           EVENT_NAME: issues
           EVENT_ACTION: ${{ github.event.action }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          IS_PULL_REQUEST: 'false'
+          ISSUE_STATE: ${{ github.event.issue.state }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_UPDATED_AT: ${{ github.event.issue.updated_at }}

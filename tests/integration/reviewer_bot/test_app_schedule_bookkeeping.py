@@ -1,6 +1,11 @@
 import pytest
 
-from scripts.reviewer_bot_lib import maintenance, maintenance_schedule, review_state
+from scripts.reviewer_bot_lib import (
+    lifecycle,
+    maintenance,
+    maintenance_schedule,
+    review_state,
+)
 from scripts.reviewer_bot_lib.config import GitHubApiResult
 from tests.fixtures.app_harness import AppHarness
 from tests.fixtures.reviewer_bot import make_state
@@ -145,3 +150,72 @@ def test_m2_schedule_handler_exposes_typed_result_shape():
 
     fields = maintenance_schedule.ScheduleHandlerResult.__dataclass_fields__
     assert list(fields) == ["state_changed", "touched_items"]
+
+
+def test_execute_run_schedule_warning_diagnostic_mutation_projects_touched_item(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(EVENT_NAME="schedule", EVENT_ACTION="")
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    saved_states = []
+    synced = []
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.runtime.github.get_issue_or_pr_snapshot = lambda issue_number: {"number": issue_number, "state": "open", "pull_request": {}, "labels": []}
+    harness.runtime.github.list_issue_comments_result = lambda issue_number, page=1, per_page=100: GitHubApiResult(
+        200,
+        [],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
+    harness.runtime.github.post_comment_result = lambda issue_number, body: GitHubApiResult(
+        502,
+        None,
+        {},
+        "bad gateway",
+        False,
+        "server_error",
+        1,
+        None,
+    )
+    harness.stub_save_state(lambda current: saved_states.append(current.copy()) or True)
+    harness.stub_sync_status_labels(lambda current, issue_numbers: synced.append(list(issue_numbers)) or True)
+    monkeypatch.setattr(maintenance_schedule, "sweep_deferred_gaps", lambda bot, state: False)
+    monkeypatch.setattr(maintenance_schedule, "repair_missing_reviewer_review_state", lambda bot, issue_number, review_data: False)
+    monkeypatch.setattr(
+        maintenance_schedule,
+        "maybe_record_head_observation_repair",
+        lambda bot, issue_number, review_data: lifecycle.HeadObservationRepairResult(changed=False, outcome="unchanged"),
+    )
+    monkeypatch.setattr(
+        maintenance_schedule,
+        "check_overdue_reviews",
+        lambda bot, state: [
+            {
+                "issue_number": 42,
+                "reviewer": "alice",
+                "days_overdue": 1,
+                "days_since_warning": 0,
+                "needs_warning": True,
+                "needs_transition": False,
+                "anchor_reason": None,
+                "anchor_timestamp": "2026-03-17T10:00:00Z",
+            }
+        ],
+    )
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert saved_states
+    assert synced == [[42]]

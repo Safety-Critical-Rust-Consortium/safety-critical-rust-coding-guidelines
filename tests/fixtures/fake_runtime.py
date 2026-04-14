@@ -255,6 +255,9 @@ class FakeRuntimeGitHubCompatibility:
     def post_comment(self, issue_number: int, body: str) -> bool:
         return github_api_module.post_comment(self._runtime, issue_number, body)
 
+    def post_comment_result(self, issue_number: int, body: str):
+        return github_api_module.post_comment_result(self._runtime, issue_number, body)
+
     def add_reaction(self, comment_id: int, reaction: str) -> bool:
         return github_api_module.add_reaction(self._runtime, comment_id, reaction)
 
@@ -280,8 +283,18 @@ class FakeRuntimeGitHubCompatibility:
         return github_api_module.remove_pr_reviewer(self._runtime, issue_number, username)
 
     def get_issue_or_pr_snapshot(self, issue_number: int) -> dict | None:
-        payload = self._runtime.github_api("GET", f"issues/{issue_number}")
-        return payload if isinstance(payload, dict) else None
+        return github_api_module.get_issue_or_pr_snapshot(self._runtime, issue_number)
+
+    def get_issue_or_pr_snapshot_result(self, issue_number: int):
+        return github_api_module.get_issue_or_pr_snapshot_result(self._runtime, issue_number)
+
+    def list_issue_comments_result(self, issue_number: int, *, page: int = 1, per_page: int = 100):
+        return github_api_module.list_issue_comments_result(
+            self._runtime,
+            issue_number,
+            page=page,
+            per_page=per_page,
+        )
 
     def get_pull_request_reviews(self, issue_number: int):
         return reviews_module.get_pull_request_reviews(self._runtime, issue_number)
@@ -702,6 +715,9 @@ class FakeReviewerBotRuntime:
     def post_comment(self, issue_number: int, body: str) -> bool:
         return self.compat.github.post_comment(issue_number, body)
 
+    def post_comment_result(self, issue_number: int, body: str):
+        return self.compat.github.post_comment_result(issue_number, body)
+
     def add_reaction(self, comment_id: int, reaction: str) -> bool:
         return self.compat.github.add_reaction(comment_id, reaction)
 
@@ -728,6 +744,16 @@ class FakeReviewerBotRuntime:
 
     def get_issue_or_pr_snapshot(self, issue_number: int) -> dict | None:
         return self.compat.github.get_issue_or_pr_snapshot(issue_number)
+
+    def get_issue_or_pr_snapshot_result(self, issue_number: int):
+        return self.compat.github.get_issue_or_pr_snapshot_result(issue_number)
+
+    def list_issue_comments_result(self, issue_number: int, *, page: int = 1, per_page: int = 100):
+        return self.compat.github.list_issue_comments_result(
+            issue_number,
+            page=page,
+            per_page=per_page,
+        )
 
     def get_pull_request_reviews(self, issue_number: int):
         return self.compat.github.get_pull_request_reviews(issue_number)
@@ -894,11 +920,23 @@ class FakeReviewerBotRuntime:
     def handle_issue_or_pr_opened(self, state: dict) -> bool:
         return self.handlers.call("handle_issue_or_pr_opened", state)
 
+    def handle_assigned_event(self, state: dict) -> bool:
+        return self.handlers.call("handle_assigned_event", state)
+
+    def handle_unassigned_event(self, state: dict) -> bool:
+        return self.handlers.call("handle_unassigned_event", state)
+
     def handle_labeled_event(self, state: dict) -> bool:
         return self.handlers.call("handle_labeled_event", state)
 
+    def handle_unlabeled_event(self, state: dict) -> bool:
+        return self.handlers.call("handle_unlabeled_event", state)
+
     def handle_issue_edited_event(self, state: dict) -> bool:
         return self.handlers.call("handle_issue_edited_event", state)
+
+    def handle_reopened_event(self, state: dict) -> bool:
+        return self.handlers.call("handle_reopened_event", state)
 
     def handle_closed_event(self, state: dict) -> bool:
         return self.handlers.call("handle_closed_event", state)

@@ -86,7 +86,10 @@ def test_handle_transition_notice_records_transition_notice_sent_at_once(monkeyp
     assert review is not None
     review["current_reviewer"] = "alice"
     posted = []
-    runtime.github.post_comment = lambda issue_number, body: posted.append((issue_number, body)) or True
+    runtime.github.post_comment_result = (
+        lambda issue_number, body: posted.append((issue_number, body))
+        or runtime.GitHubApiResult(201, {}, {}, "created", True, None, 0, None)
+    )
 
     assert lifecycle.handle_transition_notice(runtime, state, 42, "alice") is True
     assert review["transition_notice_sent_at"] is not None
@@ -99,7 +102,10 @@ def test_handle_transition_notice_message_does_not_claim_reassignment(monkeypatc
     state = make_state()
     review_state.ensure_review_entry(state, 42, create=True)
     posted = []
-    runtime.github.post_comment = lambda issue_number, body: posted.append(body) or True
+    runtime.github.post_comment_result = (
+        lambda issue_number, body: posted.append(body)
+        or runtime.GitHubApiResult(201, {}, {}, "created", True, None, 0, None)
+    )
 
     assert lifecycle.handle_transition_notice(runtime, state, 42, "alice") is True
     assert "reassigned to the next person in the queue" not in posted[0]
@@ -114,7 +120,16 @@ def test_handle_transition_notice_skips_cutover_artifact_write_when_opencode_con
     runtime = FakeReviewerBotRuntime(monkeypatch)
     state = make_state()
     review_state.ensure_review_entry(state, 42, create=True)
-    runtime.github.post_comment = lambda issue_number, body: True
+    runtime.github.post_comment_result = lambda issue_number, body: runtime.GitHubApiResult(
+        201,
+        {},
+        {},
+        "created",
+        True,
+        None,
+        0,
+        None,
+    )
     if config_value is not None:
         runtime.set_config_value("OPENCODE_CONFIG_DIR", config_value)
 
@@ -196,15 +211,27 @@ def test_scheduled_check_backfills_markerized_transition_notice_without_repostin
     runtime.get_pull_request_reviews = lambda issue_number: []
     runtime.github.get_issue_or_pr_snapshot = lambda issue_number: {"pull_request": {}}
     posted = []
-    runtime.github.post_comment = lambda issue_number, body: posted.append(body) or True
-    runtime.github_api = lambda method, endpoint, data=None: [
-        {
-            "id": 99,
-            "created_at": "2026-03-25T15:22:42Z",
-            "body": "<!-- reviewer-bot:transition-notice:v1 issue=42 reviewer=alice -->\n\n🔔 **Transition Period Ended**\n\nExisting notice",
-            "user": {"login": "github-actions[bot]"},
-        }
-    ]
+    runtime.github.post_comment_result = (
+        lambda issue_number, body: posted.append(body)
+        or runtime.GitHubApiResult(201, {}, {}, "created", True, None, 0, None)
+    )
+    runtime.github.list_issue_comments_result = lambda issue_number, page=1, per_page=100: runtime.GitHubApiResult(
+        200,
+        [
+            {
+                "id": 99,
+                "created_at": "2026-03-25T15:22:42Z",
+                "body": "<!-- reviewer-bot:transition-notice:v1 issue=42 reviewer=alice -->\n\n🔔 **Transition Period Ended**\n\nExisting notice",
+                "user": {"login": "github-actions[bot]"},
+            }
+        ],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
 
     assert maintenance.handle_scheduled_check_result(runtime, state).state_changed is True
     assert review["transition_notice_sent_at"] == "2026-03-25T15:22:42Z"
@@ -343,6 +370,77 @@ def test_handle_issue_or_pr_opened_fails_closed_when_assignees_unavailable(monke
         lifecycle.handle_issue_or_pr_opened(runtime, state)
 
 
+def test_handle_issue_or_pr_opened_does_not_mutate_reviewer_state_on_assignment_failure(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("ISSUE_AUTHOR", "dana")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.github.get_issue_assignees = lambda issue_number: []
+    runtime.adapters.queue.get_next_reviewer = lambda state, skip_usernames=None: "alice"
+    runtime.github.assign_issue_assignee = lambda issue_number, username: runtime.AssignmentAttempt(
+        success=False,
+        status_code=502,
+        exhausted_retryable_failure=True,
+        failure_kind="server_error",
+    )
+    runtime.github.post_comment = lambda issue_number, body: True
+
+    assert lifecycle.handle_issue_or_pr_opened(runtime, state) is False
+    review = review_state.ensure_review_entry(state, 42)
+    assert review is None or review.get("current_reviewer") is None
+
+
+def test_handle_issue_or_pr_opened_adopts_existing_single_live_assignee(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("ISSUE_AUTHOR", "dana")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.set_config_value("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+    runtime.github.get_issue_assignees = lambda issue_number: ["alice"]
+
+    assert lifecycle.handle_issue_or_pr_opened(runtime, state) is True
+    review = review_state.ensure_review_entry(state, 42)
+    assert review is not None
+    assert review["current_reviewer"] == "alice"
+    assert review["assigned_at"] == "2026-03-17T10:00:00Z"
+
+
+def test_handle_assigned_event_clears_reviewer_authority_on_multiple_live_assignees(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("ISSUE_AUTHOR", "dana")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.github.get_issue_assignees = lambda issue_number: ["alice", "bob"]
+
+    assert lifecycle.handle_assigned_event(runtime, state) is True
+    assert review["current_reviewer"] is None
+
+
+def test_handle_unassigned_event_clears_reviewer_authority_when_live_assignee_missing(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("ISSUE_AUTHOR", "dana")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.github.get_issue_assignees = lambda issue_number: []
+
+    assert lifecycle.handle_unassigned_event(runtime, state) is True
+    assert review["current_reviewer"] is None
+
+
 def test_issue_edit_by_author_records_contributor_freshness(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.ACTIVE_LEASE_CONTEXT = object()
@@ -363,6 +461,60 @@ def test_issue_edit_by_author_records_contributor_freshness(monkeypatch):
     assert lifecycle.handle_issue_edited_event(runtime, state) is True
     accepted = review["contributor_comment"]["accepted"]
     assert accepted["semantic_key"].startswith("issues_edit_title:42:")
+
+
+def test_handle_labeled_event_signoff_only_completes_coding_guideline_issue(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("LABEL_NAME", "sign-off: create pr")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline", "sign-off: create pr"]))
+
+    assert lifecycle.handle_labeled_event(runtime, state) is True
+    assert review["review_completion_source"] == "issue_label: sign-off: create pr"
+
+
+def test_handle_unlabeled_event_reopens_signoff_completion(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["review_completed_at"] = "2026-03-17T10:00:00Z"
+    review["review_completed_by"] = "alice"
+    review["review_completion_source"] = "issue_label: sign-off: create pr"
+    review["current_cycle_completion"] = {"completed": True}
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("LABEL_NAME", "sign-off: create pr")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+
+    assert lifecycle.handle_unlabeled_event(runtime, state) is True
+    assert review["review_completed_at"] is None
+    assert review["review_completion_source"] is None
+
+
+def test_handle_reopened_event_reopens_done_completion(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["review_completed_at"] = "2026-03-17T10:00:00Z"
+    review["review_completed_by"] = "alice"
+    review["review_completion_source"] = "command: /done"
+    review["current_cycle_completion"] = {"completed": True}
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["fls-audit"]))
+    runtime.github.get_issue_assignees = lambda issue_number: []
+
+    assert lifecycle.handle_reopened_event(runtime, state) is True
+    assert review["review_completed_at"] is None
+    assert review["review_completion_source"] is None
 
 
 def test_maybe_record_head_observation_repair_uses_github_api_fallback_after_system_exit(monkeypatch):

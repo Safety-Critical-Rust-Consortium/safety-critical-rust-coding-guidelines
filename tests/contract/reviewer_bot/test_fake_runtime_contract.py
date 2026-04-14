@@ -233,6 +233,25 @@ def test_fake_runtime_github_api_mode_delegates_to_shared_route_fake(monkeypatch
     assert runtime.github_api("GET", "pulls/42") == {"head": {"sha": "head-1"}}
 
 
+def test_fake_runtime_github_exposes_typed_reminder_results(monkeypatch):
+    github = (
+        RouteGitHubApi()
+        .add_request("GET", "issues/42", status_code=200, payload={"number": 42})
+        .add_request("GET", "issues/42/comments?per_page=100&page=2", status_code=200, payload=[])
+        .add_request("POST", "issues/42/comments", status_code=201, payload={"id": 100})
+    )
+    runtime = FakeReviewerBotRuntime(monkeypatch, github=github)
+
+    snapshot_result = runtime.github.get_issue_or_pr_snapshot_result(42)
+    comments_result = runtime.github.list_issue_comments_result(42, page=2)
+    post_result = runtime.github.post_comment_result(42, "hello")
+
+    assert snapshot_result.ok is True
+    assert snapshot_result.payload == {"number": 42}
+    assert comments_result.payload == []
+    assert post_result.status_code == 201
+
+
 def test_focused_fake_service_types_are_exposed_for_direct_fixture_composition(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
 

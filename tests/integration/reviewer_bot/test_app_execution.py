@@ -149,6 +149,77 @@ def test_execute_run_reloads_state_before_syncing_status_labels(monkeypatch):
     }
     assert release_calls == ["released"]
 
+
+def test_execute_run_opened_issue_assignment_failure_does_not_persist_reviewer_state(monkeypatch):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    saved = []
+
+    monkeypatch.setattr(runtime.locks, "acquire", lambda: setattr(runtime, "ACTIVE_LEASE_CONTEXT", object()) or runtime.ACTIVE_LEASE_CONTEXT)
+    monkeypatch.setattr(runtime.locks, "release", lambda: setattr(runtime, "ACTIVE_LEASE_CONTEXT", None) or True)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: saved.append(current_state.copy()) or True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
+    monkeypatch.setattr(runtime.github, "get_issue_assignees", lambda issue_number: [])
+    monkeypatch.setattr(runtime.adapters.queue, "get_next_reviewer", lambda current_state, skip_usernames=None: "alice")
+    monkeypatch.setattr(
+        runtime.github,
+        "assign_issue_assignee",
+        lambda issue_number, username: runtime.AssignmentAttempt(
+            success=False,
+            status_code=502,
+            exhausted_retryable_failure=True,
+            failure_kind="server_error",
+        ),
+    )
+    monkeypatch.setattr(runtime.github, "post_comment", lambda issue_number, body: True)
+    monkeypatch.setenv("EVENT_NAME", "issues")
+    monkeypatch.setenv("EVENT_ACTION", "opened")
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
+    monkeypatch.setenv("ISSUE_STATE", "open")
+    monkeypatch.setenv("IS_PULL_REQUEST", "false")
+    monkeypatch.setenv("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+
+    result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is False
+    assert saved == []
+    assert state.get("active_reviews", {}).get("42") is None
+
+
+def test_execute_run_opened_issue_adopts_existing_single_live_assignee(monkeypatch):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    saved = []
+
+    monkeypatch.setattr(runtime.locks, "acquire", lambda: setattr(runtime, "ACTIVE_LEASE_CONTEXT", object()) or runtime.ACTIVE_LEASE_CONTEXT)
+    monkeypatch.setattr(runtime.locks, "release", lambda: setattr(runtime, "ACTIVE_LEASE_CONTEXT", None) or True)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: saved.append(current_state.copy()) or True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
+    monkeypatch.setattr(runtime.github, "get_issue_assignees", lambda issue_number: ["alice"])
+    monkeypatch.setenv("EVENT_NAME", "issues")
+    monkeypatch.setenv("EVENT_ACTION", "opened")
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
+    monkeypatch.setenv("ISSUE_STATE", "open")
+    monkeypatch.setenv("IS_PULL_REQUEST", "false")
+    monkeypatch.setenv("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+
+    result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
+
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert saved[-1]["active_reviews"]["42"]["current_reviewer"] == "alice"
+
 def test_execute_run_returns_failure_when_save_state_fails(monkeypatch):
     harness = AppHarness(monkeypatch)
     harness.set_event(EVENT_NAME="issue_comment", EVENT_ACTION="created")
@@ -354,6 +425,68 @@ def test_bootstrapped_runtime_executes_pr_metadata_closed_dispatch_path(monkeypa
 
     assert context.event_name == "pull_request_target"
     assert context.event_action == "closed"
+    assert calls == [state]
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+@pytest.mark.parametrize(
+    ("event_action", "handler_name", "issue_state", "label_name"),
+    [
+        ("opened", "handle_issue_or_pr_opened", "open", ""),
+        ("assigned", "handle_assigned_event", "open", ""),
+        ("unassigned", "handle_unassigned_event", "open", ""),
+        ("labeled", "handle_labeled_event", "open", "coding guideline"),
+        ("unlabeled", "handle_unlabeled_event", "open", "coding guideline"),
+        ("edited", "handle_issue_edited_event", "open", ""),
+        ("reopened", "handle_reopened_event", "open", ""),
+        ("closed", "handle_closed_event", "closed", ""),
+    ],
+)
+def test_bootstrapped_runtime_executes_issue_lifecycle_dispatch_matrix(
+    monkeypatch, event_action, handler_name, issue_state, label_name
+):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    calls = []
+
+    def acquire_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = object()
+        return runtime.ACTIVE_LEASE_CONTEXT
+
+    def release_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = None
+        return True
+
+    def handler(current_state):
+        calls.append(current_state)
+        return True
+
+    monkeypatch.setattr(runtime.locks, "acquire", acquire_lock)
+    monkeypatch.setattr(runtime.locks, "release", release_lock)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
+    monkeypatch.setattr(runtime.handlers, handler_name, handler)
+    monkeypatch.setenv("EVENT_NAME", "issues")
+    monkeypatch.setenv("EVENT_ACTION", event_action)
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("IS_PULL_REQUEST", "false")
+    monkeypatch.setenv("ISSUE_STATE", issue_state)
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
+    monkeypatch.setenv("LABEL_NAME", label_name)
+    monkeypatch.setenv("ISSUE_UPDATED_AT", "2026-04-13T04:31:00Z")
+    monkeypatch.setenv("EVENT_CREATED_AT", "2026-04-13T04:31:00Z")
+
+    context = reviewer_bot.build_event_context(runtime)
+    result = reviewer_bot.execute_run(context, runtime)
+
+    assert context.event_name == "issues"
+    assert context.event_action == event_action
     assert calls == [state]
     assert result.exit_code == 0
     assert result.state_changed is True

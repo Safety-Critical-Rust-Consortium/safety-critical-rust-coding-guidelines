@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import pytest
 
 from scripts.reviewer_bot_lib import automation, github_api, guidance
@@ -79,6 +81,47 @@ def test_github_api_request_classifies_forbidden_without_retry(monkeypatch):
     assert result.failure_kind == "forbidden"
     assert result.retry_attempts == 0
     assert github.requested_endpoints() == ["issues/42"]
+
+
+def test_github_api_request_retries_403_retry_after_rate_limit(monkeypatch):
+    github = RouteGitHubApi().add_request_sequence(
+        "GET",
+        "issues/42",
+        [
+            github_result(403, {"message": "secondary rate limit"}, headers={"Retry-After": "7"}),
+            github_result(200, {"ok": True}),
+        ],
+    )
+    bot = _bot(monkeypatch, github=github)
+
+    result = github_api.github_api_request(bot, "GET", "issues/42", retry_policy="idempotent_read")
+
+    assert result.ok is True
+    assert result.retry_attempts == 1
+    assert bot.sleeper.calls == [7.0]
+
+
+def test_github_api_request_retries_403_ratelimit_remaining_zero(monkeypatch):
+    github = RouteGitHubApi().add_request_sequence(
+        "GET",
+        "issues/42",
+        [
+            github_result(
+                403,
+                {"message": "forbidden"},
+                headers={"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1767225605"},
+            ),
+            github_result(200, {"ok": True}),
+        ],
+    )
+    bot = _bot(monkeypatch, github=github)
+    bot.clock.set(datetime(2026, 1, 1, tzinfo=timezone.utc))
+
+    result = github_api.github_api_request(bot, "GET", "issues/42", retry_policy="idempotent_read")
+
+    assert result.ok is True
+    assert result.retry_attempts == 1
+    assert bot.sleeper.calls == [5.0]
 
 
 def test_github_graphql_request_retries_idempotent_query_on_502(monkeypatch):
@@ -203,6 +246,8 @@ def test_request_pr_reviewer_assignment_targets_pr_reviewers_endpoint(monkeypatc
     result = github_api.request_pr_reviewer_assignment(bot, 42, "alice")
 
     assert result.success is True
+    assert result.failure_kind is None
+    assert result.retry_attempts == 0
     assert recorded == {
         "method": "POST",
         "endpoint": "pulls/42/requested_reviewers",
@@ -222,6 +267,8 @@ def test_assign_issue_assignee_targets_issue_assignees_endpoint(monkeypatch):
     result = github_api.assign_issue_assignee(bot, 42, "alice")
 
     assert result.success is True
+    assert result.failure_kind is None
+    assert result.retry_attempts == 0
     assert recorded == {
         "method": "POST",
         "endpoint": "issues/42/assignees",
@@ -248,20 +295,26 @@ def test_get_assignment_failure_comment_formats_retry_exhaustion_message(monkeyp
 
 def test_remove_pr_reviewer_calls_pr_reviewers_delete(monkeypatch):
     github = RouteGitHubApi()
-    github.add_api("DELETE", "pulls/42/requested_reviewers", {})
+    github.add_request("DELETE", "pulls/42/requested_reviewers", status_code=204, payload={})
     bot = _bot(monkeypatch, github=github)
 
-    assert github_api.remove_pr_reviewer(bot, 42, "alice") is True
-    assert [call.endpoint for call in github.api_calls] == ["pulls/42/requested_reviewers"]
+    result = github_api.remove_pr_reviewer(bot, 42, "alice")
+
+    assert result.success is True
+    assert result.status_code == 204
+    assert [call.endpoint for call in github.request_calls] == ["pulls/42/requested_reviewers"]
 
 
 def test_remove_issue_assignee_calls_issue_assignees_delete(monkeypatch):
     github = RouteGitHubApi()
-    github.add_api("DELETE", "issues/42/assignees", {})
+    github.add_request("DELETE", "issues/42/assignees", status_code=204, payload={})
     bot = _bot(monkeypatch, github=github)
 
-    assert github_api.remove_issue_assignee(bot, 42, "alice") is True
-    assert [call.endpoint for call in github.api_calls] == ["issues/42/assignees"]
+    result = github_api.remove_issue_assignee(bot, 42, "alice")
+
+    assert result.success is True
+    assert result.status_code == 204
+    assert [call.endpoint for call in github.request_calls] == ["issues/42/assignees"]
 
 
 def test_find_open_pr_for_branch_status_reports_unavailable_for_malformed_payload(monkeypatch):
@@ -281,6 +334,35 @@ def test_github_api_request_reports_invalid_payload_for_malformed_json(monkeypat
     result = github_api.github_api_request(_bot(monkeypatch, github=github), "GET", "issues/42")
 
     assert result.ok is False
+    assert result.failure_kind == "invalid_payload"
+
+
+def test_github_api_request_classifies_other_4xx_as_http_error(monkeypatch):
+    github = RouteGitHubApi().add_request("GET", "issues/42", result=github_result(418, {"message": "teapot"}))
+
+    result = github_api.github_api_request(_bot(monkeypatch, github=github), "GET", "issues/42", suppress_error_log=True)
+
+    assert result.ok is False
+    assert result.failure_kind == "http_error"
+
+
+def test_post_comment_result_preserves_ambiguous_invalid_payload(monkeypatch):
+    bot = _bot(monkeypatch)
+    bot.github_api_request = lambda *args, **kwargs: GitHubApiResult(
+        201,
+        None,
+        {},
+        "bad json",
+        False,
+        "invalid_payload",
+        0,
+        None,
+    )
+
+    result = github_api.post_comment_result(bot, 42, "hello")
+
+    assert result.ok is False
+    assert result.status_code == 201
     assert result.failure_kind == "invalid_payload"
 
 

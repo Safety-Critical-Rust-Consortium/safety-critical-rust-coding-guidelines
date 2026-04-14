@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from scripts.reviewer_bot_core import privileged_command_policy
 
-from . import automation
+from . import automation, review_state
 
 
 def _now_iso(bot) -> str:
@@ -51,6 +51,7 @@ def execute_pending_privileged_command(bot, state: dict, source_event_key: str) 
         execution_plan=revalidation,
     )
     if execution.status == "executed":
+        review_state.mark_review_complete(state, issue_number, actor, "command: accept-no-fls-changes")
         privileged_command_policy.mark_pending_accept_no_fls_changes_executed(
             review_data,
             source_event_key,

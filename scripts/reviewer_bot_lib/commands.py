@@ -3,16 +3,10 @@
 import re
 from datetime import datetime
 
-from . import review_state
-from .config import AssignmentAttempt
+from . import assignment_flow, review_state
+from .config import CODING_GUIDELINE_LABEL
 from .context import AssignmentRequest
 from .event_inputs import build_assignment_request as decode_assignment_request
-from .guidance import (
-    get_assignment_failure_comment,
-    get_fls_audit_guidance,
-    get_issue_guidance,
-    get_pr_guidance,
-)
 
 
 def _log(bot, level: str, message: str, **fields) -> None:
@@ -113,39 +107,24 @@ def parse_command(bot, comment_body: str) -> tuple[str, list[str]] | None:
     return command, args
 
 
-def _apply_assignment_side_effects(
+def _apply_assignment_transition(
     bot,
     state: dict,
     request: AssignmentRequest,
     reviewer: str,
     assignment_method: str,
-) -> tuple[AssignmentAttempt, str | None]:
-    issue_number = request.issue_number
-    if request.is_pull_request:
-        assignment_attempt = bot.github.request_pr_reviewer_assignment(issue_number, reviewer)
-    else:
-        assignment_attempt = bot.github.assign_issue_assignee(issue_number, reviewer)
-    review_state.set_current_reviewer(state, issue_number, reviewer, assignment_method=assignment_method)
-    bot.adapters.queue.record_assignment(state, reviewer, issue_number, "pr" if request.is_pull_request else "issue")
-    failure_comment = get_assignment_failure_comment(
-        reviewer,
-        assignment_attempt,
-        is_pull_request=request.is_pull_request,
+    current_assignees: list[str] | None = None,
+) -> dict[str, object]:
+    return assignment_flow.confirm_reviewer_assignment(
+        bot,
+        state,
+        request,
+        reviewer=reviewer,
+        assignment_method=assignment_method,
+        current_assignees=current_assignees,
+        emit_guidance=True,
+        emit_failure_comment=False,
     )
-    if failure_comment:
-        bot.github.post_comment(issue_number, failure_comment)
-    if assignment_attempt.success:
-        if request.is_pull_request:
-            bot.github.post_comment(issue_number, get_pr_guidance(reviewer, request.issue_author))
-        else:
-            labels = set(request.issue_labels)
-            guidance = (
-                get_fls_audit_guidance(reviewer, request.issue_author)
-                if bot.FLS_AUDIT_LABEL in labels
-                else get_issue_guidance(reviewer, request.issue_author)
-            )
-            bot.github.post_comment(issue_number, guidance)
-    return assignment_attempt, failure_comment
 
 
 def _current_assignees_or_error(bot, issue_number: int) -> tuple[list[str] | None, str | None]:
@@ -153,6 +132,26 @@ def _current_assignees_or_error(bot, issue_number: int) -> tuple[list[str] | Non
     if current_assignees is None:
         return None, "❌ Unable to determine current assignees/reviewers from GitHub; refusing to continue."
     return current_assignees, None
+
+
+def _assignment_failure_response(target_reviewer: str, result: dict[str, object], *, prefix: str = "") -> str:
+    failure_comment = result.get("failure_comment")
+    if isinstance(failure_comment, str) and failure_comment:
+        return f"{prefix}{failure_comment}"
+    final_assignees = result.get("final_assignees")
+    if isinstance(final_assignees, list):
+        if not final_assignees:
+            return f"{prefix}❌ GitHub could not confirm @{target_reviewer} as reviewer. The issue is now unassigned."
+        return f"{prefix}❌ GitHub could not confirm @{target_reviewer} as reviewer. Live assignees remain: @{', @'.join(final_assignees)}."
+    return f"{prefix}❌ GitHub could not confirm @{target_reviewer} as reviewer."
+
+
+def _single_current_assignee_or_error(current_assignees: list[str]) -> tuple[str | None, str | None]:
+    if not current_assignees:
+        return None, "❌ No reviewer is currently assigned to pass."
+    if len(current_assignees) != 1:
+        return None, "❌ Unable to confirm a single assigned reviewer from GitHub; refusing to continue."
+    return current_assignees[0], None
 
 
 def handle_pass_command(
@@ -167,44 +166,37 @@ def handle_pass_command(
     issue_data = review_state.ensure_review_entry(state, issue_number, create=True)
     if issue_data is None:
         return "❌ Unable to load review state.", False
-    passed_reviewer = issue_data.get("current_reviewer")
-    if not passed_reviewer:
-        current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
-        if assignee_error:
-            return assignee_error, False
-        passed_reviewer = current_assignees[0] if current_assignees else None
-    if not passed_reviewer:
-        return "❌ No reviewer is currently assigned to pass.", False
+    current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
+    if assignee_error:
+        return assignee_error, False
+    passed_reviewer, reviewer_error = _single_current_assignee_or_error(current_assignees)
+    if reviewer_error:
+        return reviewer_error, False
     if passed_reviewer.lower() != comment_author.lower():
         return "❌ Only the currently assigned reviewer can use `/pass`.", False
-    is_first_pass = len(issue_data["skipped"]) == 0
-    if passed_reviewer not in issue_data["skipped"]:
-        issue_data["skipped"].append(passed_reviewer)
-    skip_set = set(issue_data["skipped"])
+    skipped = list(issue_data["skipped"])
+    is_first_pass = len(skipped) == 0
+    if passed_reviewer not in skipped:
+        skipped.append(passed_reviewer)
+    skip_set = set(skipped)
     if assignment_request.issue_author:
         skip_set.add(assignment_request.issue_author)
     next_reviewer = bot.adapters.queue.get_next_reviewer(state, skip_usernames=skip_set)
     if not next_reviewer:
         return ("❌ No other reviewers available. Everyone in the queue has either passed on this issue or is the author."), False
-    bot.adapters.queue.reposition_member_as_next(state, passed_reviewer)
-    if assignment_request.is_pull_request:
-        bot.github.remove_pr_reviewer(issue_number, passed_reviewer)
-    else:
-        bot.github.remove_issue_assignee(issue_number, passed_reviewer)
-    assignment_attempt, failure_comment = _apply_assignment_side_effects(
+    result = _apply_assignment_transition(
         bot,
         state,
         assignment_request,
         next_reviewer,
         "round-robin",
+        current_assignees=current_assignees,
     )
+    if not result.get("confirmed"):
+        return _assignment_failure_response(next_reviewer, result), False
+    issue_data["skipped"] = skipped
+    bot.adapters.queue.reposition_member_as_next(state, passed_reviewer)
     assignment_line = f"@{next_reviewer} is now assigned as the reviewer."
-    if not assignment_attempt.success:
-        if failure_comment:
-            assignment_line = failure_comment
-        else:
-            status_text = assignment_attempt.status_code or "unknown"
-            assignment_line = f"@{next_reviewer} is designated as reviewer in bot state, but GitHub assignment could not be confirmed (status {status_text})."
     reason_text = f" Reason: {reason}" if reason else ""
     if is_first_pass:
         return (f"✅ @{passed_reviewer} has passed this review.{reason_text}\n\n{assignment_line}\n\n_@{passed_reviewer} is next in queue for future issues._"), True
@@ -255,46 +247,73 @@ def handle_pass_until_command(
         state["current_index"] = state["current_index"] % len(state["queue"])
     else:
         state["current_index"] = 0
-    issue_key = str(issue_number)
-    tracked_reviewer = None
-    if "active_reviews" in state and issue_key in state["active_reviews"]:
-        issue_data = state["active_reviews"][issue_key]
-        if isinstance(issue_data, dict):
-            tracked_reviewer = issue_data.get("current_reviewer")
     current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
     if assignee_error:
         return assignee_error, False
-    is_current_reviewer = ((tracked_reviewer and tracked_reviewer.lower() == comment_author.lower()) or comment_author.lower() in [a.lower() for a in current_assignees])
+    live_reviewer, reviewer_error = _single_current_assignee_or_error(current_assignees)
+    is_current_reviewer = reviewer_error is None and isinstance(live_reviewer, str) and live_reviewer.lower() == comment_author.lower()
     reassigned_msg = ""
     if is_current_reviewer:
-        if assignment_request.is_pull_request:
-            bot.github.remove_pr_reviewer(issue_number, comment_author)
-        else:
-            bot.github.remove_issue_assignee(issue_number, comment_author)
         skip_set = {assignment_request.issue_author} if assignment_request.issue_author else set()
         next_reviewer = bot.adapters.queue.get_next_reviewer(state, skip_usernames=skip_set)
         if next_reviewer:
-            assignment_attempt, failure_comment = _apply_assignment_side_effects(
+            result = _apply_assignment_transition(
                 bot,
                 state,
                 assignment_request,
                 next_reviewer,
                 "round-robin",
+                current_assignees=current_assignees,
             )
-            if assignment_attempt.success:
+            if result.get("confirmed"):
                 reassigned_msg = f"\n\n@{next_reviewer} has been assigned as the new reviewer for this issue."
             else:
-                if failure_comment:
-                    reassigned_msg = f"\n\n{failure_comment}"
-                else:
-                    status_text = assignment_attempt.status_code or "unknown"
-                    reassigned_msg = f"\n\n@{next_reviewer} is designated as the new reviewer in bot state, but GitHub assignment is not confirmed (status {status_text})."
+                reassigned_msg = f"\n\n{_assignment_failure_response(next_reviewer, result)}"
         else:
-            if "active_reviews" in state and issue_key in state["active_reviews"] and isinstance(state["active_reviews"][issue_key], dict):
-                state["active_reviews"][issue_key]["current_reviewer"] = None
-            reassigned_msg = "\n\n⚠️ No other reviewers available to assign."
+            release_result = assignment_flow.confirm_reviewer_release(
+                bot,
+                state,
+                assignment_request,
+                reviewer=comment_author,
+            )
+            reassigned_msg = (
+                "\n\n⚠️ No other reviewers available to assign."
+                if release_result.get("confirmed")
+                else f"\n\n{_assignment_failure_response(comment_author, release_result)}"
+            )
     reason_text = f" ({reason})" if reason else ""
     return (f"✅ @{comment_author} is now away until {normalized_return_date}{reason_text}.\n\nYou'll be automatically added back to the queue on that date.{reassigned_msg}"), True
+
+
+def handle_done_command(
+    bot,
+    state: dict,
+    issue_number: int,
+    comment_author: str,
+    request: AssignmentRequest | None = None,
+) -> tuple[str, bool]:
+    assignment_request = request or build_assignment_request(bot, issue_number=issue_number)
+    if assignment_request.is_pull_request:
+        return "❌ `/done` is not supported on pull requests.", False
+    labels = set(assignment_request.issue_labels)
+    if CODING_GUIDELINE_LABEL in labels:
+        return "❌ `/done` is not supported on coding guideline issues. Use `sign-off: create pr` when the review is ready.", False
+    review_data = review_state.ensure_review_entry(state, issue_number)
+    if review_data is None:
+        return "❌ No active tracked review exists for this issue.", False
+    current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
+    if assignee_error:
+        return assignee_error, False
+    is_current_reviewer = len(current_assignees) == 1 and current_assignees[0].lower() == comment_author.lower()
+    if not is_current_reviewer:
+        permission_status = bot.github.get_user_permission_status(comment_author, "triage")
+        if permission_status == "unavailable":
+            return "❌ Unable to verify triage permissions right now; refusing to continue.", False
+        if permission_status != "granted":
+            return "❌ Only the current reviewer or a maintainer with triage+ permission can use `/done`.", False
+    if not review_state.mark_review_complete(state, issue_number, comment_author, "command: /done"):
+        return "ℹ️ This review is already marked complete.", True
+    return "✅ Review marked complete.", True
 
 
 def handle_label_command(
@@ -323,7 +342,11 @@ def handle_label_command(
                 all_success = False
             elif bot.github.add_label(issue_number, label):
                 results.append(f"✅ Added label `{label}`")
-                if label == "sign-off: create pr" and not assignment_request.is_pull_request:
+                if (
+                    label == "sign-off: create pr"
+                    and not assignment_request.is_pull_request
+                    and CODING_GUIDELINE_LABEL in set(assignment_request.issue_labels)
+                ):
                     review_data = review_state.ensure_review_entry(state, issue_number)
                     reviewer = review_data.get("current_reviewer") if review_data else None
                     completion_changed = review_state.mark_review_complete(
@@ -384,7 +407,7 @@ def handle_queue_command(
 
 
 def handle_commands_command(bot) -> tuple[str, bool]:
-    return (f"ℹ️ **Available Commands**\n\n**Pass or step away:**\n- `{bot.BOT_MENTION} /pass [reason]` - Pass this review to next in queue (current reviewer only)\n- `{bot.BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from queue until a date\n- `{bot.BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)\n\n**Assign reviewers:**\n- `{bot.BOT_MENTION} /r? @username` - Assign a specific reviewer\n- `{bot.BOT_MENTION} /r? producers` - Request the next reviewer from the queue\n- `{bot.BOT_MENTION} /claim` - Claim this review for yourself\n\n**Other:**\n- `{bot.BOT_MENTION} /label +label-name` - Add a label\n- `{bot.BOT_MENTION} /label -label-name` - Remove a label\n- `{bot.BOT_MENTION} /rectify` - Reconcile this issue/PR review state from GitHub\n- `{bot.BOT_MENTION} /accept-no-fls-changes` - Update spec.lock and open a PR when no guidelines are impacted\n- `{bot.BOT_MENTION} /queue` - Show current queue status\n- `{bot.BOT_MENTION} /sync-members` - Sync queue with members.md"), True
+    return (f"ℹ️ **Available Commands**\n\n**Pass or step away:**\n- `{bot.BOT_MENTION} /pass [reason]` - Pass this review to next in queue (current reviewer only)\n- `{bot.BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from queue until a date\n- `{bot.BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)\n\n**Assign reviewers:**\n- `{bot.BOT_MENTION} /r? @username` - Assign a specific reviewer\n- `{bot.BOT_MENTION} /r? producers` - Request the next reviewer from the queue\n- `{bot.BOT_MENTION} /claim` - Claim this review for yourself\n\n**Other:**\n- `{bot.BOT_MENTION} /done` - Mark a tracked non-PR issue review complete\n- `{bot.BOT_MENTION} /label +label-name` - Add a label\n- `{bot.BOT_MENTION} /label -label-name` - Remove a label\n- `{bot.BOT_MENTION} /rectify` - Reconcile this issue/PR review state from GitHub\n- `{bot.BOT_MENTION} /accept-no-fls-changes` - Update spec.lock and open a PR when no guidelines are impacted\n- `{bot.BOT_MENTION} /queue` - Show current queue status\n- `{bot.BOT_MENTION} /sync-members` - Sync queue with members.md"), True
 
 
 def handle_claim_command(
@@ -404,24 +427,18 @@ def handle_claim_command(
     current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
     if assignee_error:
         return assignee_error, False
-    for assignee in current_assignees:
-        if assignment_request.is_pull_request:
-            bot.github.remove_pr_reviewer(issue_number, assignee)
-        else:
-            bot.github.remove_issue_assignee(issue_number, assignee)
-    assignment_attempt, failure_comment = _apply_assignment_side_effects(
+    result = _apply_assignment_transition(
         bot,
         state,
         assignment_request,
         comment_author,
         "claim",
+        current_assignees=current_assignees,
     )
     prev_text = f" (previously: @{', @'.join(current_assignees)})" if current_assignees else ""
-    response = f"✅ @{comment_author} has claimed this review{prev_text}."
-    if not assignment_attempt.success:
-        if failure_comment:
-            response = f"{response}\n\n{failure_comment}"
-    return response, True
+    if not result.get("confirmed"):
+        return _assignment_failure_response(comment_author, result, prefix=""), False
+    return f"✅ @{comment_author} has claimed this review{prev_text}.", True
 
 
 def handle_release_command(
@@ -473,15 +490,16 @@ def handle_release_command(
             return (f"❌ @{comment_author} is not the current reviewer. Current reviewer: @{tracked_reviewer}"), False
         if current_assignees:
             return (f"❌ @{comment_author} is not assigned to this issue/PR. Current assignee(s): @{', @'.join(current_assignees)}"), False
-        return "❌ No reviewer is currently assigned to release.", False
-    if request.is_pull_request:
-        bot.github.remove_pr_reviewer(issue_number, target_username)
-    else:
-        bot.github.remove_issue_assignee(issue_number, target_username)
-    if "active_reviews" in state and issue_key in state["active_reviews"] and isinstance(state["active_reviews"][issue_key], dict):
-        state["active_reviews"][issue_key]["current_reviewer"] = None
-    if assignment_method == "round-robin":
-        bot.adapters.queue.reposition_member_as_next(state, target_username)
+            return "❌ No reviewer is currently assigned to release.", False
+    result = assignment_flow.confirm_reviewer_release(
+        bot,
+        state,
+        request,
+        reviewer=target_username,
+        reposition_reviewer=assignment_method == "round-robin",
+    )
+    if not result.get("confirmed"):
+        return _assignment_failure_response(target_username, result), False
     reason_text = f" Reason: {reason}" if reason else ""
     if releasing_other:
         return (f"✅ @{comment_author} has released @{target_username} from this review.{reason_text}\n\n_This issue/PR is now unassigned. Use `{bot.BOT_MENTION} /r? producers` to assign the next reviewer from the queue, or `{bot.BOT_MENTION} /claim` to claim it._"), True
@@ -511,25 +529,18 @@ def handle_assign_command(
     current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
     if assignee_error:
         return assignee_error, False
-    for assignee in current_assignees:
-        if assignment_request.is_pull_request:
-            bot.github.remove_pr_reviewer(issue_number, assignee)
-        else:
-            bot.github.remove_issue_assignee(issue_number, assignee)
-    assignment_attempt, failure_comment = _apply_assignment_side_effects(
+    result = _apply_assignment_transition(
         bot,
         state,
         assignment_request,
         username,
         "manual",
+        current_assignees=current_assignees,
     )
     prev_text = f" (previously: @{', @'.join(current_assignees)})" if current_assignees else ""
-    if assignment_attempt.success:
+    if result.get("confirmed"):
         return f"✅ @{username} has been assigned as reviewer{prev_text}.", True
-    response = f"✅ @{username} remains designated as reviewer in bot state{prev_text}. GitHub reviewer assignment could not be completed."
-    if failure_comment:
-        response = f"{response}\n\n{failure_comment}"
-    return response, True
+    return _assignment_failure_response(username, result), False
 
 
 def handle_assign_from_queue_command(
@@ -542,23 +553,19 @@ def handle_assign_from_queue_command(
     current_assignees, assignee_error = _current_assignees_or_error(bot, issue_number)
     if assignee_error:
         return assignee_error, False
-    for assignee in current_assignees:
-        if assignment_request.is_pull_request:
-            bot.github.remove_pr_reviewer(issue_number, assignee)
-        else:
-            bot.github.remove_issue_assignee(issue_number, assignee)
     skip_set = {assignment_request.issue_author} if assignment_request.issue_author else set()
     next_reviewer = bot.adapters.queue.get_next_reviewer(state, skip_usernames=skip_set)
     if not next_reviewer:
         return (f"❌ No reviewers available in the queue. Please use `{bot.BOT_MENTION} /sync-members` to update the queue."), False
-    assignment_attempt, _failure_comment = _apply_assignment_side_effects(
+    result = _apply_assignment_transition(
         bot,
         state,
         assignment_request,
         next_reviewer,
         "round-robin",
+        current_assignees=current_assignees,
     )
     prev_text = f" (previously: @{', @'.join(current_assignees)})" if current_assignees else ""
-    if assignment_attempt.success:
+    if result.get("confirmed"):
         return f"✅ @{next_reviewer} (next in queue) has been assigned as reviewer{prev_text}.", True
-    return (f"✅ @{next_reviewer} remains designated as reviewer in bot state{prev_text}. GitHub reviewer assignment could not be completed."), True
+    return _assignment_failure_response(next_reviewer, result), False

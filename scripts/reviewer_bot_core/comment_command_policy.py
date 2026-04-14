@@ -11,6 +11,7 @@ from . import privileged_command_policy
 class OrdinaryCommandId(StrEnum):
     PASS = "pass"
     AWAY = "away"
+    DONE = "done"
     LABEL = "label"
     SYNC_MEMBERS = "sync-members"
     QUEUE = "queue"
@@ -101,6 +102,14 @@ def decide_comment_command(bot, request, classified, *, actor_class: str, comman
             response=f"❌ Missing date. Usage: `{bot.BOT_MENTION} /away YYYY-MM-DD [reason]`",
             success=False,
             react=True,
+        )
+    if command == OrdinaryCommandId.DONE.value:
+        return ExecuteOrdinaryCommandDecision(
+            command_id=OrdinaryCommandId.DONE,
+            issue_number=issue_number,
+            actor=comment_author,
+            raw_args=args,
+            needs_assignment_request=True,
         )
     if command == OrdinaryCommandId.LABEL.value:
         return ExecuteOrdinaryCommandDecision(

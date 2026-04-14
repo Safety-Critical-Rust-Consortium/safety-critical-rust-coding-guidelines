@@ -63,6 +63,39 @@ Other commands:
 """
 
 
+def get_generic_issue_guidance(reviewer: str, issue_author: str) -> str:
+    """Generate guidance text for a generic tracked issue reviewer."""
+    return f"""👋 Hey @{reviewer}! You've been assigned to review this tracked issue.
+
+## Your Role as Reviewer
+
+Please review the issue, coordinate with @{issue_author}, and use reviewer-bot commands to keep the review moving.
+
+When the review is complete:
+- Comment `{BOT_MENTION} /done` to mark the issue review complete.
+
+## Bot Commands
+
+If you need to pass this review:
+- `{BOT_MENTION} /pass [reason]` - Pass just this issue to the next reviewer
+- `{BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from the queue until a date
+- `{BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)
+
+To assign someone else:
+- `{BOT_MENTION} /r? @username` - Assign a specific reviewer
+- `{BOT_MENTION} /r? producers` - Request the next reviewer from the queue
+
+Other commands:
+- `{BOT_MENTION} /claim` - Claim this review for yourself
+- `{BOT_MENTION} /done` - Mark this review complete
+- `{BOT_MENTION} /rectify` - Reconcile this issue/PR review state from GitHub
+- `{BOT_MENTION} /label +label-name` - Add a label
+- `{BOT_MENTION} /label -label-name` - Remove a label
+- `{BOT_MENTION} /queue` - Show reviewer queue
+- `{BOT_MENTION} /commands` - Show all available commands
+"""
+
+
 def get_fls_audit_guidance(reviewer: str, issue_author: str) -> str:
     """Generate guidance text for an FLS audit issue reviewer."""
     return f"""👋 Hey @{reviewer}! You've been assigned to review this FLS audit issue.
@@ -91,6 +124,7 @@ To assign someone else:
 
 Other commands:
 - `{BOT_MENTION} /claim` - Claim this review for yourself
+- `{BOT_MENTION} /done` - Mark this review complete
 - `{BOT_MENTION} /rectify` - Reconcile this issue/PR review state from GitHub
 - `{BOT_MENTION} /label +label-name` - Add a label
 - `{BOT_MENTION} /label -label-name` - Remove a label

@@ -1,6 +1,6 @@
 """Reviewer-bot configuration constants and small shared types."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 BOT_NAME = "guidelines-bot"
@@ -21,6 +21,7 @@ STATE_BLOCK_END_MARKER = "<!-- REVIEWER_BOT_STATE_END -->"
 LOCK_BLOCK_START_MARKER = "<!-- REVIEWER_BOT_LOCK_START -->"
 LOCK_BLOCK_END_MARKER = "<!-- REVIEWER_BOT_LOCK_END -->"
 TRANSITION_NOTICE_MARKER_PREFIX = "reviewer-bot:transition-notice:v1"
+TRANSITION_WARNING_MARKER_PREFIX = "reviewer-bot:transition-warning:v1"
 
 LOCK_SCHEMA_VERSION = 1
 LOCK_LEASE_TTL_SECONDS_ENV = "REVIEWER_BOT_LOCK_TTL_SECONDS"
@@ -188,6 +189,7 @@ COMMANDS = {
     "rectify": "Reconcile this issue/PR's review state from GitHub",
     "claim": "Claim this review for yourself",
     "r?": "Assign a reviewer (@username or 'producers')",
+    "done": "Mark a tracked non-PR issue review complete",
     "label": "Add/remove labels (+label-name or -label-name)",
     "accept-no-fls-changes": "Update spec.lock and open PR for a clean audit",
     "sync-members": "Sync queue with members.md",
@@ -218,6 +220,10 @@ class AssignmentAttempt:
     success: bool
     status_code: int | None
     exhausted_retryable_failure: bool = False
+    failure_kind: str | None = None
+    retry_attempts: int = 0
+    headers: dict[str, str] = field(default_factory=dict)
+    transport_error: str | None = None
 
 
 @dataclass(frozen=True)

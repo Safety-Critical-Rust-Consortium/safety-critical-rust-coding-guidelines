@@ -13,6 +13,7 @@ from tests.fixtures.fake_runtime import FakeReviewerBotRuntime
 from tests.fixtures.focused_fake_services import GraphQLTransportStub
 from tests.fixtures.http_responses import FakeGitHubResponse
 from tests.fixtures.reviewer_bot import (
+    accept_contributor_comment,
     accept_reviewer_comment,
     accept_reviewer_review,
     issue_snapshot,
@@ -159,6 +160,37 @@ def test_preview_board_projection_formats_dates_at_day_granularity(monkeypatch):
     assert preview.desired is not None
     assert preview.desired.assigned_at == "2026-03-20"
     assert preview.desired.waiting_since == "2026-03-21"
+
+
+def test_preview_board_projection_non_pr_contributor_followup_returns_to_reviewer(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-20T12:34:56Z",
+        active_cycle_started_at="2026-03-20T12:34:56Z",
+    )
+    accept_reviewer_comment(
+        review,
+        semantic_key="issue_comment:10",
+        timestamp="2026-03-21T08:00:00Z",
+        actor="alice",
+    )
+    accept_contributor_comment(
+        review,
+        semantic_key="issue_comment:11",
+        timestamp="2026-03-22T09:00:00Z",
+        actor="dana",
+    )
+    runtime = _runtime(monkeypatch)
+    runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open")
+
+    preview = project_board.preview_board_projection_for_item(runtime, state, 42)
+
+    assert preview.desired is not None
+    assert preview.desired.review_state == "Awaiting Reviewer"
+    assert preview.desired.waiting_since == "2026-03-22"
 
 
 def test_preview_board_projection_keeps_parity_with_refreshed_live_review_state(monkeypatch):

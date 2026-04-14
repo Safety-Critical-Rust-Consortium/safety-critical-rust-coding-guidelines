@@ -1,20 +1,25 @@
 import json
 from pathlib import Path
+from typing import get_type_hints
 
 import pytest
 
 pytestmark = pytest.mark.contract
 
 from scripts import reviewer_bot
+from scripts.reviewer_bot_lib.config import AssignmentAttempt, GitHubApiResult
 from scripts.reviewer_bot_lib.runtime import ReviewerBotRuntime
 from scripts.reviewer_bot_lib.runtime_protocols import (
     AppEventContextRuntime,
     AppExecutionRuntime,
+    CommentGitHubWriteContext,
     EventInputsContext,
+    GitHubTransportContext,
     ProjectBoardMetadataContext,
     ProjectBoardProjectionContext,
     ReconcileRectifyRuntimeContext,
     ReconcileWorkflowRuntimeContext,
+    SweeperContext,
 )
 from tests.fixtures.fake_runtime import FakeReviewerBotRuntime
 
@@ -84,6 +89,14 @@ def test_fake_runtime_satisfies_app_execution_runtime_protocol(monkeypatch):
     assert isinstance(runtime, ReconcileWorkflowRuntimeContext)
     assert isinstance(runtime, ReconcileRectifyRuntimeContext)
     _assert_core_runtime_surface(runtime)
+
+
+def test_runtime_protocol_annotations_preserve_typed_reminder_transport_surfaces():
+    assert get_type_hints(GitHubTransportContext.remove_issue_assignee)["return"] is AssignmentAttempt
+    assert get_type_hints(GitHubTransportContext.remove_pr_reviewer)["return"] is AssignmentAttempt
+    assert get_type_hints(SweeperContext.get_issue_or_pr_snapshot_result)["return"] is GitHubApiResult
+    assert get_type_hints(SweeperContext.list_issue_comments_result)["return"] is GitHubApiResult
+    assert get_type_hints(CommentGitHubWriteContext.post_comment_result)["return"] is GitHubApiResult
 
 def test_o3_runtime_deletion_manifest_forbids_dead_workflow_run_handler_compatibility_surface():
     manifest = json.loads(

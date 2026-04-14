@@ -68,6 +68,9 @@ class _BootstrapGitHubServices:
     def post_comment(self, issue_number, body):
         return github_api.post_comment(self._runtime_getter(), issue_number, body)
 
+    def post_comment_result(self, issue_number, body):
+        return github_api.post_comment_result(self._runtime_getter(), issue_number, body)
+
     def get_repo_labels(self):
         return github_api.get_repo_labels(self._runtime_getter())
 
@@ -105,7 +108,18 @@ class _BootstrapGitHubServices:
         return github_api.check_user_permission(self._runtime_getter(), username, required_permission)
 
     def get_issue_or_pr_snapshot(self, issue_number):
-        return github_api.github_api(self._runtime_getter(), "GET", f"issues/{issue_number}")
+        return github_api.get_issue_or_pr_snapshot(self._runtime_getter(), issue_number)
+
+    def get_issue_or_pr_snapshot_result(self, issue_number):
+        return github_api.get_issue_or_pr_snapshot_result(self._runtime_getter(), issue_number)
+
+    def list_issue_comments_result(self, issue_number, *, page=1, per_page=100):
+        return github_api.list_issue_comments_result(
+            self._runtime_getter(),
+            issue_number,
+            page=page,
+            per_page=per_page,
+        )
 
     def get_pull_request_reviews(self, issue_number):
         return reviews.get_pull_request_reviews(self._runtime_getter(), issue_number)
@@ -135,8 +149,20 @@ class _BootstrapHandlerServices:
     def handle_labeled_event(self, current_state):
         return lifecycle.handle_labeled_event(self._runtime_getter(), current_state)
 
+    def handle_unlabeled_event(self, current_state):
+        return lifecycle.handle_unlabeled_event(self._runtime_getter(), current_state)
+
+    def handle_assigned_event(self, current_state):
+        return lifecycle.handle_assigned_event(self._runtime_getter(), current_state)
+
+    def handle_unassigned_event(self, current_state):
+        return lifecycle.handle_unassigned_event(self._runtime_getter(), current_state)
+
     def handle_issue_edited_event(self, current_state):
         return lifecycle.handle_issue_edited_event(self._runtime_getter(), current_state)
+
+    def handle_reopened_event(self, current_state):
+        return lifecycle.handle_reopened_event(self._runtime_getter(), current_state)
 
     def handle_closed_event(self, current_state):
         return lifecycle.handle_closed_event(self._runtime_getter(), current_state)

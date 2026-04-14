@@ -167,6 +167,11 @@ class GitHubStub:
 
         return github_api_module.post_comment(self._runtime_required(), issue_number, body)
 
+    def post_comment_result(self, issue_number: int, body: str):
+        from scripts.reviewer_bot_lib import github_api as github_api_module
+
+        return github_api_module.post_comment_result(self._runtime_required(), issue_number, body)
+
     def get_repo_labels(self):
         from scripts.reviewer_bot_lib import github_api as github_api_module
 
@@ -231,7 +236,24 @@ class GitHubStub:
         return github_api_module.check_user_permission(self._runtime_required(), username, required_permission)
 
     def get_issue_or_pr_snapshot(self, issue_number: int):
-        return self.github_api("GET", f"issues/{issue_number}")
+        from scripts.reviewer_bot_lib import github_api as github_api_module
+
+        return github_api_module.get_issue_or_pr_snapshot(self._runtime_required(), issue_number)
+
+    def get_issue_or_pr_snapshot_result(self, issue_number: int):
+        from scripts.reviewer_bot_lib import github_api as github_api_module
+
+        return github_api_module.get_issue_or_pr_snapshot_result(self._runtime_required(), issue_number)
+
+    def list_issue_comments_result(self, issue_number: int, *, page: int = 1, per_page: int = 100):
+        from scripts.reviewer_bot_lib import github_api as github_api_module
+
+        return github_api_module.list_issue_comments_result(
+            self._runtime_required(),
+            issue_number,
+            page=page,
+            per_page=per_page,
+        )
 
     def get_pull_request_reviews(self, issue_number: int):
         from scripts.reviewer_bot_lib import reviews as reviews_module
@@ -364,8 +386,12 @@ class ArtifactDownloadTransportStub:
 class HandlerStub:
     ALLOWED = {
         "handle_issue_or_pr_opened",
+        "handle_assigned_event",
+        "handle_unassigned_event",
         "handle_labeled_event",
+        "handle_unlabeled_event",
         "handle_issue_edited_event",
+        "handle_reopened_event",
         "handle_closed_event",
         "handle_pull_request_target_synchronize",
         "handle_comment_event",
@@ -449,8 +475,12 @@ def build_default_handler_map(runtime) -> dict[str, Callable[[dict], bool]]:
 
     return {
         "handle_issue_or_pr_opened": lambda state: lifecycle_module.handle_issue_or_pr_opened(runtime, state),
+        "handle_assigned_event": lambda state: lifecycle_module.handle_assigned_event(runtime, state),
+        "handle_unassigned_event": lambda state: lifecycle_module.handle_unassigned_event(runtime, state),
         "handle_labeled_event": lambda state: lifecycle_module.handle_labeled_event(runtime, state),
+        "handle_unlabeled_event": lambda state: lifecycle_module.handle_unlabeled_event(runtime, state),
         "handle_issue_edited_event": lambda state: lifecycle_module.handle_issue_edited_event(runtime, state),
+        "handle_reopened_event": lambda state: lifecycle_module.handle_reopened_event(runtime, state),
         "handle_closed_event": lambda state: lifecycle_module.handle_closed_event(runtime, state),
         "handle_pull_request_target_synchronize": lambda state: lifecycle_module.handle_pull_request_target_synchronize(runtime, state),
         "handle_comment_event": lambda state: comment_routing_module.handle_comment_event(runtime, state),

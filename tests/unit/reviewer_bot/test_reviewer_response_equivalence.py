@@ -9,7 +9,9 @@ from scripts.reviewer_bot_core import (
 )
 from scripts.reviewer_bot_lib import reviews
 from tests.fixtures.reviewer_bot import (
+    accept_contributor_comment,
     accept_contributor_revision,
+    accept_reviewer_comment,
     accept_reviewer_review,
     make_state,
     make_tracked_review_state,
@@ -379,6 +381,60 @@ def test_reviewer_response_derivation_supports_pure_inputs_without_live_reads():
     assert result["state"] == "awaiting_contributor_response"
     assert result["reason"] == "completion_missing"
     assert result["reviewer_review"]["semantic_key"] == "pull_request_review:10"
+
+
+def test_issue_reviewer_response_returns_to_reviewer_after_contributor_followup():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    accept_reviewer_comment(
+        review,
+        semantic_key="issue_comment:10",
+        timestamp="2026-03-17T10:00:00Z",
+        actor="alice",
+    )
+    accept_contributor_comment(
+        review,
+        semantic_key="issue_comment:11",
+        timestamp="2026-03-18T11:00:00Z",
+        actor="dana",
+    )
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_reviewer_response"
+    assert result["reason"] == "contributor_comment_newer"
+    assert result["anchor_timestamp"] == "2026-03-18T11:00:00Z"
+
+
+def test_issue_reviewer_response_ignores_prior_reviewer_records_after_reviewer_change():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    accept_reviewer_comment(
+        review,
+        semantic_key="issue_comment:10",
+        timestamp="2026-03-17T10:00:00Z",
+        actor="alice",
+    )
+    review["current_reviewer"] = "bob"
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_reviewer_response"
+    assert result["reason"] == "no_reviewer_activity"
+    assert result["anchor_timestamp"] == "2026-03-17T09:00:00Z"
+    assert result["reviewer_comment"] is None
 
 
 def test_h1a_reviewer_response_scenario_matrix_matches_frozen_outputs(monkeypatch):

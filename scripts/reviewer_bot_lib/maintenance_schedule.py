@@ -126,7 +126,13 @@ def _run_overdue_pass(bot, state: dict) -> bool:
         issue_number = review["issue_number"]
         reviewer = review["reviewer"]
         if review["needs_warning"]:
-            if handle_overdue_review_warning(bot, state, issue_number, reviewer):
+            if handle_overdue_review_warning(
+                bot,
+                state,
+                issue_number,
+                reviewer,
+                anchor_reason=review.get("anchor_reason"),
+            ):
                 changed = True
         elif review["needs_transition"]:
             if backfill_transition_notice_if_present(bot, state, issue_number):

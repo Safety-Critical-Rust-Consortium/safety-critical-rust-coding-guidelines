@@ -36,14 +36,19 @@ def set_current_reviewer(
     issue_number: int,
     reviewer: str,
     assignment_method: str = "round-robin",
+    at: str | None = None,
 ) -> None:
     review_state_machine.set_current_reviewer(
         state,
         issue_number,
         reviewer,
-        now=_now_iso(),
+        now=at or _now_iso(),
         assignment_method=assignment_method,
     )
+
+
+def clear_current_reviewer(state: dict, issue_number: int) -> bool:
+    return review_state_machine.clear_current_reviewer(state, issue_number)
 
 
 def semantic_key_seen(review_data: dict, channel_name: str, semantic_key: str) -> bool:

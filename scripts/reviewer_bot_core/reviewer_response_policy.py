@@ -55,6 +55,17 @@ def _initial_reviewer_anchor(review_data: dict) -> str | None:
     return None
 
 
+def _record_for_current_reviewer(record: dict | None | object, current_reviewer: str) -> dict | None:
+    if not isinstance(record, dict):
+        return None
+    actor = record.get("actor")
+    if not isinstance(actor, str) or not actor.strip():
+        return record
+    if actor.lower() != current_reviewer.lower():
+        return None
+    return record
+
+
 def _contributor_revision_handoff_record(review_data: dict, current_head: str | None, reviewer_review: dict | None) -> dict | None:
     contributor_revision = review_data.get("contributor_revision", {}).get("accepted")
     if not isinstance(contributor_revision, dict):
@@ -93,16 +104,8 @@ def derive_reviewer_response_state(
         contributor_comment = review_data.get("contributor_comment", {}).get("accepted")
 
     if not issue_is_pull_request:
-        if not reviewer_comment and not reviewer_review:
-            return {
-                "state": "awaiting_reviewer_response",
-                "reason": "no_reviewer_activity",
-                "anchor_timestamp": _initial_reviewer_anchor(review_data),
-                "reviewer_comment": reviewer_comment,
-                "reviewer_review": reviewer_review,
-                "contributor_comment": contributor_comment,
-                "contributor_handoff": None,
-            }
+        reviewer_comment = _record_for_current_reviewer(reviewer_comment, current_reviewer)
+        reviewer_review = _record_for_current_reviewer(reviewer_review, current_reviewer)
         latest_reviewer_response = reviewer_comment
         if reviewer_review_helpers.compare_records(
             reviewer_review,
@@ -111,15 +114,59 @@ def derive_reviewer_response_state(
         ) > 0:
             latest_reviewer_response = reviewer_review
         completion = review_data.get("current_cycle_completion")
-        if not isinstance(completion, dict) or not completion.get("completed"):
-            if review_data.get("review_completed_at"):
-                return {"state": "done", "reason": None}
+        if isinstance(completion, dict) and completion.get("completed"):
             return {
-                "state": "awaiting_contributor_response",
-                "reason": "completion_missing",
+                "state": "done",
+                "reason": None,
                 "anchor_timestamp": latest_reviewer_response.get("timestamp") if isinstance(latest_reviewer_response, dict) else None,
+                "reviewer_comment": reviewer_comment,
+                "reviewer_review": reviewer_review,
+                "contributor_comment": contributor_comment,
+                "contributor_handoff": contributor_comment,
             }
-        return {"state": "done", "reason": None}
+        if review_data.get("review_completed_at"):
+            return {
+                "state": "done",
+                "reason": None,
+                "anchor_timestamp": latest_reviewer_response.get("timestamp") if isinstance(latest_reviewer_response, dict) else None,
+                "reviewer_comment": reviewer_comment,
+                "reviewer_review": reviewer_review,
+                "contributor_comment": contributor_comment,
+                "contributor_handoff": contributor_comment,
+            }
+        if not latest_reviewer_response:
+            return {
+                "state": "awaiting_reviewer_response",
+                "reason": "no_reviewer_activity",
+                "anchor_timestamp": _initial_reviewer_anchor(review_data),
+                "reviewer_comment": reviewer_comment,
+                "reviewer_review": reviewer_review,
+                "contributor_comment": contributor_comment,
+                "contributor_handoff": contributor_comment,
+            }
+        if _compare_cross_channel_conversation(
+            contributor_comment,
+            latest_reviewer_response,
+            parse_timestamp=live_review_support.parse_github_timestamp,
+        ) > 0:
+            return {
+                "state": "awaiting_reviewer_response",
+                "reason": "contributor_comment_newer",
+                "anchor_timestamp": contributor_comment.get("timestamp") if isinstance(contributor_comment, dict) else None,
+                "reviewer_comment": reviewer_comment,
+                "reviewer_review": reviewer_review,
+                "contributor_comment": contributor_comment,
+                "contributor_handoff": contributor_comment,
+            }
+        return {
+            "state": "awaiting_contributor_response",
+            "reason": "completion_missing",
+            "anchor_timestamp": latest_reviewer_response.get("timestamp") if isinstance(latest_reviewer_response, dict) else None,
+            "reviewer_comment": reviewer_comment,
+            "reviewer_review": reviewer_review,
+            "contributor_comment": contributor_comment,
+            "contributor_handoff": contributor_comment,
+        }
 
     if not isinstance(current_head, str) or not current_head.strip():
         return {"state": "projection_failed", "reason": "pull_request_head_unavailable"}

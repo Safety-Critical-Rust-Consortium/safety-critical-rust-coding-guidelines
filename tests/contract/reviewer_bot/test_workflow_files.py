@@ -42,6 +42,31 @@ def test_pr_metadata_workflow_exports_label_name_for_labeled_path():
     )
     assert "LABEL_NAME: ${{ github.event.label.name }}" in workflow_text
 
+
+def test_issue_lifecycle_workflow_covers_retained_event_matrix():
+    workflow = yaml.safe_load(Path(".github/workflows/reviewer-bot-issues.yml").read_text(encoding="utf-8"))
+    on_block = workflow.get("on", workflow.get(True))
+
+    assert on_block["issues"]["types"] == [
+        "opened",
+        "edited",
+        "labeled",
+        "unlabeled",
+        "assigned",
+        "unassigned",
+        "reopened",
+        "closed",
+    ]
+
+
+def test_issue_lifecycle_workflow_exports_retained_request_boundary_fields():
+    workflow_text = Path(".github/workflows/reviewer-bot-issues.yml").read_text(encoding="utf-8")
+
+    assert "IS_PULL_REQUEST: 'false'" in workflow_text
+    assert "ISSUE_STATE: ${{ github.event.issue.state }}" in workflow_text
+    assert "LABEL_NAME: ${{ github.event.label.name }}" in workflow_text
+    assert "EVENT_CREATED_AT: ${{ github.event.issue.updated_at }}" in workflow_text
+
 def test_pr_comment_router_workflow_builds_payload_inline_without_bot_src_root():
     workflow = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
     assert "build_pr_comment_observer_payload" not in workflow

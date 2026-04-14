@@ -137,6 +137,7 @@ class GitHubApiContext(Protocol):
     AssignmentAttempt: type[AssignmentAttempt]
     GitHubApiResult: type[GitHubApiResult]
     logger: Logger
+    clock: Clock
     sleeper: Sleeper
     jitter: JitterSource
     rest_transport: RestTransport
@@ -196,9 +197,9 @@ class GitHubTransportContext(GitHubApiContext, Protocol):
 
     def get_user_permission_status(self, username: str, required_permission: str = "triage") -> str: ...
 
-    def remove_issue_assignee(self, issue_number: int, username: str) -> bool: ...
+    def remove_issue_assignee(self, issue_number: int, username: str) -> AssignmentAttempt: ...
 
-    def remove_pr_reviewer(self, issue_number: int, username: str) -> bool: ...
+    def remove_pr_reviewer(self, issue_number: int, username: str) -> AssignmentAttempt: ...
 
 
 @runtime_checkable
@@ -378,6 +379,16 @@ class SweeperContext(Protocol):
 
     def get_issue_or_pr_snapshot(self, issue_number: int) -> dict | None: ...
 
+    def get_issue_or_pr_snapshot_result(self, issue_number: int) -> GitHubApiResult: ...
+
+    def list_issue_comments_result(
+        self,
+        issue_number: int,
+        *,
+        page: int = 1,
+        per_page: int = 100,
+    ) -> GitHubApiResult: ...
+
     def maybe_record_head_observation_repair(
         self, issue_number: int, review_data: dict
     ) -> HeadObservationRepairResult: ...
@@ -466,6 +477,8 @@ class CommentGitHubWriteContext(Protocol):
     def get_user_permission_status(self, username: str, required_permission: str = "triage") -> str: ...
 
     def post_comment(self, issue_number: int, body: str) -> bool: ...
+
+    def post_comment_result(self, issue_number: int, body: str) -> GitHubApiResult: ...
 
     def add_reaction(self, comment_id: int, reaction: str) -> bool: ...
 

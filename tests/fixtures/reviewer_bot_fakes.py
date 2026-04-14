@@ -123,11 +123,22 @@ class RouteGitHubApi:
         return self
 
     def add_pull_request_snapshot(self, issue_number: int, payload: Any) -> "RouteGitHubApi":
+        issue_payload = {
+            "number": issue_number,
+            "state": payload.get("state", "open") if isinstance(payload, dict) else "open",
+            "pull_request": {},
+            "labels": payload.get("labels", []) if isinstance(payload, dict) else [],
+        }
         return self.add_api("GET", f"pulls/{issue_number}", payload).add_request(
             "GET",
             f"pulls/{issue_number}",
             status_code=200,
             payload=payload,
+        ).add_request(
+            "GET",
+            f"issues/{issue_number}",
+            status_code=200,
+            payload=issue_payload,
         )
 
     def add_pull_request_reviews(self, issue_number: int, reviews: Any, *, page: int = 1) -> "RouteGitHubApi":

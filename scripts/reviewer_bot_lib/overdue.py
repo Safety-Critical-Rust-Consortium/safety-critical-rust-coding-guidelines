@@ -2,13 +2,128 @@
 
 from __future__ import annotations
 
-from .config import TRANSITION_NOTICE_MARKER_PREFIX
+from .config import TRANSITION_NOTICE_MARKER_PREFIX, TRANSITION_WARNING_MARKER_PREFIX
+from .repair_records import clear_repair_marker, store_repair_marker
 
 _TRANSITION_NOTICE_AUTHORS = {"github-actions[bot]", "guidelines-bot"}
 
 
 def _log(bot, level: str, message: str, **fields) -> None:
     bot.logger.event(level, message, **fields)
+
+
+def _warning_anchor_sentence(bot, reviewer: str, anchor_reason: str | None) -> str:
+    if anchor_reason in {"contributor_comment_newer", "contributor_revision_newer"}:
+        return (
+            f"Hey @{reviewer}, it's been more than {bot.REVIEW_DEADLINE_DAYS} days since the latest "
+            "contributor follow-up returned this review to you."
+        )
+    return f"Hey @{reviewer}, it's been more than {bot.REVIEW_DEADLINE_DAYS} days since you were assigned to review this."
+
+
+def _transport_marker(*, phase: str, result, recorded_at: str) -> dict:
+    return {
+        "kind": "reminder_transport_failure",
+        "phase": phase,
+        "status_code": result.status_code,
+        "failure_kind": result.failure_kind,
+        "retry_attempts": result.retry_attempts,
+        "recorded_at": recorded_at,
+    }
+
+
+def _record_transport_failure(bot, review_data: dict, issue_number: int, *, phase: str, result) -> bool:
+    changed = store_repair_marker(
+        review_data,
+        phase,
+        _transport_marker(phase=phase, result=result, recorded_at=bot.clock.now().isoformat()),
+    )
+    if changed:
+        bot.collect_touched_item(issue_number)
+    return changed
+
+
+def _clear_transport_failure(bot, review_data: dict, issue_number: int, *, phase: str) -> bool:
+    changed = clear_repair_marker(review_data, phase)
+    if changed:
+        bot.collect_touched_item(issue_number)
+    return changed
+
+
+def _warning_marker(issue_number: int, reviewer: str, anchor_timestamp: str | None) -> str:
+    return (
+        f"<!-- {TRANSITION_WARNING_MARKER_PREFIX} issue={issue_number} reviewer={reviewer} "
+        f"anchor={anchor_timestamp or ''} -->"
+    )
+
+
+def _find_existing_marker_comment(
+    bot,
+    issue_number: int,
+    marker: str,
+    *,
+    authors: set[str],
+    not_before: str | None = None,
+) -> dict[str, object]:
+    earliest = None
+    if isinstance(not_before, str) and not_before:
+        try:
+            earliest = bot.datetime.fromisoformat(not_before.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            earliest = None
+    page = 1
+    while True:
+        response = bot.github.list_issue_comments_result(issue_number, page=page)
+        if not response.ok or not isinstance(response.payload, list):
+            return {
+                "status": "unavailable",
+                "status_code": response.status_code,
+                "failure_kind": response.failure_kind,
+                "retry_attempts": response.retry_attempts,
+            }
+        first_match = None
+        for comment in response.payload:
+            if not isinstance(comment, dict):
+                continue
+            user = comment.get("user")
+            login = user.get("login") if isinstance(user, dict) else None
+            created_at = comment.get("created_at")
+            body = comment.get("body")
+            if not isinstance(login, str) or not isinstance(created_at, str) or not isinstance(body, str):
+                continue
+            if login not in authors:
+                continue
+            try:
+                created_dt = bot.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                continue
+            if earliest is not None and created_dt < earliest:
+                continue
+            lines = body.splitlines()
+            first_line = lines[0].strip() if lines else ""
+            if first_line == marker:
+                if first_match is None or created_dt < first_match[0]:
+                    first_match = (created_dt, created_at)
+        if first_match is not None:
+            return {"status": "found", "timestamp": first_match[1]}
+        if len(response.payload) < 100:
+            break
+        page += 1
+    return {"status": "missing"}
+
+
+def _warning_scan_result(bot, issue_number: int, reviewer: str, anchor_timestamp: str | None) -> dict[str, object]:
+    return _find_existing_marker_comment(
+        bot,
+        issue_number,
+        _warning_marker(issue_number, reviewer, anchor_timestamp),
+        authors=_TRANSITION_NOTICE_AUTHORS,
+    )
+
+
+def check_overdue_reviews_result(bot, state: dict) -> tuple[list[dict], bool]:
+    overdue = check_overdue_reviews(bot, state)
+    return overdue, False
 
 
 def check_overdue_reviews(bot, state: dict) -> list[dict]:
@@ -34,23 +149,22 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
             continue
 
         issue_number = int(issue_key)
-        issue_snapshot = bot.github.get_issue_or_pr_snapshot(issue_number)
+        issue_snapshot_result = bot.github.get_issue_or_pr_snapshot_result(issue_number)
+        issue_snapshot = issue_snapshot_result.payload if issue_snapshot_result.ok else None
         if not isinstance(issue_snapshot, dict):
             _log(bot, "warning", f"Skipping overdue evaluation for #{issue_number}; issue/PR snapshot unavailable", issue_number=issue_number)
             continue
-        if isinstance(issue_snapshot.get("pull_request"), dict):
-            response_state = bot.adapters.review_state.compute_reviewer_response_state(
-                issue_number,
-                review_data,
-                issue_snapshot=issue_snapshot,
-            )
-            if response_state.get("state") != "awaiting_reviewer_response":
-                continue
-            last_activity = response_state.get("anchor_timestamp")
-        else:
-            last_activity = review_data.get("last_reviewer_activity")
-            if not last_activity:
-                last_activity = review_data.get("assigned_at")
+        if str(issue_snapshot.get("state", "")).lower() == "closed":
+            continue
+        response_state = bot.adapters.review_state.compute_reviewer_response_state(
+            issue_number,
+            review_data,
+            issue_snapshot=issue_snapshot,
+        )
+        if response_state.get("state") != "awaiting_reviewer_response":
+            continue
+        last_activity = response_state.get("anchor_timestamp")
+        anchor_reason = response_state.get("reason") if isinstance(response_state.get("reason"), str) else None
 
         if not last_activity:
             continue
@@ -80,6 +194,8 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
                             "days_since_warning": days_since_warning,
                             "needs_warning": False,
                             "needs_transition": True,
+                            "anchor_reason": anchor_reason,
+                            "anchor_timestamp": last_activity,
                         }
                     )
             except (ValueError, AttributeError):
@@ -93,52 +209,24 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
                     "days_since_warning": 0,
                     "needs_warning": True,
                     "needs_transition": False,
+                    "anchor_reason": anchor_reason,
+                    "anchor_timestamp": last_activity,
                 }
             )
 
     return overdue
 
 
-def find_existing_transition_notice(bot, issue_number: int, transition_warning_sent: str | None, reviewer: str | None = None) -> str | None:
+def find_existing_transition_notice_result(bot, issue_number: int, transition_warning_sent: str | None, reviewer: str | None = None) -> dict[str, object]:
     if not isinstance(transition_warning_sent, str) or not transition_warning_sent:
-        return None
-    try:
-        warning_dt = bot.datetime.fromisoformat(transition_warning_sent.replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
-        return None
-    first_match = None
-    marker = f"<!-- {TRANSITION_NOTICE_MARKER_PREFIX} issue={issue_number} reviewer={reviewer or ''} -->"
-    page = 1
-    while True:
-        response = bot.github_api("GET", f"issues/{issue_number}/comments?per_page=100&page={page}")
-        if not isinstance(response, list):
-            return None
-        for comment in response:
-            if not isinstance(comment, dict):
-                continue
-            user = comment.get("user")
-            login = user.get("login") if isinstance(user, dict) else None
-            created_at = comment.get("created_at")
-            body = comment.get("body")
-            if not isinstance(login, str) or not isinstance(created_at, str) or not isinstance(body, str):
-                continue
-            if login not in _TRANSITION_NOTICE_AUTHORS:
-                continue
-            try:
-                created_dt = bot.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-            except (ValueError, AttributeError):
-                continue
-            if created_dt < warning_dt:
-                continue
-            lines = body.splitlines()
-            first_line = lines[0].strip() if lines else ""
-            if first_line == marker:
-                if first_match is None or created_dt < first_match[0]:
-                    first_match = (created_dt, created_at)
-        if len(response) < 100:
-            break
-        page += 1
-    return first_match[1] if first_match else None
+        return {"status": "missing"}
+    return _find_existing_marker_comment(
+        bot,
+        issue_number,
+        f"<!-- {TRANSITION_NOTICE_MARKER_PREFIX} issue={issue_number} reviewer={reviewer or ''} -->",
+        authors=_TRANSITION_NOTICE_AUTHORS,
+        not_before=transition_warning_sent,
+    )
 
 
 def backfill_transition_notice_if_present(bot, state: dict, issue_number: int) -> bool:
@@ -151,19 +239,46 @@ def backfill_transition_notice_if_present(bot, state: dict, issue_number: int) -
         return False
     if review_data.get("transition_notice_sent_at"):
         return False
-    existing_notice = find_existing_transition_notice(
+    existing_notice = find_existing_transition_notice_result(
         bot,
         issue_number,
         review_data.get("transition_warning_sent"),
         review_data.get("current_reviewer"),
     )
-    if not existing_notice:
-        return False
-    review_data["transition_notice_sent_at"] = existing_notice
+    if existing_notice.get("status") == "unavailable":
+        return _record_transport_failure(
+            bot,
+            review_data,
+            issue_number,
+            phase="transition_dedupe_read",
+            result=bot.GitHubApiResult(
+                existing_notice.get("status_code"),
+                None,
+                {},
+                "",
+                False,
+                existing_notice.get("failure_kind"),
+                existing_notice.get("retry_attempts", 0),
+                None,
+            ),
+        )
+    changed = _clear_transport_failure(bot, review_data, issue_number, phase="transition_dedupe_read")
+    timestamp = existing_notice.get("timestamp") if existing_notice.get("status") == "found" else None
+    if not isinstance(timestamp, str) or not timestamp:
+        return changed
+    review_data["transition_notice_sent_at"] = timestamp
+    bot.collect_touched_item(issue_number)
     return True
 
 
-def handle_overdue_review_warning(bot, state: dict, issue_number: int, reviewer: str) -> bool:
+def handle_overdue_review_warning(
+    bot,
+    state: dict,
+    issue_number: int,
+    reviewer: str,
+    *,
+    anchor_reason: str | None = None,
+) -> bool:
     """Post a warning comment and record that we've warned the reviewer."""
     issue_key = str(issue_number)
 
@@ -173,10 +288,36 @@ def handle_overdue_review_warning(bot, state: dict, issue_number: int, reviewer:
     review_data = state["active_reviews"][issue_key]
     if not isinstance(review_data, dict):
         return False
+    anchor_timestamp = review_data.get("transition_warning_sent") if isinstance(review_data.get("transition_warning_sent"), str) else None
+    existing_warning = _warning_scan_result(bot, issue_number, reviewer, anchor_timestamp)
+    if existing_warning.get("status") == "unavailable":
+        return _record_transport_failure(
+            bot,
+            review_data,
+            issue_number,
+            phase="warning_dedupe_read",
+            result=bot.GitHubApiResult(
+                existing_warning.get("status_code"),
+                None,
+                {},
+                "",
+                False,
+                existing_warning.get("failure_kind"),
+                existing_warning.get("retry_attempts", 0),
+                None,
+            ),
+        )
+    changed = _clear_transport_failure(bot, review_data, issue_number, phase="warning_dedupe_read")
+    if existing_warning.get("status") == "found":
+        review_data["transition_warning_sent"] = existing_warning.get("timestamp")
+        bot.collect_touched_item(issue_number)
+        return True
 
     warning_message = f"""⚠️ **Review Reminder**
 
-Hey @{reviewer}, it's been more than {bot.REVIEW_DEADLINE_DAYS} days since you were assigned to review this.
+{_warning_marker(issue_number, reviewer, anchor_timestamp)}
+
+{_warning_anchor_sentence(bot, reviewer, anchor_reason)}
 
 **Please take one of the following actions:**
 
@@ -188,11 +329,26 @@ If no action is taken within {bot.TRANSITION_PERIOD_DAYS} days, you may be trans
 
 _Life happens! If you're dealing with something, just let us know._"""
 
-    if not bot.github.post_comment(issue_number, warning_message):
-        return False
+    post_result = bot.github.post_comment_result(issue_number, warning_message)
+    if not post_result.ok:
+        if (
+            post_result.failure_kind in {"invalid_payload", "server_error", "transport_error", "rate_limited"}
+            or (post_result.status_code is not None and post_result.status_code < 400)
+        ):
+            existing_warning = _warning_scan_result(bot, issue_number, reviewer, anchor_timestamp)
+            if existing_warning.get("status") == "found":
+                review_data["transition_warning_sent"] = existing_warning.get("timestamp")
+                _clear_transport_failure(bot, review_data, issue_number, phase="warning_post")
+                bot.collect_touched_item(issue_number)
+                return True
+        changed = _record_transport_failure(bot, review_data, issue_number, phase="warning_post", result=post_result)
+        return changed or changed
+
+    changed = _clear_transport_failure(bot, review_data, issue_number, phase="warning_post") or changed
 
     now = bot.datetime.now(bot.timezone.utc).isoformat()
     review_data["transition_warning_sent"] = now
+    bot.collect_touched_item(issue_number)
 
     _log(bot, "info", f"Posted overdue warning for #{issue_number} to @{reviewer}", issue_number=issue_number, reviewer=reviewer)
     return True

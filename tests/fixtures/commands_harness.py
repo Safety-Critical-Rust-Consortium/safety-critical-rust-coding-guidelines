@@ -51,6 +51,7 @@ class CommandHarness:
         self.config = self.runtime.config
         self.github = self.runtime.github
         self.handlers = self.runtime.handlers
+        self._live_assignees: list[str] = []
 
     def wrapper_set_comment_command(
         self,
@@ -118,10 +119,21 @@ class CommandHarness:
         return record_comment_side_effects(self.runtime)
 
     def stub_assignees(self, assignees):
-        self.runtime.github.get_issue_assignees = lambda issue_number: assignees
+        self._live_assignees = list(assignees)
+        self.runtime.github.get_issue_assignees = lambda issue_number: list(self._live_assignees)
+        self.runtime.github.remove_pr_reviewer = self._remove_live_assignee
+        self.runtime.github.remove_issue_assignee = self._remove_live_assignee
+
+    def _remove_live_assignee(self, issue_number, username):
+        del issue_number
+        self._live_assignees = [assignee for assignee in self._live_assignees if assignee.lower() != username.lower()]
+        return True
 
     def stub_assignment(self, *, success: bool = True, status_code: int = 201):
         def attempt(issue_number, username):
+            del issue_number
+            if success:
+                self._live_assignees = [username]
             return AssignmentAttempt(success=success, status_code=status_code)
 
         self.runtime.github.request_pr_reviewer_assignment = attempt

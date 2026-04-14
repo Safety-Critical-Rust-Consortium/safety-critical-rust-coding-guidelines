@@ -99,9 +99,12 @@ class ManualDispatchRequest:
 
 @dataclass(frozen=True)
 class IssueLifecycleRequest:
+    event_action: str = ""
     issue_number: int = 0
     is_pull_request: bool = False
+    issue_state: str = ""
     issue_labels: tuple[str, ...] = ()
+    label_name: str = ""
     issue_author: str = ""
     sender_login: str = ""
     updated_at: str = ""

@@ -369,9 +369,12 @@ def test_event_inputs_parse_labels_from_runtime_config(monkeypatch):
 
 def test_event_inputs_build_issue_lifecycle_request_from_runtime_config(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("EVENT_ACTION", "assigned")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("IS_PULL_REQUEST", "true")
+    runtime.set_config_value("ISSUE_STATE", "open")
     runtime.set_config_value("ISSUE_LABELS", '["coding guideline"]')
+    runtime.set_config_value("LABEL_NAME", "coding guideline")
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("SENDER_LOGIN", "alice")
     runtime.set_config_value("ISSUE_UPDATED_AT", "2026-03-17T10:00:00Z")
@@ -384,9 +387,12 @@ def test_event_inputs_build_issue_lifecycle_request_from_runtime_config(monkeypa
 
     request = event_inputs.build_issue_lifecycle_request(runtime)
 
+    assert request.event_action == "assigned"
     assert request.issue_number == 42
     assert request.is_pull_request is True
+    assert request.issue_state == "open"
     assert request.issue_labels == ("coding guideline",)
+    assert request.label_name == "coding guideline"
     assert request.issue_author == "dana"
     assert request.sender_login == "alice"
     assert request.updated_at == "2026-03-17T10:00:00Z"
@@ -415,6 +421,37 @@ def test_event_inputs_build_label_and_sync_requests_from_runtime_config(monkeypa
     assert sync_request.issue_number == 42
     assert sync_request.head_sha == "head-2"
     assert sync_request.event_created_at == "2026-03-17T10:05:00Z"
+
+
+def test_bootstrap_runtime_github_exposes_typed_reminder_helpers(monkeypatch):
+    runtime = reviewer_bot._runtime_bot()
+
+    def fake_request(method, endpoint, data=None, suppress_error_log=True, retry_policy="none", **kwargs):
+        del suppress_error_log, kwargs
+        if endpoint == "issues/42":
+            assert method == "GET"
+            assert retry_policy == "idempotent_read"
+            return GitHubApiResult(200, {"number": 42}, {}, "ok", True, None, 0, None)
+        if endpoint == "issues/42/comments?per_page=100&page=2":
+            assert method == "GET"
+            assert retry_policy == "idempotent_read"
+            return GitHubApiResult(200, [], {}, "ok", True, None, 0, None)
+        if endpoint == "issues/42/comments":
+            assert method == "POST"
+            assert data == {"body": "hello"}
+            return GitHubApiResult(201, {"id": 100}, {}, "created", True, None, 0, None)
+        raise AssertionError((method, endpoint, data, retry_policy))
+
+    runtime.github_api_request = fake_request
+
+    snapshot_result = runtime.github.get_issue_or_pr_snapshot_result(42)
+    comments_result = runtime.github.list_issue_comments_result(42, page=2)
+    post_result = runtime.github.post_comment_result(42, "hello")
+
+    assert snapshot_result.payload == {"number": 42}
+    assert comments_result.payload == []
+    assert post_result.status_code == 201
+    assert post_result.failure_kind is None
 
 
 def test_runtime_typed_config_accessors_read_runtime_config(monkeypatch):
@@ -524,7 +561,14 @@ def test_bootstrap_runtime_wires_explicit_handler_services():
     runtime = reviewer_bot._runtime_bot()
 
     assert hasattr(runtime.handlers, "handle_issue_or_pr_opened")
+    assert hasattr(runtime.handlers, "handle_assigned_event")
+    assert hasattr(runtime.handlers, "handle_unassigned_event")
     assert hasattr(runtime.handlers, "handle_comment_event")
+    assert hasattr(runtime.handlers, "handle_labeled_event")
+    assert hasattr(runtime.handlers, "handle_unlabeled_event")
+    assert hasattr(runtime.handlers, "handle_issue_edited_event")
+    assert hasattr(runtime.handlers, "handle_reopened_event")
+    assert hasattr(runtime.handlers, "handle_closed_event")
     assert hasattr(runtime.handlers, "handle_workflow_run_event") is False
 
 
