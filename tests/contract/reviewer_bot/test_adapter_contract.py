@@ -220,12 +220,14 @@ def test_event_inputs_build_manual_dispatch_request_from_runtime_config(monkeypa
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.set_config_value("MANUAL_ACTION", "preview-reviewer-board")
     runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("VALIDATION_NONCE", "nonce-42")
     runtime.set_config_value("PRIVILEGED_SOURCE_EVENT_KEY", "issue_comment:100")
 
     request = event_inputs.build_manual_dispatch_request(runtime)
 
     assert request.action == "preview-reviewer-board"
     assert request.issue_number == 42
+    assert request.validation_nonce == "nonce-42"
     assert request.privileged_source_event_key == "issue_comment:100"
 
 

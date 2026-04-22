@@ -1,0 +1,86 @@
+name: Reviewer Bot Preview
+
+run-name: preview ${{ github.event.inputs.action }} issue ${{ github.event.inputs.issue_number }} nonce ${{ github.event.inputs.validation_nonce }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Preview action to perform
+        required: true
+        default: preview-check-overdue
+        type: choice
+        options: [preview-check-overdue, preview-reviewer-board]
+      issue_number:
+        description: PR or issue number to preview
+        required: true
+        type: string
+      validation_nonce:
+        description: Validation nonce used to correlate this preview run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  STATE_ISSUE_NUMBER: '314'
+
+jobs:
+  reviewer-bot-preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Install uv
+        run: python -m pip install uv
+      - name: Fetch trusted bot source tarball
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python - <<'PY'
+          import io, os, tarfile, urllib.request
+          from pathlib import Path
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/tarball/{os.environ['GITHUB_SHA']}",
+              headers={'Authorization': f"Bearer {os.environ['GITHUB_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+          )
+          target = Path(os.environ['RUNNER_TEMP']) / 'reviewer-bot-src'
+          target.mkdir(parents=True, exist_ok=True)
+          with urllib.request.urlopen(req) as response:
+              data = response.read()
+          with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
+              archive.extractall(target)
+          roots = list(target.iterdir())
+          print(f'BOT_SRC_ROOT={roots[0]}', file=open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8'))
+          PY
+      - name: Run reviewer bot preview
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: workflow_dispatch
+          EVENT_ACTION: ''
+          MANUAL_ACTION: ${{ github.event.inputs.action }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+          VALIDATION_NONCE: ${{ github.event.inputs.validation_nonce }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          WORKFLOW_JOB_NAME: ${{ github.job }}
+          REVIEWER_BOARD_ENABLED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && 'true' || 'false' }}
+          REVIEWER_BOARD_TOKEN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && secrets.REVIEWER_BOARD_TOKEN || '' }}
+        run: |
+          artifact_dir="$RUNNER_TEMP/reviewer-bot-preview-output-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$artifact_dir"
+          uv run --project "$BOT_SRC_ROOT" reviewer-bot > "$artifact_dir/preview-output.json"
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: reviewer-bot-preview-output-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/reviewer-bot-preview-output-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error

@@ -11,6 +11,7 @@ from scripts.reviewer_bot_core import (
     privileged_command_policy,
 )
 
+from . import assignment_flow
 from . import commands as commands_module
 from . import config as config_module
 from .context import AssignmentRequest, CommentEventRequest
@@ -63,14 +64,14 @@ def record_conversation_freshness(
         current_reviewer = review_data.get("current_reviewer")
         confirmed_reviewer = None
         if isinstance(current_reviewer, str) and current_reviewer.strip():
-            live_assignees = bot.github.get_issue_assignees(
+            authority = assignment_flow.resolve_reviewer_authority(
+                bot,
                 issue_number,
+                review_data,
                 is_pull_request=request.is_pull_request,
             )
-            if isinstance(live_assignees, list) and len(live_assignees) == 1:
-                live_reviewer = live_assignees[0]
-                if isinstance(live_reviewer, str) and live_reviewer.lower() == current_reviewer.lower():
-                    confirmed_reviewer = current_reviewer
+            if authority.get("authority_status") == "tracked_reviewer_confirmed":
+                confirmed_reviewer = authority.get("tracked_reviewer")
         effective_review_data["current_reviewer"] = confirmed_reviewer
     decision = comment_freshness_policy.decide_comment_freshness(effective_review_data, request)
     if decision.kind != "accept_channel_event":

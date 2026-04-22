@@ -87,7 +87,7 @@ def _classify_event_intent_from_context(bot: AppEventContextRuntime, context: Ev
         return bot.EVENT_INTENT_NON_MUTATING_READONLY
 
     if event_name == "workflow_dispatch":
-        if context.manual_action in {"show-state", "preview-reviewer-board"}:
+        if context.manual_action in {"show-state", "preview-check-overdue", "preview-reviewer-board"}:
             return bot.EVENT_INTENT_NON_MUTATING_READONLY
         return bot.EVENT_INTENT_MUTATING
 

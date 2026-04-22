@@ -94,6 +94,8 @@ def test_check_overdue_reviews_consumes_only_stable_reviewer_response_fields(mon
             "needs_transition": False,
             "anchor_reason": None,
             "anchor_timestamp": anchor_timestamp,
+            "current_scope_key": None,
+            "current_scope_basis": None,
         }
     ]
 
@@ -337,6 +339,8 @@ def test_check_overdue_reviews_non_pr_contributor_followup_reanchors_to_contribu
             "needs_transition": False,
             "anchor_reason": "contributor_comment_newer",
             "anchor_timestamp": contributor_comment_at,
+            "current_scope_key": f"reviewer=alice|head=none|cycle={assigned_at}|anchor={contributor_comment_at}",
+            "current_scope_basis": "contributor_comment",
         }
     ]
 
@@ -351,7 +355,7 @@ def test_check_overdue_reviews_uses_contributor_comment_timestamp_when_turn_retu
     review = make_tracked_review_state(state, 42, reviewer="alice", assigned_at=assigned_at, active_cycle_started_at=assigned_at)
     accept_reviewer_review(review, semantic_key="pull_request_review:10", timestamp=reviewer_review_at, actor="alice", reviewed_head_sha="head-1")
     accept_contributor_comment(review, semantic_key="issue_comment:20", timestamp=contributor_comment_at, actor="bob")
-    routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-1"))
+    routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-1")).add_pull_request_reviews(42, [])
     runtime = _runtime(monkeypatch, routes)
     runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
         200,

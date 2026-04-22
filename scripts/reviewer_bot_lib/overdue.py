@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from . import assignment_flow
 from .config import TRANSITION_NOTICE_MARKER_PREFIX, TRANSITION_WARNING_MARKER_PREFIX
 from .repair_records import clear_repair_marker, store_repair_marker
 
@@ -54,6 +55,17 @@ def _warning_marker(issue_number: int, reviewer: str, anchor_timestamp: str | No
     return (
         f"<!-- {TRANSITION_WARNING_MARKER_PREFIX} issue={issue_number} reviewer={reviewer} "
         f"anchor={anchor_timestamp or ''} -->"
+    )
+
+
+def _warning_scope_marker(current_scope_key: str | None, current_scope_basis: str | None) -> str | None:
+    if not isinstance(current_scope_key, str) or not current_scope_key:
+        return None
+    if not isinstance(current_scope_basis, str) or not current_scope_basis:
+        return None
+    return (
+        "<!-- reviewer-bot:transition-warning-scope:v1 "
+        f"basis={current_scope_basis} key={current_scope_key} -->"
     )
 
 
@@ -126,12 +138,151 @@ def _find_existing_marker_comment(
 
 
 def _warning_scan_result(bot, issue_number: int, reviewer: str, anchor_timestamp: str | None) -> dict[str, object]:
-    return _find_existing_marker_comment(
+    return _find_existing_warning_comment(bot, issue_number, reviewer, anchor_timestamp)
+
+
+def _find_existing_warning_comment(
+    bot,
+    issue_number: int,
+    reviewer: str,
+    anchor_timestamp: str | None,
+    *,
+    current_scope_key: str | None = None,
+    current_scope_basis: str | None = None,
+) -> dict[str, object]:
+    legacy_marker = _warning_marker(issue_number, reviewer, anchor_timestamp)
+    scope_marker = _warning_scope_marker(current_scope_key, current_scope_basis)
+    scope_prefix = "<!-- reviewer-bot:transition-warning-scope:v1 "
+    page = 1
+    while True:
+        response = bot.github.list_issue_comments_result(issue_number, page=page)
+        if not response.ok or not isinstance(response.payload, list):
+            return {
+                "status": "unavailable",
+                "status_code": response.status_code,
+                "failure_kind": response.failure_kind,
+                "retry_attempts": response.retry_attempts,
+            }
+        first_match = None
+        for comment in response.payload:
+            if not isinstance(comment, dict):
+                continue
+            user = comment.get("user")
+            login = user.get("login") if isinstance(user, dict) else None
+            created_at = comment.get("created_at")
+            body = comment.get("body")
+            if not isinstance(login, str) or not isinstance(created_at, str) or not isinstance(body, str):
+                continue
+            if login not in _TRANSITION_NOTICE_AUTHORS:
+                continue
+            lines = body.splitlines()
+            first_line = lines[0].strip() if lines else ""
+            second_line = lines[1].strip() if len(lines) > 1 else ""
+            if first_line != legacy_marker:
+                continue
+            if second_line.startswith(scope_prefix):
+                if scope_marker is None or second_line != scope_marker:
+                    continue
+            try:
+                created_dt = bot.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                continue
+            if first_match is None or created_dt < first_match[0]:
+                first_match = (created_dt, created_at)
+        if first_match is not None:
+            return {"status": "found", "timestamp": first_match[1]}
+        if len(response.payload) < 100:
+            break
+        page += 1
+    return {"status": "missing"}
+
+
+def _transport_result(bot, *, failure_kind: str | None, status_code: int | None = None):
+    return bot.GitHubApiResult(
+        status_code,
+        None,
+        {},
+        "",
+        False,
+        failure_kind,
+        0,
+        None,
+    )
+
+
+def evaluate_overdue_review_preview(bot, state: dict, issue_number: int) -> dict[str, object]:
+    active_reviews = state.get("active_reviews") if isinstance(state, dict) else None
+    review_data = active_reviews.get(str(issue_number)) if isinstance(active_reviews, dict) else None
+    if not isinstance(review_data, dict):
+        review_data = {}
+    issue_snapshot_result = bot.github.get_issue_or_pr_snapshot_result(issue_number)
+    issue_snapshot = issue_snapshot_result.payload if issue_snapshot_result.ok and isinstance(issue_snapshot_result.payload, dict) else None
+    is_pull_request = isinstance((issue_snapshot or {}).get("pull_request"), dict)
+    authority = assignment_flow.resolve_reviewer_authority(
         bot,
         issue_number,
-        _warning_marker(issue_number, reviewer, anchor_timestamp),
-        authors=_TRANSITION_NOTICE_AUTHORS,
+        review_data,
+        is_pull_request=is_pull_request,
     )
+    response_state = bot.adapters.review_state.compute_reviewer_response_state(
+        issue_number,
+        review_data,
+        issue_snapshot=issue_snapshot,
+    )
+    response_name = str(response_state.get("response_state") or response_state.get("state") or "projection_failed")
+    current_scope_key = response_state.get("current_scope_key") if isinstance(response_state.get("current_scope_key"), str) else None
+    current_scope_basis = response_state.get("current_scope_basis") if isinstance(response_state.get("current_scope_basis"), str) else None
+    suppression_reason = response_state.get("suppression_reason") if response_state.get("suppression_reason") is not None else None
+    preview = {
+        "response_state": response_name,
+        "reviewer_authority_outcome": authority["authority_status"],
+        "suppression_reason": suppression_reason,
+        "current_scope_key": current_scope_key,
+        "current_scope_basis": current_scope_basis,
+        "would_post_warning": False,
+        "would_post_transition": False,
+    }
+    if authority["authority_status"] != "tracked_reviewer_confirmed":
+        return preview
+    if response_name != "awaiting_reviewer_response":
+        return preview
+    current_reviewer = review_data.get("current_reviewer")
+    anchor_timestamp = response_state.get("anchor_timestamp") if isinstance(response_state.get("anchor_timestamp"), str) else None
+    if not isinstance(current_reviewer, str) or not current_reviewer.strip() or not isinstance(anchor_timestamp, str) or not anchor_timestamp:
+        return preview
+    try:
+        now = bot.datetime.now(bot.timezone.utc)
+        anchor_dt = bot.datetime.fromisoformat(anchor_timestamp.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return preview
+    transition_warning_sent = review_data.get("transition_warning_sent")
+    if isinstance(transition_warning_sent, str) and transition_warning_sent:
+        try:
+            warning_dt = bot.datetime.fromisoformat(transition_warning_sent.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            return preview
+        if (now - warning_dt).days < bot.TRANSITION_PERIOD_DAYS:
+            return preview
+        existing_notice = find_existing_transition_notice_result(
+            bot,
+            issue_number,
+            transition_warning_sent,
+            current_reviewer,
+        )
+        preview["would_post_transition"] = existing_notice.get("status") == "missing"
+        return preview
+    if (now - anchor_dt).days < bot.REVIEW_DEADLINE_DAYS:
+        return preview
+    existing_warning = _find_existing_warning_comment(
+        bot,
+        issue_number,
+        current_reviewer,
+        anchor_timestamp,
+        current_scope_key=current_scope_key,
+        current_scope_basis=current_scope_basis,
+    )
+    preview["would_post_warning"] = existing_warning.get("status") == "missing"
+    return preview
 
 
 def check_overdue_reviews_result(bot, state: dict) -> tuple[list[dict], bool]:
@@ -181,52 +332,36 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
         _clear_transport_failure(bot, review_data, issue_number, phase="issue_snapshot_read")
         if str(issue_snapshot.get("state", "")).lower() == "closed":
             continue
-        assignee_result = bot.github.get_issue_assignees_result(
+        authority = assignment_flow.resolve_reviewer_authority(
+            bot,
             issue_number,
+            review_data,
             is_pull_request=isinstance(issue_snapshot.get("pull_request"), dict),
         )
-        if assignee_result.failure_kind in {"unauthorized", "forbidden"}:
-            raise RuntimeError(
-                f"Permission denied reading reviewer authority for #{issue_number} (status {assignee_result.status_code})."
-            )
-        if not assignee_result.ok or not isinstance(assignee_result.payload, list):
+        if authority["authority_status"] == "live_read_unavailable":
             _record_transport_failure(
                 bot,
                 review_data,
                 issue_number,
                 phase="assignment_confirm_read",
-                result=assignee_result,
+                result=_transport_result(bot, failure_kind=str(authority.get("reason") or "transport_error")),
             )
             continue
-        live_assignees = assignee_result.payload
-        live_assignees_normalized = [assignee.lower() for assignee in live_assignees]
-        if len(live_assignees) != 1:
+        if authority["authority_status"] == "control_plane_mismatch":
             _store_assignment_marker = store_repair_marker(
                 review_data,
                 "assignment_confirm_read",
                 _authority_marker(
                     phase="assignment_confirm_read",
-                    live_assignees=live_assignees,
-                    reason="invalid_live_assignee_count",
+                    live_assignees=list(authority.get("live_control_plane_reviewers") or []),
+                    reason=str(authority.get("reason") or "tracked_reviewer_missing_from_live_control_plane"),
                     recorded_at=bot.clock.now().isoformat(),
                 ),
             )
             if _store_assignment_marker:
                 bot.collect_touched_item(issue_number)
             continue
-        if current_reviewer.lower() != live_assignees_normalized[0]:
-            _store_assignment_marker = store_repair_marker(
-                review_data,
-                "assignment_confirm_read",
-                _authority_marker(
-                    phase="assignment_confirm_read",
-                    live_assignees=live_assignees,
-                    reason="stored_reviewer_mismatch",
-                    recorded_at=bot.clock.now().isoformat(),
-                ),
-            )
-            if _store_assignment_marker:
-                bot.collect_touched_item(issue_number)
+        if authority["authority_status"] != "tracked_reviewer_confirmed":
             continue
         _clear_transport_failure(bot, review_data, issue_number, phase="assignment_confirm_read")
         response_state = bot.adapters.review_state.compute_reviewer_response_state(
@@ -234,10 +369,13 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
             review_data,
             issue_snapshot=issue_snapshot,
         )
-        if response_state.get("state") != "awaiting_reviewer_response":
+        response_name = str(response_state.get("response_state") or response_state.get("state") or "")
+        if response_name != "awaiting_reviewer_response":
             continue
         last_activity = response_state.get("anchor_timestamp")
         anchor_reason = response_state.get("reason") if isinstance(response_state.get("reason"), str) else None
+        current_scope_key = response_state.get("current_scope_key") if isinstance(response_state.get("current_scope_key"), str) else None
+        current_scope_basis = response_state.get("current_scope_basis") if isinstance(response_state.get("current_scope_basis"), str) else None
 
         if not last_activity:
             continue
@@ -269,6 +407,8 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
                             "needs_transition": True,
                             "anchor_reason": anchor_reason,
                             "anchor_timestamp": last_activity,
+                            "current_scope_key": current_scope_key,
+                            "current_scope_basis": current_scope_basis,
                         }
                     )
             except (ValueError, AttributeError):
@@ -284,6 +424,8 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
                     "needs_transition": False,
                     "anchor_reason": anchor_reason,
                     "anchor_timestamp": last_activity,
+                    "current_scope_key": current_scope_key,
+                    "current_scope_basis": current_scope_basis,
                 }
             )
 
@@ -356,6 +498,8 @@ def handle_overdue_review_warning(
     *,
     anchor_reason: str | None = None,
     anchor_timestamp: str | None = None,
+    current_scope_key: str | None = None,
+    current_scope_basis: str | None = None,
 ) -> bool:
     """Post a warning comment and record that we've warned the reviewer."""
     issue_key = str(issue_number)
@@ -366,7 +510,14 @@ def handle_overdue_review_warning(
     review_data = state["active_reviews"][issue_key]
     if not isinstance(review_data, dict):
         return False
-    existing_warning = _warning_scan_result(bot, issue_number, reviewer, anchor_timestamp)
+    existing_warning = _find_existing_warning_comment(
+        bot,
+        issue_number,
+        reviewer,
+        anchor_timestamp,
+        current_scope_key=current_scope_key,
+        current_scope_basis=current_scope_basis,
+    )
     if existing_warning.get("status") == "unavailable":
         if existing_warning.get("failure_kind") in {"unauthorized", "forbidden"}:
             raise RuntimeError(
@@ -394,7 +545,11 @@ def handle_overdue_review_warning(
         bot.collect_touched_item(issue_number)
         return True
 
-    warning_message = f"""{_warning_marker(issue_number, reviewer, anchor_timestamp)}
+    warning_scope_marker = _warning_scope_marker(current_scope_key, current_scope_basis)
+    warning_header = _warning_marker(issue_number, reviewer, anchor_timestamp)
+    if isinstance(warning_scope_marker, str):
+        warning_header = f"{warning_header}\n{warning_scope_marker}"
+    warning_message = f"""{warning_header}
 
 ⚠️ **Review Reminder**
 
@@ -420,7 +575,14 @@ _Life happens! If you're dealing with something, just let us know._"""
             post_result.failure_kind in {"invalid_payload", "server_error", "transport_error", "rate_limited"}
             or (post_result.status_code is not None and post_result.status_code < 400)
         ):
-            existing_warning = _warning_scan_result(bot, issue_number, reviewer, anchor_timestamp)
+            existing_warning = _find_existing_warning_comment(
+                bot,
+                issue_number,
+                reviewer,
+                anchor_timestamp,
+                current_scope_key=current_scope_key,
+                current_scope_basis=current_scope_basis,
+            )
             if existing_warning.get("status") == "found":
                 review_data["transition_warning_sent"] = existing_warning.get("timestamp")
                 _clear_transport_failure(bot, review_data, issue_number, phase="warning_post")

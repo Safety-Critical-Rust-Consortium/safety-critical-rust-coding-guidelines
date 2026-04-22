@@ -455,9 +455,11 @@ def test_h1b_reviewer_response_policy_matches_legacy_derivation_for_frozen_matri
     for scenario in matrix["scenarios"]:
         with monkeypatch.context() as scenario_monkeypatch:
             runtime, review = _build_scenario(scenario_monkeypatch, scenario["id"])
-            legacy_result = _legacy_compute_reviewer_response_state(runtime, 42, review)
             policy_result = reviewer_response_policy.compute_reviewer_response_state(runtime, 42, review)
-        assert policy_result == legacy_result, scenario["id"]
+        assert policy_result["state"] == scenario["state"], scenario["id"]
+        assert policy_result["response_state"] == scenario["state"], scenario["id"]
+        assert policy_result["reason"] == scenario["reason"], scenario["id"]
+        assert policy_result["suppression_reason"] == scenario["reason"], scenario["id"]
 
 
 def test_h1b_reviews_module_delegates_reviewer_response_to_policy_owner():

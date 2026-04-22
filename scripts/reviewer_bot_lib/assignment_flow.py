@@ -109,6 +109,72 @@ def _read_live_assignees(bot, state: dict, issue_number: int, *, is_pull_request
     return review_data, result.payload, result, diagnostic_changed
 
 
+def resolve_reviewer_authority(
+    bot,
+    issue_number: int,
+    review_data: dict,
+    *,
+    is_pull_request: bool,
+) -> dict[str, object]:
+    tracked_reviewer = review_data.get("current_reviewer") if isinstance(review_data, dict) else None
+    if not isinstance(tracked_reviewer, str) or not tracked_reviewer.strip():
+        return {
+            "authority_status": "no_tracked_reviewer",
+            "tracked_reviewer": None,
+            "live_control_plane_reviewers": [],
+            "reason": "no_tracked_reviewer",
+        }
+
+    result = bot.github.get_issue_assignees_result(issue_number, is_pull_request=is_pull_request)
+    _hard_fail_if_permission_denied(result, action="reviewer authority read", issue_number=issue_number)
+    if not result.ok or not isinstance(result.payload, list):
+        return {
+            "authority_status": "live_read_unavailable",
+            "tracked_reviewer": tracked_reviewer,
+            "live_control_plane_reviewers": [],
+            "reason": str(result.failure_kind or "live_control_plane_unavailable"),
+        }
+
+    live_control_plane_reviewers = [value for value in result.payload if isinstance(value, str) and value.strip()]
+    normalized_reviewers = {value.lower() for value in live_control_plane_reviewers}
+    tracked_key = tracked_reviewer.lower()
+    if is_pull_request:
+        if normalized_reviewers and tracked_key not in normalized_reviewers:
+            return {
+                "authority_status": "control_plane_mismatch",
+                "tracked_reviewer": tracked_reviewer,
+                "live_control_plane_reviewers": live_control_plane_reviewers,
+                "reason": "tracked_reviewer_missing_from_live_control_plane",
+            }
+        return {
+            "authority_status": "tracked_reviewer_confirmed",
+            "tracked_reviewer": tracked_reviewer,
+            "live_control_plane_reviewers": live_control_plane_reviewers,
+            "reason": "tracked_reviewer_confirmed",
+        }
+
+    if len(live_control_plane_reviewers) != 1:
+        return {
+            "authority_status": "control_plane_mismatch",
+            "tracked_reviewer": tracked_reviewer,
+            "live_control_plane_reviewers": live_control_plane_reviewers,
+            "reason": "invalid_live_assignee_count",
+        }
+    if tracked_key != live_control_plane_reviewers[0].lower():
+        return {
+            "authority_status": "control_plane_mismatch",
+            "tracked_reviewer": tracked_reviewer,
+            "live_control_plane_reviewers": live_control_plane_reviewers,
+            "reason": "stored_reviewer_mismatch",
+        }
+    return {
+        "authority_status": "tracked_reviewer_confirmed",
+        "tracked_reviewer": tracked_reviewer,
+        "live_control_plane_reviewers": live_control_plane_reviewers,
+        "reason": "tracked_reviewer_confirmed",
+    }
+
+
 def _post_assignment_guidance(bot, request, reviewer: str) -> None:
     if request.is_pull_request:
         bot.github.post_comment(request.issue_number, get_pr_guidance(reviewer, request.issue_author))

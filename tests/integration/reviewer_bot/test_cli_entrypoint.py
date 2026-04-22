@@ -44,6 +44,26 @@ def test_main_builds_event_context_for_preview_wrapper(monkeypatch):
     assert captured.context.manual_action == "preview-reviewer-board"
 
 
+def test_main_builds_event_context_for_preview_check_overdue(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(
+        EVENT_NAME="workflow_dispatch",
+        EVENT_ACTION="",
+        MANUAL_ACTION="preview-check-overdue",
+    )
+    captured = harness.stub_execute_run(
+        reviewer_bot.ExecutionResult(exit_code=0, state_changed=False)
+    )
+
+    run = harness.run_main()
+
+    assert run.exit_code is None
+    assert captured.context is not None
+    assert captured.context.event_name == "workflow_dispatch"
+    assert captured.context.event_action == ""
+    assert captured.context.manual_action == "preview-check-overdue"
+
+
 def test_main_builds_workflow_run_context_before_execution(monkeypatch):
     harness = AppHarness(monkeypatch)
     harness.set_workflow_run_name("Reviewer Bot PR Review Dismissed Observer")

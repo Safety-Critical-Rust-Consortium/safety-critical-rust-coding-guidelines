@@ -125,6 +125,7 @@ def test_workflow_policy_split_and_lock_only_boundaries():
     required = {
         "reviewer-bot-issues.yml",
         "reviewer-bot-issue-comment-direct.yml",
+        "reviewer-bot-preview.yml",
         "reviewer-bot-sweeper-repair.yml",
         "reviewer-bot-pr-metadata.yml",
         "reviewer-bot-pr-comment-router.yml",

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import yaml
 
-from . import maintenance_privileged, maintenance_schedule, reviews
+from . import maintenance_privileged, maintenance_schedule, overdue, reviews
 from .event_inputs import build_manual_dispatch_request
 from .project_board import (
-    format_preview_for_output,
     preview_board_projection_for_item,
     reviewer_board_preflight,
 )
@@ -35,11 +36,36 @@ def collect_status_projection_repair_items(bot, state: dict) -> list[int]:
     return maintenance_schedule.collect_status_projection_repair_items(bot, state)
 
 
+def _preview_output_base(bot, state: dict, request) -> dict[str, object]:
+    if request.issue_number is None or request.issue_number <= 0:
+        raise RuntimeError("Preview actions require ISSUE_NUMBER to be set to a positive integer")
+    return {
+        "schema_version": 1,
+        "preview_action": request.action,
+        "issue_number": request.issue_number,
+        "validation_nonce": request.validation_nonce,
+        "head_sha": bot.get_config_value("GITHUB_SHA").strip(),
+        "workflow_path": ".github/workflows/reviewer-bot-preview.yml",
+        **overdue.evaluate_overdue_review_preview(bot, state, request.issue_number),
+        "lock_attempted": False,
+        "state_save_attempted": False,
+        "tracked_state_mutations_attempted": False,
+        "touched_projection_attempted": False,
+    }
+
+
+def _emit_preview_json(payload: dict[str, object]) -> None:
+    print(json.dumps(payload, indent=2, sort_keys=False))
+
+
 def handle_manual_dispatch(bot, state: dict) -> bool:
     request = build_manual_dispatch_request(bot)
     action = request.action
     if action == "show-state":
         print(f"Current state:\n{yaml.dump(state, default_flow_style=False)}")
+        return False
+    if action == "preview-check-overdue":
+        _emit_preview_json(_preview_output_base(bot, state, request))
         return False
     if action == "preview-reviewer-board":
         preflight = reviewer_board_preflight(bot)
@@ -51,32 +77,12 @@ def handle_manual_dispatch(bot, state: dict) -> bool:
                 "Reviewer board preview preflight failed: " + "; ".join(preflight.errors)
             )
 
-        issue_numbers: list[int] = []
-        if request.issue_number:
-            issue_numbers = [request.issue_number]
-        else:
-            active_reviews = state.get("active_reviews")
-            if isinstance(active_reviews, dict):
-                candidates: set[int] = set()
-                for issue_key, review_data in active_reviews.items():
-                    if not isinstance(review_data, dict):
-                        continue
-                    try:
-                        issue_number = int(issue_key)
-                    except (TypeError, ValueError):
-                        continue
-                    if issue_number > 0:
-                        candidates.add(issue_number)
-                issue_numbers = sorted(candidates)
-
-        previews = [preview_board_projection_for_item(bot, state, issue_number) for issue_number in issue_numbers]
-        print(
-            yaml.safe_dump(
-                format_preview_for_output(preflight, previews),
-                default_flow_style=False,
-                sort_keys=False,
-            ).rstrip()
-        )
+        payload = _preview_output_base(bot, state, request)
+        preview = preview_board_projection_for_item(bot, state, request.issue_number)
+        desired = preview.desired
+        payload["board_attention"] = desired.needs_attention if desired is not None else None
+        payload["board_waiting_since"] = desired.waiting_since if desired is not None else None
+        _emit_preview_json(payload)
         return False
     bot.assert_lock_held("handle_manual_dispatch")
     if action == "sync-members":

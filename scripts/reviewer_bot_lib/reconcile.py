@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass
 
-from scripts.reviewer_bot_core import reconcile_replay_policy
+from scripts.reviewer_bot_core import comment_routing_policy, reconcile_replay_policy
 from scripts.reviewer_bot_core.comment_routing_policy import (
     ObserverCommentClassification,
 )
@@ -237,24 +237,15 @@ def _load_deferred_context(bot: ReconcileWorkflowRuntimeContext) -> dict:
 
 def _classify_deferred_comment_payload(payload: DeferredCommentPayload) -> dict:
     normalized_body = "\n".join(line.rstrip() for line in payload.comment_body.replace("\r\n", "\n").split("\n")).strip()
-    if not normalized_body:
-        comment_class = ObserverCommentClassification.PLAIN_TEXT
-        command_lines: list[str] = []
-        non_command_lines: list[str] = []
-    else:
-        lines = [line for line in normalized_body.splitlines() if line.strip()]
-        command_lines = [line for line in lines if line.strip().startswith("@guidelines-bot /")]
-        non_command_lines = [line for line in lines if not line.strip().startswith("@guidelines-bot /")]
-        if command_lines and not non_command_lines:
-            comment_class = ObserverCommentClassification.COMMAND_ONLY
-        elif command_lines and non_command_lines:
-            comment_class = ObserverCommentClassification.COMMAND_PLUS_TEXT
-        else:
-            comment_class = ObserverCommentClassification.PLAIN_TEXT
+    classified = comment_routing_policy.classify_comment_payload(
+        "@guidelines-bot",
+        normalized_body,
+        None,
+    )
     return {
-        "comment_class": comment_class,
-        "has_non_command_text": bool(non_command_lines),
-        "command_count": len(command_lines),
+        "comment_class": classified.get("comment_class", ObserverCommentClassification.PLAIN_TEXT),
+        "has_non_command_text": bool(classified.get("has_non_command_text")),
+        "command_count": int(classified.get("command_count", 0)),
     }
 
 

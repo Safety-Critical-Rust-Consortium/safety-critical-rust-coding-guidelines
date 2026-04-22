@@ -30,6 +30,13 @@ def test_classify_event_intent_preview_reviewer_board_is_non_mutating(monkeypatc
     assert intent == runtime.EVENT_INTENT_NON_MUTATING_READONLY
 
 
+def test_classify_event_intent_preview_check_overdue_is_non_mutating(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("MANUAL_ACTION", "preview-check-overdue")
+    intent = app.classify_event_intent(runtime, "workflow_dispatch", "")
+    assert intent == runtime.EVENT_INTENT_NON_MUTATING_READONLY
+
+
 def test_classify_event_intent_same_repo_review_is_read_only(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     intent = app.classify_event_intent(runtime, "pull_request_review", "submitted")

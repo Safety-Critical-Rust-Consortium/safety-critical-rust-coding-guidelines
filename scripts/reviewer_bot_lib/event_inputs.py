@@ -336,6 +336,7 @@ def build_manual_dispatch_request(bot: EventInputsContext) -> ManualDispatchRequ
     return ManualDispatchRequest(
         action=bot.get_config_value("MANUAL_ACTION").strip(),
         issue_number=_parse_optional_int(bot.get_config_value("ISSUE_NUMBER")),
+        validation_nonce=bot.get_config_value("VALIDATION_NONCE").strip(),
         privileged_source_event_key=bot.get_config_value("PRIVILEGED_SOURCE_EVENT_KEY").strip(),
     )
 

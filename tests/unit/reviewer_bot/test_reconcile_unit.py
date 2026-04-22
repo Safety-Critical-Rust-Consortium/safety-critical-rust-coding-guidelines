@@ -407,7 +407,7 @@ def test_reconcile_harness_exposes_deferred_payload_store(monkeypatch):
 def test_reconcile_module_delegates_replay_decision_logic_to_core_policy():
     reconcile_text = Path("scripts/reviewer_bot_lib/reconcile.py").read_text(encoding="utf-8")
 
-    assert "from scripts.reviewer_bot_core import reconcile_replay_policy" in reconcile_text
+    assert "reconcile_replay_policy" in reconcile_text
     assert "reconcile_replay_policy.decide_comment_replay(" in reconcile_text
     assert "reconcile_replay_policy.decide_review_submitted_replay(" in reconcile_text
     assert "reconcile_replay_policy.decide_review_dismissed_replay(" in reconcile_text

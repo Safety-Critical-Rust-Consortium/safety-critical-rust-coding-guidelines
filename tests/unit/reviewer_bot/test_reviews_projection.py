@@ -103,8 +103,8 @@ def test_compute_reviewer_response_state_keeps_mutable_approval_rebuild_support_
 
     response_state = reviews.compute_reviewer_response_state(bot, 42, review)
 
-    assert response_state["state"] == "awaiting_write_approval"
-    assert response_state["reason"] == "write_approval_missing"
+    assert response_state["state"] == "awaiting_contributor_response"
+    assert response_state["reason"] == "current_head_alternate_approval_present"
     assert review == before
 
 

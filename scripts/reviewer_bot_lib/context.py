@@ -94,6 +94,7 @@ class PrivilegedCommandRequest:
 class ManualDispatchRequest:
     action: str = ""
     issue_number: int | None = None
+    validation_nonce: str = ""
     privileged_source_event_key: str = ""
 
 

@@ -1,6 +1,9 @@
+import json
+
 import pytest
 
 from scripts.reviewer_bot_lib import review_state
+from scripts.reviewer_bot_lib.config import GitHubApiResult
 from tests.fixtures.app_harness import AppHarness
 from tests.fixtures.reviewer_bot import make_state, valid_reviewer_board_metadata
 
@@ -100,6 +103,8 @@ def test_execute_run_preview_reviewer_board_is_read_only(monkeypatch, capsys):
         REVIEWER_BOARD_ENABLED="true",
         REVIEWER_BOARD_TOKEN="board-token",
         ISSUE_NUMBER=42,
+        VALIDATION_NONCE="board-preview-42",
+        GITHUB_SHA="workflow-head",
     )
     monkeypatch.setattr(harness.runtime, "_reviewer_board_project_metadata", None, raising=False)
 
@@ -108,8 +113,8 @@ def test_execute_run_preview_reviewer_board_is_read_only(monkeypatch, capsys):
     review = review_state.ensure_review_entry(state, 42, create=True)
     assert review is not None
     review["current_reviewer"] = "alice"
-    review["assigned_at"] = "2026-03-20T12:34:56Z"
-    review["active_cycle_started_at"] = "2026-03-20T12:34:56Z"
+    review["assigned_at"] = "2026-05-20T12:34:56Z"
+    review["active_cycle_started_at"] = "2026-05-20T12:34:56Z"
 
     harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
     harness.stub_lock(acquire=lambda: (_ for _ in ()).throw(AssertionError("preview should not acquire lock")))
@@ -119,10 +124,38 @@ def test_execute_run_preview_reviewer_board_is_read_only(monkeypatch, capsys):
     harness.stub_sync_status_labels(lambda current, issue_numbers: (_ for _ in ()).throw(AssertionError("preview should not sync labels")))
     monkeypatch.setattr(harness.runtime, "github_graphql", lambda query, variables=None, *, token=None: valid_reviewer_board_metadata())
     harness.runtime.github.get_issue_or_pr_snapshot = lambda issue_number: {"number": issue_number, "state": "open", "pull_request": None, "labels": []}
+    harness.runtime.github.get_issue_or_pr_snapshot_result = lambda issue_number: GitHubApiResult(
+        200,
+        {"number": issue_number, "state": "open", "pull_request": None, "labels": []},
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
+    harness.runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: GitHubApiResult(
+        200,
+        ["alice"],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
 
     result = harness.run_execute()
 
     assert result.exit_code == 0
-    output = capsys.readouterr().out
-    assert "classification: open_tracked_assigned" in output
-    assert "ensure_membership: true" in output
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["preview_action"] == "preview-reviewer-board"
+    assert payload["issue_number"] == 42
+    assert payload["validation_nonce"] == "board-preview-42"
+    assert payload["head_sha"] == "workflow-head"
+    assert payload["board_attention"] == "No"
+    assert payload["board_waiting_since"] == "2026-05-20"
+    assert payload["lock_attempted"] is False
+    assert payload["state_save_attempted"] is False
+    assert payload["tracked_state_mutations_attempted"] is False
+    assert payload["touched_projection_attempted"] is False

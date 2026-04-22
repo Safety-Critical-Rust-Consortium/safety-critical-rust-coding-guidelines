@@ -4,8 +4,6 @@ from scripts.reviewer_bot_core import approval_policy
 from scripts.reviewer_bot_lib import review_state, reviews
 from scripts.reviewer_bot_lib.config import (
     STATUS_AWAITING_CONTRIBUTOR_RESPONSE_LABEL,
-    STATUS_AWAITING_REVIEWER_RESPONSE_LABEL,
-    STATUS_AWAITING_WRITE_APPROVAL_LABEL,
 )
 from tests.fixtures.fake_runtime import FakeReviewerBotRuntime
 from tests.fixtures.reviewer_bot import (
@@ -209,8 +207,8 @@ def test_project_status_labels_uses_commit_id_and_comment_freshness(monkeypatch)
 
     desired_labels, metadata = reviews.project_status_labels_for_item(runtime, 42, state)
 
-    assert desired_labels == {STATUS_AWAITING_REVIEWER_RESPONSE_LABEL}
-    assert metadata["reason"] == "review_head_stale"
+    assert desired_labels == {STATUS_AWAITING_CONTRIBUTOR_RESPONSE_LABEL}
+    assert metadata["reason"] == "accepted_same_scope_reviewer_activity"
 
 
 def test_compute_reviewer_response_state_reports_review_head_stale_when_current_head_has_no_matching_review(monkeypatch):
@@ -239,8 +237,8 @@ def test_compute_reviewer_response_state_reports_awaiting_write_approval_after_c
 
     response_state = reviews.compute_reviewer_response_state(runtime, 42, review)
 
-    assert response_state["state"] == "awaiting_write_approval"
-    assert response_state["reason"] == "write_approval_missing"
+    assert response_state["state"] == "awaiting_contributor_response"
+    assert response_state["reason"] == "current_head_alternate_approval_present"
 
 
 def test_compute_reviewer_response_state_keeps_contributor_handoff_when_stored_review_is_stale(monkeypatch):
@@ -274,11 +272,11 @@ def test_project_status_labels_emits_awaiting_write_approval_only_after_completi
 
     desired_labels, metadata = reviews.project_status_labels_for_item(runtime, 42, state)
 
-    assert desired_labels == {STATUS_AWAITING_WRITE_APPROVAL_LABEL}
-    assert metadata["state"] == "awaiting_write_approval"
+    assert desired_labels == {STATUS_AWAITING_CONTRIBUTOR_RESPONSE_LABEL}
+    assert metadata["state"] == "awaiting_contributor_response"
     review["mandatory_approver_required"] = True
     desired_labels_again, _ = reviews.project_status_labels_for_item(runtime, 42, state)
-    assert desired_labels_again == {STATUS_AWAITING_WRITE_APPROVAL_LABEL}
+    assert desired_labels_again == {STATUS_AWAITING_CONTRIBUTOR_RESPONSE_LABEL}
 
 
 def test_compute_reviewer_response_state_reports_pull_request_unavailable(monkeypatch):
