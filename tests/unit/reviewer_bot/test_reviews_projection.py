@@ -176,6 +176,7 @@ def test_compute_pr_approval_state_from_reviews_is_pure():
 
     result = approval_policy.compute_pr_approval_state_from_reviews(
         survivors,
+        current_reviewer="alice",
         current_head="head-1",
         permission_statuses={"alice": "granted"},
     )
@@ -183,6 +184,37 @@ def test_compute_pr_approval_state_from_reviews_is_pure():
     assert result["ok"] is True
     assert result["completion"]["completed"] is True
     assert before["survivors"]["alice"]["id"] == 10
+
+
+def test_compute_pr_approval_state_from_reviews_does_not_mint_completion_from_alternate_approval():
+    survivors = {
+        "bob": {
+            "id": 10,
+            "state": "APPROVED",
+            "submitted_at": reviews.parse_github_timestamp("2026-03-17T10:01:00Z"),
+            "commit_id": "head-1",
+            "user": {"login": "bob"},
+        }
+    }
+
+    result = approval_policy.compute_pr_approval_state_from_reviews(
+        survivors,
+        current_reviewer="alice",
+        current_head="head-1",
+        permission_statuses={"bob": "granted"},
+    )
+
+    assert result["ok"] is True
+    assert result["completion"] == {
+        "completed": False,
+        "current_head_sha": "head-1",
+        "qualifying_review_ids": [],
+    }
+    assert result["write_approval"] == {
+        "has_write_approval": True,
+        "write_approvers": ["bob"],
+        "current_head_sha": "head-1",
+    }
 
 
 def test_normalize_reviews_with_parsed_timestamps_is_pure():

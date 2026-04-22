@@ -128,6 +128,7 @@ def _legacy_compute_pr_approval_state_result(
     )
     result = compute_pr_approval_state_from_reviews(
         survivors,
+        current_reviewer=review_data.get("current_reviewer"),
         current_head=current_head,
         permission_statuses=permission_cache,
     )

@@ -241,6 +241,58 @@ def test_compute_reviewer_response_state_reports_awaiting_write_approval_after_c
     assert response_state["reason"] == "current_head_alternate_approval_present"
 
 
+def test_compute_reviewer_response_state_blocks_public_current_head_approval_contradiction_before_refresh(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice", active_cycle_started_at="2026-03-17T09:00:00Z")
+    accept_reviewer_review(
+        review,
+        semantic_key="pull_request_review:99",
+        timestamp="2026-03-17T09:30:00Z",
+        actor="alice",
+        reviewed_head_sha="head-0",
+        source_precedence=1,
+    )
+    routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-1")).add_pull_request_reviews(
+        42,
+        [review_payload(10, state="APPROVED", submitted_at="2026-03-17T10:01:00Z", commit_id="head-1", author="alice")],
+    )
+    runtime = _runtime(monkeypatch, routes)
+    runtime.github.get_user_permission_status = lambda username, required_permission="push": "granted"
+
+    response_state = reviews.compute_reviewer_response_state(runtime, 42, review)
+
+    assert response_state["state"] == "projection_failed"
+    assert response_state["reason"] == "public_current_head_approval_contradiction"
+    assert response_state["suppression_reason"] == "public_current_head_approval_contradiction"
+
+
+def test_rebuild_pr_approval_state_does_not_persist_completion_from_alternate_approval(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice", active_cycle_started_at="2026-03-17T09:00:00Z")
+    accept_reviewer_review(review, semantic_key="pull_request_review:10", timestamp="2026-03-17T10:01:00Z", actor="alice", reviewed_head_sha="head-1", source_precedence=1)
+    routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-1")).add_pull_request_reviews(
+        42,
+        [review_payload(11, state="APPROVED", submitted_at="2026-03-17T10:05:00Z", commit_id="head-1", author="bob")],
+    )
+    runtime = _runtime(monkeypatch, routes)
+    runtime.github.get_user_permission_status = lambda username, required_permission="push": "granted"
+
+    completion, write_approval = reviews.rebuild_pr_approval_state(runtime, 42, review)
+
+    assert completion == {
+        "completed": False,
+        "current_head_sha": "head-1",
+        "qualifying_review_ids": [],
+    }
+    assert write_approval == {
+        "has_write_approval": True,
+        "write_approvers": ["bob"],
+        "current_head_sha": "head-1",
+    }
+    assert review["review_completed_at"] is None
+    assert review["review_completion_source"] is None
+
+
 def test_compute_reviewer_response_state_keeps_contributor_handoff_when_stored_review_is_stale(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice", active_cycle_started_at="2026-03-17T09:00:00Z")

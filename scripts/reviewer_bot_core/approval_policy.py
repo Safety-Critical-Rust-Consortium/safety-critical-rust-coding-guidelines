@@ -22,14 +22,22 @@ from . import live_review_support
 def compute_pr_approval_state_from_reviews(
     survivors: dict[str, dict],
     *,
+    current_reviewer: str | None,
     current_head: str,
     permission_statuses: dict[str, str],
 ) -> dict[str, object]:
     approvals = [review for review in survivors.values() if str(review.get("state", "")).upper() == "APPROVED"]
+    current_reviewer_approvals = []
+    current_reviewer_key = current_reviewer.lower() if isinstance(current_reviewer, str) and current_reviewer.strip() else None
+    if current_reviewer_key is not None:
+        for review in approvals:
+            author = review.get("user", {}).get("login")
+            if isinstance(author, str) and author.lower() == current_reviewer_key:
+                current_reviewer_approvals.append(review)
     completion = {
-        "completed": bool(approvals),
+        "completed": bool(current_reviewer_approvals),
         "current_head_sha": current_head,
-        "qualifying_review_ids": [review.get("id") for review in approvals],
+        "qualifying_review_ids": [review.get("id") for review in current_reviewer_approvals],
     }
 
     has_write_approval = False
@@ -100,6 +108,7 @@ def compute_pr_approval_state_result(
     )
     result = compute_pr_approval_state_from_reviews(
         survivors,
+        current_reviewer=review_data.get("current_reviewer"),
         current_head=current_head,
         permission_statuses=permission_cache,
     )

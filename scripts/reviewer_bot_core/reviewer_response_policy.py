@@ -201,6 +201,7 @@ def derive_reviewer_response_state(
     had_reviewer_review: bool = False,
     approval_result: dict[str, object] | None = None,
     current_head_approval_authors: tuple[str, ...] | None = None,
+    stored_reviewer_review: dict | None | object = _UNSET,
 ) -> dict[str, object]:
     current_reviewer = review_data.get("current_reviewer")
     if not isinstance(current_reviewer, str) or not current_reviewer.strip():
@@ -214,6 +215,8 @@ def derive_reviewer_response_state(
         reviewer_comment = review_data.get("reviewer_comment", {}).get("accepted")
     if reviewer_review is _UNSET:
         reviewer_review = review_data.get("reviewer_review", {}).get("accepted")
+    if stored_reviewer_review is _UNSET:
+        stored_reviewer_review = reviewer_review
     if contributor_comment is _UNSET:
         contributor_comment = review_data.get("contributor_comment", {}).get("accepted")
 
@@ -353,7 +356,7 @@ def derive_reviewer_response_state(
     approval_authors = tuple(author for author in (current_head_approval_authors or ()) if isinstance(author, str) and author.strip())
     normalized_approval_authors = {author.lower() for author in approval_authors}
     if current_reviewer.lower() in normalized_approval_authors:
-        latest_review_head = reviewer_review.get("reviewed_head_sha") if isinstance(reviewer_review, dict) else None
+        latest_review_head = stored_reviewer_review.get("reviewed_head_sha") if isinstance(stored_reviewer_review, dict) else None
         if not isinstance(latest_review_head, str) or latest_review_head != current_head:
             return _decorate_response(
                 state="projection_failed",
@@ -478,6 +481,7 @@ def compute_reviewer_response_state(
 
     reviewer_comment = review_data.get("reviewer_comment", {}).get("accepted")
     reviewer_review = review_data.get("reviewer_review", {}).get("accepted")
+    stored_reviewer_review = reviewer_review
     contributor_comment = review_data.get("contributor_comment", {}).get("accepted")
     had_reviewer_review = isinstance(reviewer_review, dict)
 
@@ -580,4 +584,5 @@ def compute_reviewer_response_state(
         had_reviewer_review=had_reviewer_review,
         approval_result=approval_result,
         current_head_approval_authors=approval_authors,
+        stored_reviewer_review=stored_reviewer_review,
     )
