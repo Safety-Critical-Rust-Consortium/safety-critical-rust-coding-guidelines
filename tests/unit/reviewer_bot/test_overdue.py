@@ -375,6 +375,56 @@ def test_check_overdue_reviews_uses_contributor_comment_timestamp_when_turn_retu
     assert overdue[0]["days_overdue"] == 0
 
 
+def test_check_overdue_reviews_backfills_claim_cycle_from_pr_creation(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    now = runtime.datetime.now(runtime.timezone.utc)
+    created_at = iso_z(now - timedelta(days=runtime.REVIEW_DEADLINE_DAYS + 20))
+    assigned_at = iso_z(now - timedelta(days=runtime.REVIEW_DEADLINE_DAYS + 1))
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice", assigned_at=assigned_at)
+    review["assignment_method"] = "claim"
+    routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-1")).add_pull_request_reviews(42, [])
+    runtime = _runtime(monkeypatch, routes)
+    runtime.github.get_issue_or_pr_snapshot_result = lambda issue_number: runtime.GitHubApiResult(
+        200,
+        {**issue_snapshot(issue_number, state="open", is_pull_request=True), "created_at": created_at},
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
+    runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
+        200,
+        ["alice"],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
+    monkeypatch.setattr(approval_policy, "compute_pr_approval_state_result", _approval_incomplete_result)
+
+    overdue = maintenance.check_overdue_reviews(runtime, state)
+
+    assert overdue == [
+        {
+            "issue_number": 42,
+            "reviewer": "alice",
+            "days_overdue": 1,
+            "days_since_warning": 0,
+            "needs_warning": True,
+            "needs_transition": False,
+            "anchor_reason": "no_reviewer_activity",
+            "anchor_timestamp": created_at,
+            "current_scope_key": f"reviewer=alice|head=head-1|cycle={created_at}|anchor={created_at}",
+            "current_scope_basis": "active_cycle_started_at",
+        }
+    ]
+
+
 def test_check_overdue_reviews_uses_contributor_revision_timestamp_when_head_changes_after_review(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     now = runtime.datetime.now(runtime.timezone.utc)
