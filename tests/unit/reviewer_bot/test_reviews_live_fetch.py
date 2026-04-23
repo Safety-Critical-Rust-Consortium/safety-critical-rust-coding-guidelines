@@ -241,7 +241,7 @@ def test_compute_reviewer_response_state_reports_awaiting_write_approval_after_c
     assert response_state["reason"] == "current_head_alternate_approval_present"
 
 
-def test_compute_reviewer_response_state_uses_issue_created_at_for_claim_alternate_approval_scope(monkeypatch):
+def test_compute_reviewer_response_state_uses_assignment_guidance_for_claim_alternate_approval_scope(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(
         state,
@@ -261,11 +261,22 @@ def test_compute_reviewer_response_state_uses_issue_created_at_for_claim_alterna
     routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-live")).add_pull_request_reviews(
         42,
         [review_payload(10, state="APPROVED", submitted_at="2026-03-18T12:10:42Z", commit_id="head-live", author="plaindocs")],
+    ).add_request(
+        "GET",
+        "issues/42/comments?per_page=100&page=1",
+        status_code=200,
+        payload=[
+            {
+                "user": {"login": "github-actions"},
+                "created_at": "2026-02-10T17:20:07Z",
+                "body": "👋 Hey @iglesias! You've been assigned to review this coding guideline PR.\n\n## Your Role as Reviewer",
+            }
+        ],
     )
     runtime = _runtime(monkeypatch, routes)
     runtime.github.get_issue_or_pr_snapshot = lambda issue_number: {
         **issue_snapshot(issue_number, state="open", is_pull_request=True),
-        "created_at": "2026-02-10T17:20:07Z",
+        "created_at": "2025-12-08T04:16:34Z",
     }
 
     response_state = reviews.compute_reviewer_response_state(runtime, 42, review)

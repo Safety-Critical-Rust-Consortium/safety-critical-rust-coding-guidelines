@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from . import live_review_support, reviewer_review_helpers
 
 _UNSET = object()
+_ASSIGNMENT_GUIDANCE_AUTHORS = {"github-actions", "github-actions[bot]", "guidelines-bot"}
 
 
 def _record_timestamp(record: dict | None, *, parse_timestamp) -> datetime | None:
@@ -63,7 +64,43 @@ def _initial_cycle_boundary(review_data: dict) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _alternate_current_head_cycle_boundary(review_data: dict, issue_snapshot: dict | None) -> str | None:
+def _claim_assignment_guidance_timestamp(bot, issue_number: int, current_reviewer: str | None) -> str | None:
+    if not isinstance(current_reviewer, str) or not current_reviewer.strip():
+        return None
+    expected_first_line = f"👋 Hey @{current_reviewer}! You've been assigned to review this coding guideline PR."
+    first_match: tuple[datetime, str] | None = None
+    page = 1
+    while True:
+        response = bot.github.list_issue_comments_result(issue_number, page=page)
+        if not response.ok or not isinstance(response.payload, list):
+            return None
+        for comment in response.payload:
+            if not isinstance(comment, dict):
+                continue
+            user = comment.get("user")
+            login = user.get("login") if isinstance(user, dict) else None
+            created_at = comment.get("created_at")
+            body = comment.get("body")
+            if not isinstance(login, str) or not isinstance(created_at, str) or not isinstance(body, str):
+                continue
+            if login.lower() not in _ASSIGNMENT_GUIDANCE_AUTHORS:
+                continue
+            lines = body.splitlines()
+            first_line = lines[0].strip() if lines else ""
+            if first_line != expected_first_line:
+                continue
+            created_dt = live_review_support.parse_github_timestamp(created_at)
+            if created_dt is None:
+                continue
+            if first_match is None or created_dt < first_match[0]:
+                first_match = (created_dt, created_at)
+        if len(response.payload) < 100:
+            break
+        page += 1
+    return first_match[1] if first_match is not None else None
+
+
+def _alternate_current_head_cycle_boundary(bot, issue_number: int, review_data: dict, issue_snapshot: dict | None) -> str | None:
     if not isinstance(issue_snapshot, dict) or not isinstance(issue_snapshot.get("pull_request"), dict):
         return None
     if review_data.get("assignment_method") != "claim":
@@ -72,8 +109,7 @@ def _alternate_current_head_cycle_boundary(review_data: dict, issue_snapshot: di
         value = review_data.get(field)
         if isinstance(value, str) and value:
             return None
-    created_at = issue_snapshot.get("created_at")
-    return created_at if isinstance(created_at, str) and created_at else None
+    return _claim_assignment_guidance_timestamp(bot, issue_number, review_data.get("current_reviewer"))
 
 
 def _scope_basis_and_anchor(review_data: dict, contributor_handoff: dict | None) -> tuple[str | None, str | None]:
@@ -591,7 +627,12 @@ def compute_reviewer_response_state(
         reviews,
         parse_timestamp=bot.parse_iso8601_timestamp,
     )
-    alternate_current_head_cycle_boundary = _alternate_current_head_cycle_boundary(review_data, issue_snapshot)
+    alternate_current_head_cycle_boundary = _alternate_current_head_cycle_boundary(
+        bot,
+        issue_number,
+        review_data,
+        issue_snapshot,
+    )
 
     return derive_reviewer_response_state(
         review_data,

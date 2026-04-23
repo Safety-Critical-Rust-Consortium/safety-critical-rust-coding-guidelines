@@ -97,7 +97,7 @@ def test_execute_run_preview_check_overdue_uses_frozen_pr264_operational_project
     }
 
 
-def test_execute_run_preview_check_overdue_backfills_claim_cycle_from_pr_creation(monkeypatch, capsys):
+def test_execute_run_preview_check_overdue_backfills_claim_cycle_from_assignment_guidance(monkeypatch, capsys):
     harness = AppHarness(monkeypatch)
     harness.set_event(
         EVENT_NAME="workflow_dispatch",
@@ -133,7 +133,7 @@ def test_execute_run_preview_check_overdue_backfills_claim_cycle_from_pr_creatio
             "state": "open",
             "pull_request": {},
             "labels": [],
-            "created_at": "2026-02-10T17:20:07Z",
+            "created_at": "2025-12-08T04:16:34Z",
         },
     ).add_request(
         "GET",
@@ -147,6 +147,17 @@ def test_execute_run_preview_check_overdue_backfills_claim_cycle_from_pr_creatio
     ).add_pull_request_reviews(
         264,
         [review_payload(501, state="APPROVED", submitted_at="2026-03-18T12:10:42Z", commit_id="head-live", author="plaindocs")],
+    ).add_request(
+        "GET",
+        "issues/264/comments?per_page=100&page=1",
+        status_code=200,
+        payload=[
+            {
+                "user": {"login": "github-actions"},
+                "created_at": "2026-02-10T17:20:07Z",
+                "body": "👋 Hey @iglesias! You've been assigned to review this coding guideline PR.\n\n## Your Role as Reviewer",
+            }
+        ],
     )
     harness.runtime.github.stub(routes)
     harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
