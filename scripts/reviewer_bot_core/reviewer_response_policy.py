@@ -63,6 +63,19 @@ def _initial_cycle_boundary(review_data: dict) -> tuple[str | None, str | None]:
     return None, None
 
 
+def _alternate_current_head_cycle_boundary(review_data: dict, issue_snapshot: dict | None) -> str | None:
+    if not isinstance(issue_snapshot, dict) or not isinstance(issue_snapshot.get("pull_request"), dict):
+        return None
+    if review_data.get("assignment_method") != "claim":
+        return None
+    for field in ("active_cycle_started_at", "cycle_started_at"):
+        value = review_data.get(field)
+        if isinstance(value, str) and value:
+            return None
+    created_at = issue_snapshot.get("created_at")
+    return created_at if isinstance(created_at, str) and created_at else None
+
+
 def _scope_basis_and_anchor(review_data: dict, contributor_handoff: dict | None) -> tuple[str | None, str | None]:
     if isinstance(contributor_handoff, dict):
         semantic_key = str(contributor_handoff.get("semantic_key", ""))
@@ -97,8 +110,11 @@ def _current_scope_fields(
     contributor_handoff: dict | None,
     *,
     alternate_current_head_approval: bool = False,
+    alternate_current_head_cycle_boundary: str | None = None,
 ) -> dict[str, object]:
     _, cycle_boundary = _initial_cycle_boundary(review_data)
+    if alternate_current_head_approval and alternate_current_head_cycle_boundary:
+        cycle_boundary = alternate_current_head_cycle_boundary
     if alternate_current_head_approval:
         anchor_timestamp = None
         basis = "alternate_current_head_approval"
@@ -202,6 +218,7 @@ def derive_reviewer_response_state(
     approval_result: dict[str, object] | None = None,
     current_head_approval_authors: tuple[str, ...] | None = None,
     stored_reviewer_review: dict | None | object = _UNSET,
+    alternate_current_head_cycle_boundary: str | None = None,
 ) -> dict[str, object]:
     current_reviewer = review_data.get("current_reviewer")
     if not isinstance(current_reviewer, str) or not current_reviewer.strip():
@@ -379,6 +396,7 @@ def derive_reviewer_response_state(
                 current_head,
                 contributor_handoff,
                 alternate_current_head_approval=True,
+                alternate_current_head_cycle_boundary=alternate_current_head_cycle_boundary,
             ),
             anchor_timestamp=latest_reviewer_response.get("timestamp") if isinstance(latest_reviewer_response, dict) else None,
             current_head_sha=current_head,
@@ -573,6 +591,7 @@ def compute_reviewer_response_state(
         reviews,
         parse_timestamp=bot.parse_iso8601_timestamp,
     )
+    alternate_current_head_cycle_boundary = _alternate_current_head_cycle_boundary(review_data, issue_snapshot)
 
     return derive_reviewer_response_state(
         review_data,
@@ -585,4 +604,5 @@ def compute_reviewer_response_state(
         approval_result=approval_result,
         current_head_approval_authors=approval_authors,
         stored_reviewer_review=stored_reviewer_review,
+        alternate_current_head_cycle_boundary=alternate_current_head_cycle_boundary,
     )

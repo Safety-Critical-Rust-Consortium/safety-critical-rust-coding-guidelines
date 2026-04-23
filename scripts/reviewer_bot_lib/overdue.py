@@ -210,24 +210,6 @@ def _transport_result(bot, *, failure_kind: str | None, status_code: int | None 
     )
 
 
-def _normalize_review_data_scope_cycle(review_data: dict, issue_snapshot: dict | None) -> dict:
-    if not isinstance(review_data, dict):
-        return {}
-    if not isinstance(issue_snapshot, dict) or not isinstance(issue_snapshot.get("pull_request"), dict):
-        return review_data
-    if not isinstance(review_data.get("current_reviewer"), str) or not review_data.get("current_reviewer"):
-        return review_data
-    if any(isinstance(review_data.get(field), str) and review_data.get(field) for field in ("active_cycle_started_at", "cycle_started_at")):
-        return review_data
-    if review_data.get("assignment_method") != "claim":
-        return review_data
-    created_at = issue_snapshot.get("created_at")
-    if not isinstance(created_at, str) or not created_at:
-        return review_data
-    # Claim-era PR rows can miss explicit cycle timestamps; use PR creation to keep same-scope dedupe stable.
-    return {**review_data, "active_cycle_started_at": created_at}
-
-
 def evaluate_overdue_review_preview(bot, state: dict, issue_number: int) -> dict[str, object]:
     active_reviews = state.get("active_reviews") if isinstance(state, dict) else None
     review_data = active_reviews.get(str(issue_number)) if isinstance(active_reviews, dict) else None
@@ -235,7 +217,6 @@ def evaluate_overdue_review_preview(bot, state: dict, issue_number: int) -> dict
         review_data = {}
     issue_snapshot_result = bot.github.get_issue_or_pr_snapshot_result(issue_number)
     issue_snapshot = issue_snapshot_result.payload if issue_snapshot_result.ok and isinstance(issue_snapshot_result.payload, dict) else None
-    normalized_review_data = _normalize_review_data_scope_cycle(review_data, issue_snapshot)
     is_pull_request = isinstance((issue_snapshot or {}).get("pull_request"), dict)
     authority = assignment_flow.resolve_reviewer_authority(
         bot,
@@ -245,7 +226,7 @@ def evaluate_overdue_review_preview(bot, state: dict, issue_number: int) -> dict
     )
     response_state = bot.adapters.review_state.compute_reviewer_response_state(
         issue_number,
-        normalized_review_data,
+        review_data,
         issue_snapshot=issue_snapshot,
     )
     response_name = str(response_state.get("response_state") or response_state.get("state") or "projection_failed")
@@ -351,7 +332,6 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
         _clear_transport_failure(bot, review_data, issue_number, phase="issue_snapshot_read")
         if str(issue_snapshot.get("state", "")).lower() == "closed":
             continue
-        normalized_review_data = _normalize_review_data_scope_cycle(review_data, issue_snapshot)
         authority = assignment_flow.resolve_reviewer_authority(
             bot,
             issue_number,
@@ -386,7 +366,7 @@ def check_overdue_reviews(bot, state: dict) -> list[dict]:
         _clear_transport_failure(bot, review_data, issue_number, phase="assignment_confirm_read")
         response_state = bot.adapters.review_state.compute_reviewer_response_state(
             issue_number,
-            normalized_review_data,
+            review_data,
             issue_snapshot=issue_snapshot,
         )
         response_name = str(response_state.get("response_state") or response_state.get("state") or "")

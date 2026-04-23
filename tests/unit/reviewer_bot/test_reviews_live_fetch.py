@@ -241,6 +241,41 @@ def test_compute_reviewer_response_state_reports_awaiting_write_approval_after_c
     assert response_state["reason"] == "current_head_alternate_approval_present"
 
 
+def test_compute_reviewer_response_state_uses_issue_created_at_for_claim_alternate_approval_scope(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="iglesias",
+        assigned_at="2026-02-26T04:58:03.401345+00:00",
+    )
+    review["assignment_method"] = "claim"
+    accept_reviewer_review(
+        review,
+        semantic_key="pull_request_review:99",
+        timestamp="2026-03-18T01:09:05Z",
+        actor="iglesias",
+        reviewed_head_sha="head-old",
+        source_precedence=1,
+    )
+    routes = RouteGitHubApi().add_pull_request_snapshot(42, pull_request_payload(42, head_sha="head-live")).add_pull_request_reviews(
+        42,
+        [review_payload(10, state="APPROVED", submitted_at="2026-03-18T12:10:42Z", commit_id="head-live", author="plaindocs")],
+    )
+    runtime = _runtime(monkeypatch, routes)
+    runtime.github.get_issue_or_pr_snapshot = lambda issue_number: {
+        **issue_snapshot(issue_number, state="open", is_pull_request=True),
+        "created_at": "2026-02-10T17:20:07Z",
+    }
+
+    response_state = reviews.compute_reviewer_response_state(runtime, 42, review)
+
+    assert response_state["state"] == "awaiting_contributor_response"
+    assert response_state["reason"] == "current_head_alternate_approval_present"
+    assert response_state["current_scope_basis"] == "alternate_current_head_approval"
+    assert response_state["current_scope_key"] == "reviewer=iglesias|head=head-live|cycle=2026-02-10T17:20:07Z|anchor=none"
+
+
 def test_compute_reviewer_response_state_blocks_public_current_head_approval_contradiction_before_refresh(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice", active_cycle_started_at="2026-03-17T09:00:00Z")
