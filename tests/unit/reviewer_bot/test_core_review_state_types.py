@@ -40,6 +40,7 @@ def test_core_review_state_types_are_limited_to_c1_mutation_scope():
         "review_dismissal",
         "current_cycle_completion",
         "current_cycle_write_approval",
+        "current_cycle_reviewer_handoff",
     ]
 
 
@@ -50,6 +51,7 @@ def test_core_review_state_types_preserve_current_sparse_and_precedence_shapes()
     assert entry.mandatory_approver_required is False
     assert entry.current_cycle_completion == {}
     assert entry.current_cycle_write_approval == {}
+    assert entry.current_cycle_reviewer_handoff is None
     assert entry.reviewer_comment.seen_keys == []
 
     accepted = review_state_types.AcceptedChannelRecord(

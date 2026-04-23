@@ -11,6 +11,7 @@ from tests.fixtures.reviewer_bot_recorders import record_comment_side_effects
 C3B2_DELETION_MANIFEST = [
     "pass",
     "away",
+    "feedback",
     "label",
     "sync-members",
     "queue",

@@ -230,6 +230,56 @@ def _execute_rectify(bot, state: dict, decision, assignment_request: AssignmentR
     )
 
 
+def _execute_feedback(bot, state: dict, request: CommentEventRequest, decision) -> CommandExecutionResult:
+    if request.issue_state.lower() != "open":
+        return CommandExecutionResult(
+            response="❌ `/feedback` can only be used on open tracked review items.",
+            success=False,
+            state_changed=False,
+        )
+    authority = assignment_flow.resolve_reviewer_command_authority(
+        bot,
+        state,
+        request,
+        actor=decision.actor,
+    )
+    if not authority.get("authorized"):
+        return CommandExecutionResult(
+            response=assignment_flow.reviewer_command_authority_failure_message("feedback", authority),
+            success=False,
+            state_changed=False,
+        )
+    review_data = authority.get("review_data")
+    if not isinstance(review_data, dict):
+        return CommandExecutionResult(response="❌ Unable to load review state.", success=False, state_changed=False)
+    reviewed_head_sha = None
+    if request.is_pull_request:
+        active_head_sha = review_data.get("active_head_sha")
+        if not isinstance(active_head_sha, str) or not active_head_sha.strip():
+            return CommandExecutionResult(
+                response="❌ Unable to record `/feedback`: tracked PR head is unavailable.",
+                success=False,
+                state_changed=False,
+            )
+        reviewed_head_sha = active_head_sha
+    handoff = {
+        "source_event_key": request.comment_source_event_key or f"issue_comment:{request.comment_id}",
+        "timestamp": request.comment_created_at,
+        "actor": decision.actor,
+        "command_name": comment_command_policy.OrdinaryCommandId.FEEDBACK.value,
+        "reviewed_head_sha": reviewed_head_sha,
+    }
+    before = review_data.get("current_cycle_reviewer_handoff")
+    review_data["current_cycle_reviewer_handoff"] = handoff
+    activity_changed = record_reviewer_activity(review_data, request.comment_created_at)
+    state_changed = before != handoff or activity_changed
+    return CommandExecutionResult(
+        response="✅ Recorded reviewer feedback handoff. Reviewer-bot is now waiting on contributor response.",
+        success=True,
+        state_changed=state_changed,
+    )
+
+
 def _execute_assign_specific(bot, state: dict, decision, assignment_request: AssignmentRequest | None) -> CommandExecutionResult:
     username = decision.raw_args[0] if decision.raw_args else ""
     return _build_execution_result(
@@ -314,12 +364,15 @@ def apply_comment_command(
         execution = CommandExecutionResult(response=decision.response, success=decision.success, state_changed=False)
         react = decision.react
     else:
-        assignment_request = (
-            _build_assignment_request_from_comment_request(request)
-            if decision.needs_assignment_request
-            else None
-        )
-        execution = ORDINARY_COMMAND_HANDLERS[decision.command_id](bot, state, decision, assignment_request)
+        if decision.command_id == comment_command_policy.OrdinaryCommandId.FEEDBACK:
+            execution = _execute_feedback(bot, state, request, decision)
+        else:
+            assignment_request = (
+                _build_assignment_request_from_comment_request(request)
+                if decision.needs_assignment_request
+                else None
+            )
+            execution = ORDINARY_COMMAND_HANDLERS[decision.command_id](bot, state, decision, assignment_request)
         react = True
 
     comment_id = request.comment_id

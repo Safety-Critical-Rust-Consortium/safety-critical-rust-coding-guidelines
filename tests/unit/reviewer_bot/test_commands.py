@@ -216,6 +216,68 @@ def test_pass_command_posts_pr_guidance_for_new_reviewer(monkeypatch):
     assert posted == [guidance.get_pr_guidance("felix91gr", "PLeVasseur")]
 
 
+def test_pass_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_empty(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    state["queue"] = [
+        {"github": "alice", "name": "Alice"},
+        {"github": "bob", "name": "Bob"},
+    ]
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    request = harness.typed_assignment_request(issue_number=42, issue_author="dana", is_pull_request=True)
+    harness.stub_assignees([])
+    harness.stub_assignment()
+    posted = []
+    harness.runtime.github.post_comment = lambda issue_number, body: posted.append(body) or True
+
+    response, success = harness.handle_pass(state, 42, "alice", None, request=request)
+
+    assert success is True
+    assert "@bob is now assigned as the reviewer." in response
+    assert review["current_reviewer"] == "bob"
+    assert posted == [guidance.get_pr_guidance("bob", "dana")]
+
+
+def test_release_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_empty(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["assignment_method"] = "round-robin"
+    request = harness.typed_assignment_request(issue_number=42, issue_author="dana", is_pull_request=True)
+    harness.stub_assignees([])
+
+    response, success = harness.handle_release(state, 42, "alice", request=request)
+
+    assert success is True
+    assert "@alice has released this review" in response
+    assert review["current_reviewer"] is None
+
+
+def test_rectify_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_empty(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    harness.runtime.set_config_value("IS_PULL_REQUEST", "true")
+    harness.stub_assignees([])
+    calls = []
+    monkeypatch.setattr(
+        reconcile,
+        "reconcile_active_review_entry",
+        lambda bot, current_state, issue_number: calls.append((bot, current_state, issue_number)) or ("rectified", True, False),
+    )
+
+    message, success, changed = harness.handle_rectify(state, 42, "alice")
+
+    assert (message, success, changed) == ("rectified", True, False)
+    assert calls == [(harness.runtime, state, 42)]
+
+
 def test_assign_from_queue_posts_guidance_only_once(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
@@ -657,6 +719,111 @@ def test_apply_comment_command_adds_reactions_and_posts_normalized_queue_respons
     assert side_effects.reactions == [(100, "eyes"), (100, "+1")]
 
 
+def test_feedback_command_records_issue_reviewer_handoff_without_channel_acceptance(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["assigned_at"] = "2026-03-17T09:00:00Z"
+    harness.stub_assignees(["alice"])
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=False,
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"] == {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    assert review["reviewer_comment"]["accepted"] is None
+    assert review["assigned_at"] == "2026-03-17T09:00:00Z"
+    assert side_effects.comments == [
+        (42, "✅ Recorded reviewer feedback handoff. Reviewer-bot is now waiting on contributor response.")
+    ]
+    assert side_effects.reactions == [(100, "eyes"), (100, "+1")]
+
+
+def test_feedback_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_empty(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["active_head_sha"] = "head-1"
+    harness.stub_assignees([])
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=True,
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"]["reviewed_head_sha"] == "head-1"
+    assert side_effects.comments == [
+        (42, "✅ Recorded reviewer feedback handoff. Reviewer-bot is now waiting on contributor response.")
+    ]
+
+
+def test_feedback_command_rejects_triage_actor_who_is_not_current_reviewer(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["active_head_sha"] = "head-1"
+    harness.stub_assignees([])
+    harness.stub_permission("granted")
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="maintainer",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=True,
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is False
+    assert review["current_cycle_reviewer_handoff"] is None
+    assert side_effects.comments == [(42, "❌ Only the current reviewer (@alice) can use `/feedback`.")]
+    assert side_effects.reactions == [(100, "eyes")]
+
+
 def test_manual_dispatch_marks_authorization_unavailable_for_pending_privileged_command(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
@@ -691,6 +858,7 @@ def test_manual_dispatch_marks_authorization_unavailable_for_pending_privileged_
     ("comment_body", "expected"),
     [
         ("@guidelines-bot /queue", ("queue", [])),
+        ("@guidelines-bot /feedback", ("feedback", [])),
         ("@guidelines-bot /r? producers", ("assign-from-queue", [])),
         ("@guidelines-bot /r? @alice", ("r?-user", ["@alice"])),
         ("@guidelines-bot queue", ("_malformed_known", ["queue"])),
@@ -708,6 +876,7 @@ def test_parse_command_preserves_known_command_classification(monkeypatch, comme
             "COMMANDS": {
                 "queue",
                 "pass",
+                "feedback",
                 "label",
                 "away",
                 "claim",

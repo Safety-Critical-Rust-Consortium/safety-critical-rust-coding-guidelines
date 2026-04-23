@@ -11,6 +11,7 @@ from . import privileged_command_policy
 class OrdinaryCommandId(StrEnum):
     PASS = "pass"
     AWAY = "away"
+    FEEDBACK = "feedback"
     DONE = "done"
     LABEL = "label"
     SYNC_MEMBERS = "sync-members"
@@ -102,6 +103,20 @@ def decide_comment_command(bot, request, classified, *, actor_class: str, comman
             response=f"❌ Missing date. Usage: `{bot.BOT_MENTION} /away YYYY-MM-DD [reason]`",
             success=False,
             react=True,
+        )
+    if command == OrdinaryCommandId.FEEDBACK.value:
+        if args:
+            return InlineResponseDecision(
+                response=f"❌ `/feedback` does not accept arguments. Usage: `{bot.BOT_MENTION} /feedback`",
+                success=False,
+                react=True,
+            )
+        return ExecuteOrdinaryCommandDecision(
+            command_id=OrdinaryCommandId.FEEDBACK,
+            issue_number=issue_number,
+            actor=comment_author,
+            raw_args=(),
+            needs_assignment_request=False,
         )
     if command == OrdinaryCommandId.DONE.value:
         return ExecuteOrdinaryCommandDecision(

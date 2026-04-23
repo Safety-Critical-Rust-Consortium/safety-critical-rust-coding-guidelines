@@ -79,3 +79,4 @@ class ReviewEntryState:
     review_dismissal: ReviewChannelState = field(default_factory=ReviewChannelState)
     current_cycle_completion: dict[str, Any] = field(default_factory=dict)
     current_cycle_write_approval: dict[str, Any] = field(default_factory=dict)
+    current_cycle_reviewer_handoff: dict[str, Any] | None = None

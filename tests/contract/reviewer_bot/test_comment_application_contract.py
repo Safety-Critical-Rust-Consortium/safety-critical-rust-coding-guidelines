@@ -124,6 +124,7 @@ def test_c3b2_comment_application_deletion_manifest_leaves_only_privileged_branc
     for command_name in [
         '"pass"',
         '"away"',
+        '"feedback"',
         '"label"',
         '"sync-members"',
         '"queue"',

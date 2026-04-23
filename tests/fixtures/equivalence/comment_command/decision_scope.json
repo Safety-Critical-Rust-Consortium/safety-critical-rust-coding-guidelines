@@ -3,6 +3,7 @@
   "in_scope_command_set": [
     "pass",
     "away",
+    "feedback",
     "label",
     "sync-members",
     "queue",

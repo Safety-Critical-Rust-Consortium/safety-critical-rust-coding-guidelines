@@ -73,6 +73,7 @@ def test_ensure_review_entry_initializes_tracked_review_shape():
     assert review["sidecars"]["observer_discovery_watermarks"] == {}
     assert review["sidecars"]["reconciled_source_events"] == {}
     assert review["current_cycle_write_approval"] == {}
+    assert review["current_cycle_reviewer_handoff"] is None
 
 
 def test_state_contract_table_fixture_lists_frozen_sections_and_field_classifications():
@@ -94,6 +95,7 @@ def test_state_contract_table_fixture_lists_frozen_sections_and_field_classifica
         "- pending_privileged_commands: nested under sidecars",
         "- deferred_gaps: nested under sidecars",
         "- current_cycle_write_approval: lazily materialized",
+        "- current_cycle_reviewer_handoff: lazily materialized",
         "- observer_discovery_watermarks: nested under sidecars",
         "- reconciled_source_events: nested under sidecars as a map; tolerated legacy list shape",
         "- accepted: lazily materialized",
@@ -137,6 +139,7 @@ def test_ensure_review_entry_repairs_missing_nested_maps_and_legacy_list_fields(
     assert review["sidecars"]["repair_markers"] == _expected_repair_markers()
     assert review["current_cycle_completion"] == {}
     assert review["current_cycle_write_approval"] == {}
+    assert review["current_cycle_reviewer_handoff"] is None
     assert review["sidecars"]["reconciled_source_events"] == {}
 
 
@@ -218,6 +221,34 @@ def test_mark_review_complete_updates_completion_fields():
     assert review["review_completed_by"] == "alice"
     assert review["review_completion_source"] == "unit-test"
     assert review["current_cycle_completion"]["completed"] is True
+
+
+def test_current_cycle_reviewer_handoff_is_cleared_by_reviewer_replacement_and_release():
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+    review_state.set_current_reviewer(state, 42, "bob", at="2026-03-17T11:00:00Z")
+
+    assert review["current_cycle_reviewer_handoff"] is None
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:101",
+        "timestamp": "2026-03-17T12:00:00Z",
+        "actor": "bob",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+    assert review_state.clear_current_reviewer(state, 42) is True
+    assert review["current_cycle_reviewer_handoff"] is None
 
 
 def test_list_open_tracked_review_items_returns_only_assigned_entries():

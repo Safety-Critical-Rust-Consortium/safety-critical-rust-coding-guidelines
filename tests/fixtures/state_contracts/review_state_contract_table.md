@@ -37,6 +37,7 @@ Per-Review-Entry Keys
 - pending_privileged_commands: nested under sidecars
 - current_cycle_completion: lazily materialized
 - current_cycle_write_approval: lazily materialized
+- current_cycle_reviewer_handoff: lazily materialized
 - reconciled_source_events: nested under sidecars as a map; tolerated legacy list shape
 
 Per-Channel Keys

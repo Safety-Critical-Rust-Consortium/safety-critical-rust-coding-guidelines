@@ -185,6 +185,7 @@ TRANSITION_PERIOD_DAYS = 14
 COMMANDS = {
     "pass": "Pass this review to next in queue",
     "away": "Step away from queue until date (YYYY-MM-DD)",
+    "feedback": "Record that reviewer feedback is ready for contributor follow-up",
     "release": "Release assignment (yours, or @username with triage+ permission)",
     "rectify": "Reconcile this issue/PR's review state from GitHub",
     "claim": "Claim this review for yourself",

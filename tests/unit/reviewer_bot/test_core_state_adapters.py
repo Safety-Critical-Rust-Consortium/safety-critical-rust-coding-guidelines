@@ -61,6 +61,13 @@ def test_review_entry_adapter_round_trips_full_current_mutation_shape():
             "reviewer": "bob",
         },
         "current_cycle_write_approval": {"approved": False},
+        "current_cycle_reviewer_handoff": {
+            "source_event_key": "issue_comment:13",
+            "timestamp": "2026-03-20T04:00:00Z",
+            "actor": "bob",
+            "command_name": "feedback",
+            "reviewed_head_sha": "head-1",
+        },
     }
 
     adapted = state_adapters.review_entry_from_persisted(persisted)
@@ -100,6 +107,7 @@ def test_review_entry_adapter_matches_current_sparse_upgrade_semantics():
         "review_dismissal": {"accepted": None, "seen_keys": []},
         "current_cycle_completion": {},
         "current_cycle_write_approval": {},
+        "current_cycle_reviewer_handoff": None,
     }
 
 

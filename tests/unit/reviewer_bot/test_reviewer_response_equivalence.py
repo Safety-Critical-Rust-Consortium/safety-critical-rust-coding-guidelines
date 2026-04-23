@@ -412,6 +412,96 @@ def test_issue_reviewer_response_returns_to_reviewer_after_contributor_followup(
     assert result["anchor_timestamp"] == "2026-03-18T11:00:00Z"
 
 
+def test_issue_feedback_handoff_returns_turn_to_contributor_without_channel_record():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_contributor_response"
+    assert result["reason"] == "completion_missing"
+    assert result["anchor_timestamp"] == "2026-03-17T10:00:00Z"
+    assert result["current_cycle_reviewer_handoff"]["semantic_key"] == "issue_comment:100"
+    assert review["reviewer_comment"]["accepted"] is None
+
+
+def test_issue_feedback_handoff_is_consumed_as_stale_after_newer_contributor_followup():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    accept_contributor_comment(
+        review,
+        semantic_key="issue_comment:101",
+        timestamp="2026-03-17T11:00:00Z",
+        actor="dana",
+    )
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_reviewer_response"
+    assert result["reason"] == "contributor_comment_newer"
+    assert result["anchor_timestamp"] == "2026-03-17T11:00:00Z"
+
+
+def test_pr_feedback_handoff_requires_current_tracked_head():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": "head-1",
+    }
+
+    current_head_result = reviewer_response_policy.derive_reviewer_response_state(
+        review,
+        issue_is_pull_request=True,
+        current_head="head-1",
+    )
+    stale_head_result = reviewer_response_policy.derive_reviewer_response_state(
+        review,
+        issue_is_pull_request=True,
+        current_head="head-2",
+    )
+
+    assert current_head_result["state"] == "awaiting_contributor_response"
+    assert current_head_result["reason"] == "accepted_same_scope_reviewer_activity"
+    assert stale_head_result["state"] == "awaiting_reviewer_response"
+    assert stale_head_result["reason"] == "no_reviewer_activity"
+
+
 def test_issue_reviewer_response_ignores_prior_reviewer_records_after_reviewer_change():
     state = make_state()
     review = make_tracked_review_state(

@@ -297,6 +297,9 @@ def review_entry_from_persisted(review_entry: dict[str, Any] | list[Any] | None)
         current_cycle_write_approval=deepcopy(review_entry.get("current_cycle_write_approval") or {})
         if isinstance(review_entry.get("current_cycle_write_approval"), dict)
         else {},
+        current_cycle_reviewer_handoff=deepcopy(review_entry.get("current_cycle_reviewer_handoff"))
+        if isinstance(review_entry.get("current_cycle_reviewer_handoff"), dict)
+        else None,
     )
 
 
@@ -328,6 +331,7 @@ def review_entry_to_persisted(review_entry: ReviewEntryState) -> dict[str, Any]:
         "review_dismissal": _channel_to_persisted(review_entry.review_dismissal),
         "current_cycle_completion": deepcopy(review_entry.current_cycle_completion),
         "current_cycle_write_approval": deepcopy(review_entry.current_cycle_write_approval),
+        "current_cycle_reviewer_handoff": deepcopy(review_entry.current_cycle_reviewer_handoff),
     }
 
 

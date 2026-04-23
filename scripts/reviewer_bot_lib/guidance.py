@@ -47,6 +47,7 @@ As outlined in our [contribution guide](CONTRIBUTING.md), please:
 If you need to pass this review:
 - `{BOT_MENTION} /pass [reason]` - Pass just this issue to the next reviewer
 - `{BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from the queue until a date
+- `{BOT_MENTION} /feedback` - Mark reviewer feedback ready for contributor follow-up
 - `{BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)
 
 To assign someone else:
@@ -79,6 +80,7 @@ When the review is complete:
 If you need to pass this review:
 - `{BOT_MENTION} /pass [reason]` - Pass just this issue to the next reviewer
 - `{BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from the queue until a date
+- `{BOT_MENTION} /feedback` - Mark reviewer feedback ready for contributor follow-up
 - `{BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)
 
 To assign someone else:
@@ -116,6 +118,7 @@ If the changes **do** affect guidelines:
 If you need to pass this review:
 - `{BOT_MENTION} /pass [reason]` - Pass just this issue to the next reviewer
 - `{BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from the queue until a date
+- `{BOT_MENTION} /feedback` - Mark reviewer feedback ready for contributor follow-up
 - `{BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)
 
 To assign someone else:
@@ -161,6 +164,7 @@ As outlined in our [contribution guide](CONTRIBUTING.md), please:
 If you need to pass this review:
 - `{BOT_MENTION} /pass [reason]` - Pass just this PR to the next reviewer
 - `{BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from the queue until a date
+- `{BOT_MENTION} /feedback` - Mark reviewer feedback ready for contributor follow-up
 - `{BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)
 
 To assign someone else:

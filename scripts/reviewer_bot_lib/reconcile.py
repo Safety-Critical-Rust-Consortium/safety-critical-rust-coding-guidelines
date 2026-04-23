@@ -10,6 +10,7 @@ from scripts.reviewer_bot_core.comment_routing_policy import (
     ObserverCommentClassification,
 )
 
+from . import assignment_flow
 from . import deferred_gap_bookkeeping as gap_bookkeeping
 from . import reconcile_payloads as _reconcile_payloads
 from .comment_application import (
@@ -188,36 +189,58 @@ def handle_rectify_command(
     issue_number: int,
     comment_author: str,
 ) -> tuple[str, bool, bool]:
-    current_assignees = bot.github.get_issue_assignees(issue_number)
-    if current_assignees is None:
+    request = type(
+        "RectifyReviewerAuthorityRequest",
+        (),
+        {
+            "issue_number": issue_number,
+            "is_pull_request": bot.get_config_value("IS_PULL_REQUEST", "false").lower() == "true",
+        },
+    )()
+    reviewer_authority = assignment_flow.resolve_reviewer_command_authority(
+        bot,
+        state,
+        request,
+        actor=comment_author,
+    )
+    if reviewer_authority.get("authorized"):
+        return reconcile_active_review_entry(bot, state, issue_number)
+    if reviewer_authority.get("authorization_status") == "live_read_unavailable":
         return (
-            "❌ Unable to determine current assignees/reviewers from GitHub; refusing to continue.",
+            assignment_flow.reviewer_command_authority_failure_message("rectify", reviewer_authority),
             False,
             False,
         )
-    current_reviewer = current_assignees[0] if len(current_assignees) == 1 else None
 
-    is_current_reviewer = (
-        isinstance(current_reviewer, str)
-        and current_reviewer.lower() == comment_author.lower()
-    )
+    triage_status = bot.github.get_user_permission_status(comment_author, "triage")
 
-    triage_status = "denied"
-    if not is_current_reviewer:
-        triage_status = bot.github.get_user_permission_status(comment_author, "triage")
-
-    if not is_current_reviewer and triage_status == "unavailable":
+    if triage_status == "unavailable":
         return (
             "❌ Unable to verify triage permissions right now; refusing to continue.",
             False,
             False,
         )
 
-    if not is_current_reviewer and triage_status != "granted":
-        if current_reviewer:
+    if triage_status != "granted":
+        current_reviewer = reviewer_authority.get("tracked_reviewer")
+        live_reviewers = reviewer_authority.get("live_control_plane_reviewers") or []
+        if reviewer_authority.get("authorization_status") == "control_plane_mismatch":
             return (
-                f"❌ Only the assigned reviewer (@{current_reviewer}) or a maintainer with triage+ "
+                assignment_flow.reviewer_command_authority_failure_message("rectify", reviewer_authority),
+                False,
+                False,
+            )
+        if isinstance(current_reviewer, str) and current_reviewer:
+            return (
+                f"❌ Only the current reviewer (@{current_reviewer}) or a maintainer with triage+ "
                 "permission can run `/rectify`.",
+                False,
+                False,
+            )
+        if live_reviewers:
+            return (
+                "❌ Only the current reviewer or a maintainer with triage+ permission can run `/rectify`. "
+                f"Live reviewer(s): @{', @'.join(str(value) for value in live_reviewers)}.",
                 False,
                 False,
             )

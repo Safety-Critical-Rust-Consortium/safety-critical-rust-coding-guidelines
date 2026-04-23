@@ -117,14 +117,6 @@ def resolve_reviewer_authority(
     is_pull_request: bool,
 ) -> dict[str, object]:
     tracked_reviewer = review_data.get("current_reviewer") if isinstance(review_data, dict) else None
-    if not isinstance(tracked_reviewer, str) or not tracked_reviewer.strip():
-        return {
-            "authority_status": "no_tracked_reviewer",
-            "tracked_reviewer": None,
-            "live_control_plane_reviewers": [],
-            "reason": "no_tracked_reviewer",
-        }
-
     result = bot.github.get_issue_assignees_result(issue_number, is_pull_request=is_pull_request)
     _hard_fail_if_permission_denied(result, action="reviewer authority read", issue_number=issue_number)
     if not result.ok or not isinstance(result.payload, list):
@@ -136,6 +128,13 @@ def resolve_reviewer_authority(
         }
 
     live_control_plane_reviewers = [value for value in result.payload if isinstance(value, str) and value.strip()]
+    if not isinstance(tracked_reviewer, str) or not tracked_reviewer.strip():
+        return {
+            "authority_status": "no_tracked_reviewer",
+            "tracked_reviewer": None,
+            "live_control_plane_reviewers": live_control_plane_reviewers,
+            "reason": "no_tracked_reviewer",
+        }
     normalized_reviewers = {value.lower() for value in live_control_plane_reviewers}
     tracked_key = tracked_reviewer.lower()
     if is_pull_request:
@@ -173,6 +172,80 @@ def resolve_reviewer_authority(
         "live_control_plane_reviewers": live_control_plane_reviewers,
         "reason": "tracked_reviewer_confirmed",
     }
+
+
+def resolve_reviewer_command_authority(
+    bot,
+    state: dict,
+    request,
+    *,
+    actor: str | None = None,
+) -> dict[str, object]:
+    issue_number = request.issue_number
+    review_data = ensure_review_entry(state, issue_number)
+    if review_data is None:
+        result = bot.github.get_issue_assignees_result(issue_number, is_pull_request=bool(request.is_pull_request))
+        _hard_fail_if_permission_denied(result, action="reviewer authority read", issue_number=issue_number)
+        if not result.ok or not isinstance(result.payload, list):
+            return {
+                "authorized": False,
+                "authorization_status": "live_read_unavailable",
+                "review_data": None,
+                "tracked_reviewer": None,
+                "live_control_plane_reviewers": [],
+                "reason": str(result.failure_kind or "live_control_plane_unavailable"),
+            }
+        return {
+            "authorized": False,
+            "authorization_status": "no_active_review",
+            "review_data": None,
+            "tracked_reviewer": None,
+            "live_control_plane_reviewers": [value for value in result.payload if isinstance(value, str) and value.strip()],
+            "reason": "no_active_review",
+        }
+    authority = resolve_reviewer_authority(
+        bot,
+        issue_number,
+        review_data,
+        is_pull_request=bool(request.is_pull_request),
+    )
+    status = str(authority.get("authority_status"))
+    resolution = {
+        "authorized": status == "tracked_reviewer_confirmed",
+        "authorization_status": status,
+        "review_data": review_data,
+        "tracked_reviewer": authority.get("tracked_reviewer"),
+        "live_control_plane_reviewers": list(authority.get("live_control_plane_reviewers") or []),
+        "reason": authority.get("reason"),
+    }
+    if not resolution["authorized"] or actor is None:
+        return resolution
+    tracked_reviewer = resolution.get("tracked_reviewer")
+    if not isinstance(tracked_reviewer, str) or tracked_reviewer.lower() != actor.lower():
+        resolution["authorized"] = False
+        resolution["authorization_status"] = "actor_not_current_reviewer"
+        resolution["reason"] = "actor_not_current_reviewer"
+    return resolution
+
+
+def reviewer_command_authority_failure_message(command_name: str, resolution: dict[str, object]) -> str:
+    status = str(resolution.get("authorization_status") or "")
+    tracked_reviewer = resolution.get("tracked_reviewer")
+    live_reviewers = [value for value in resolution.get("live_control_plane_reviewers") or [] if isinstance(value, str)]
+    if status == "live_read_unavailable":
+        return "❌ Unable to determine current assignees/reviewers from GitHub; refusing to continue."
+    if status in {"no_active_review", "no_tracked_reviewer"}:
+        return "❌ No active tracked review exists for this issue/PR."
+    if status == "actor_not_current_reviewer" and isinstance(tracked_reviewer, str) and tracked_reviewer:
+        return f"❌ Only the current reviewer (@{tracked_reviewer}) can use `/{command_name}`."
+    if status == "control_plane_mismatch":
+        if live_reviewers:
+            return (
+                f"❌ Unable to confirm @{tracked_reviewer} as the current reviewer from GitHub. "
+                f"Live reviewer(s): @{', @'.join(live_reviewers)}."
+            )
+        return f"❌ Unable to confirm @{tracked_reviewer} as the current reviewer from GitHub."
+    return f"❌ Unable to confirm current reviewer authority for `/{command_name}`."
 
 
 def _post_assignment_guidance(bot, request, reviewer: str) -> None:
