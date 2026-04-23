@@ -5,7 +5,15 @@ import pytest
 from scripts.reviewer_bot_lib import review_state
 from scripts.reviewer_bot_lib.config import GitHubApiResult
 from tests.fixtures.app_harness import AppHarness
-from tests.fixtures.reviewer_bot import make_state, valid_reviewer_board_metadata
+from tests.fixtures.reviewer_bot import (
+    make_state,
+    make_tracked_review_state,
+    pull_request_payload,
+    review_payload,
+    valid_reviewer_board_metadata,
+)
+from tests.fixtures.reviewer_bot_builders import accept_reviewer_review
+from tests.fixtures.reviewer_bot_fakes import RouteGitHubApi
 
 pytestmark = pytest.mark.integration
 
@@ -159,3 +167,88 @@ def test_execute_run_preview_reviewer_board_is_read_only(monkeypatch, capsys):
     assert payload["state_save_attempted"] is False
     assert payload["tracked_state_mutations_attempted"] is False
     assert payload["touched_projection_attempted"] is False
+
+
+def test_execute_run_preview_reviewer_board_keeps_pr264_alternate_approval_projection(monkeypatch, capsys):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(
+        EVENT_NAME="workflow_dispatch",
+        EVENT_ACTION="",
+        MANUAL_ACTION="preview-reviewer-board",
+        REVIEWER_BOARD_ENABLED="true",
+        REVIEWER_BOARD_TOKEN="board-token",
+        ISSUE_NUMBER=264,
+        VALIDATION_NONCE="board-preview-pr264",
+        GITHUB_SHA="workflow-head",
+    )
+    monkeypatch.setattr(harness.runtime, "_reviewer_board_project_metadata", None, raising=False)
+
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        264,
+        reviewer="iglesias",
+        assigned_at="2026-02-10T17:20:07Z",
+        active_cycle_started_at="2026-02-10T17:20:07Z",
+    )
+    accept_reviewer_review(
+        review,
+        semantic_key="pull_request_review:77",
+        timestamp="2026-03-18T01:09:05Z",
+        actor="iglesias",
+        reviewed_head_sha="head-old",
+    )
+
+    routes = RouteGitHubApi().add_request(
+        "GET",
+        "issues/264",
+        status_code=200,
+        payload={"number": 264, "state": "open", "pull_request": {}, "labels": []},
+    ).add_request(
+        "GET",
+        "pulls/264",
+        status_code=200,
+        payload={
+            **pull_request_payload(264, head_sha="head-live", author="manhatsu"),
+            "requested_reviewers": [],
+            "labels": [],
+        },
+    ).add_pull_request_reviews(
+        264,
+        [review_payload(501, state="APPROVED", submitted_at="2026-03-18T12:10:42Z", commit_id="head-live", author="plaindocs")],
+    )
+    harness.runtime.github.stub(routes)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_lock(acquire=lambda: (_ for _ in ()).throw(AssertionError("preview should not acquire lock")))
+    harness.stub_pass_until(lambda current: (_ for _ in ()).throw(AssertionError("preview should skip pass-until processing")))
+    harness.stub_sync_members(lambda current: (_ for _ in ()).throw(AssertionError("preview should skip member sync")))
+    harness.stub_save_state(lambda current: (_ for _ in ()).throw(AssertionError("preview should not save state")))
+    harness.stub_sync_status_labels(lambda current, issue_numbers: (_ for _ in ()).throw(AssertionError("preview should not sync labels")))
+    monkeypatch.setattr(harness.runtime, "github_graphql", lambda query, variables=None, *, token=None: valid_reviewer_board_metadata())
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="push": "granted"
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {
+        "schema_version": 1,
+        "preview_action": "preview-reviewer-board",
+        "issue_number": 264,
+        "validation_nonce": "board-preview-pr264",
+        "head_sha": "workflow-head",
+        "workflow_path": ".github/workflows/reviewer-bot-preview.yml",
+        "response_state": "awaiting_contributor_response",
+        "reviewer_authority_outcome": "tracked_reviewer_confirmed",
+        "suppression_reason": "current_head_alternate_approval_present",
+        "current_scope_key": "reviewer=iglesias|head=head-live|cycle=2026-02-10T17:20:07Z|anchor=none",
+        "current_scope_basis": "alternate_current_head_approval",
+        "would_post_warning": False,
+        "would_post_transition": False,
+        "lock_attempted": False,
+        "state_save_attempted": False,
+        "tracked_state_mutations_attempted": False,
+        "touched_projection_attempted": False,
+        "board_attention": "No",
+        "board_waiting_since": None,
+    }

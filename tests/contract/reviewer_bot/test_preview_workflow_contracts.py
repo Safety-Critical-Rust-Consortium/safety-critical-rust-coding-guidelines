@@ -27,6 +27,22 @@ def test_preview_workflow_exposes_exact_dispatch_inputs_and_actions():
     assert workflow_dispatch["inputs"]["validation_nonce"]["type"] == "string"
 
 
+def test_preview_workflow_remains_sole_retained_owner_of_preview_actions():
+    sweeper_text = Path(".github/workflows/reviewer-bot-sweeper-repair.yml").read_text(encoding="utf-8")
+    sweeper_data = yaml.safe_load(sweeper_text)
+    sweeper_on_block = sweeper_data.get("on", sweeper_data.get(True))
+    sweeper_action_input = sweeper_on_block["workflow_dispatch"]["inputs"]["action"]
+
+    assert sweeper_action_input["options"] == [
+        "sync-members",
+        "show-state",
+        "check-overdue",
+        "repair-review-status-labels",
+    ]
+    assert "REVIEWER_BOARD_ENABLED:" not in sweeper_text
+    assert "REVIEWER_BOARD_TOKEN:" not in sweeper_text
+
+
 def test_preview_workflow_run_name_and_env_contract_are_frozen():
     text, data, _ = _load_preview_workflow()
 

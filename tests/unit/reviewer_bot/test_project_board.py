@@ -216,6 +216,40 @@ def test_preview_board_projection_keeps_parity_with_refreshed_live_review_state(
     assert preview.desired.review_state == REVIEWER_BOARD_OPTION_AWAITING_CONTRIBUTOR
 
 
+def test_preview_board_projection_keeps_pr264_alternate_approval_boundary(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        264,
+        reviewer="iglesias",
+        assigned_at="2026-02-10T17:20:07Z",
+        active_cycle_started_at="2026-02-10T17:20:07Z",
+    )
+    accept_reviewer_review(
+        review,
+        semantic_key="pull_request_review:77",
+        timestamp="2026-03-18T01:09:05Z",
+        actor="iglesias",
+        reviewed_head_sha="head-old",
+        source_precedence=1,
+    )
+    routes = RouteGitHubApi().add_pull_request_snapshot(264, pull_request_payload(264, head_sha="head-live", author="manhatsu")).add_pull_request_reviews(
+        264,
+        [review_payload(501, state="APPROVED", submitted_at="2026-03-18T12:10:42Z", commit_id="head-live", author="plaindocs")],
+    )
+    runtime = _runtime(monkeypatch, routes)
+    runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
+    runtime.github.get_user_permission_status = lambda username, required_permission="push": "granted"
+
+    preview = project_board.preview_board_projection_for_item(runtime, state, 264)
+
+    assert preview.classification == "open_tracked_assigned"
+    assert preview.desired is not None
+    assert preview.desired.review_state == REVIEWER_BOARD_OPTION_AWAITING_CONTRIBUTOR
+    assert preview.desired.waiting_since is None
+    assert preview.desired.needs_attention == "No"
+
+
 def test_preview_board_projection_marks_projection_repair_as_attention(monkeypatch):
     state = make_state()
     make_tracked_review_state(

@@ -10,7 +10,7 @@ on:
         required: true
         default: check-overdue
         type: choice
-        options: [sync-members, show-state, check-overdue, repair-review-status-labels, preview-reviewer-board]
+        options: [sync-members, show-state, check-overdue, repair-review-status-labels]
       issue_number:
         description: Optional issue or PR number for targeted reviewer-board preview
         required: false
@@ -70,8 +70,6 @@ jobs:
           WORKFLOW_RUN_ID: ${{ github.run_id }}
           WORKFLOW_NAME: ${{ github.workflow }}
           WORKFLOW_JOB_NAME: ${{ github.job }}
-          REVIEWER_BOARD_ENABLED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && 'true' || 'false' }}
-          REVIEWER_BOARD_TOKEN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && secrets.REVIEWER_BOARD_TOKEN || '' }}
         run: uv run --project "$BOT_SRC_ROOT" reviewer-bot
       - name: Workflow summary
         run: |
