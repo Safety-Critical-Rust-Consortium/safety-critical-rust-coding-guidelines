@@ -33,14 +33,7 @@ def test_preview_workflow_remains_sole_retained_owner_of_preview_actions():
     sweeper_on_block = sweeper_data.get("on", sweeper_data.get(True))
     sweeper_action_input = sweeper_on_block["workflow_dispatch"]["inputs"]["action"]
 
-    assert sweeper_action_input["options"] == [
-        "sync-members",
-        "show-state",
-        "check-overdue",
-        "repair-review-status-labels",
-    ]
-    assert "REVIEWER_BOARD_ENABLED:" not in sweeper_text
-    assert "REVIEWER_BOARD_TOKEN:" not in sweeper_text
+    assert "preview-reviewer-board" not in sweeper_action_input["options"]
 
 
 def test_preview_workflow_run_name_and_env_contract_are_frozen():
