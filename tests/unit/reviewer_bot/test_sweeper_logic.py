@@ -319,6 +319,34 @@ def test_discover_visible_comment_events_skips_github_actions_and_bot_comments(m
     assert [item["source_event_key"] for item in discovered] == ["issue_comment:101"]
 
 
+def test_bot_authored_comment_gap_cleanup_is_narrow_false_positive_hygiene(monkeypatch):
+    runtime = _runtime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    review["sidecars"]["deferred_gaps"] = {
+        "issue_comment:210": {"reason": "artifact_missing"},
+        "pull_request_review:202": {"reason": "artifact_missing"},
+    }
+    runtime.github.stub(
+        RouteGitHubApi().add_request(
+            "GET",
+            "issues/comments/210",
+            status_code=200,
+            payload=issue_comment_event(
+                210,
+                created_at="2026-03-25T10:00:00Z",
+                login="github-actions[bot]",
+                user_type="Bot",
+            ),
+        )
+    )
+
+    assert sweeper._purge_bot_authored_comment_gap(runtime, review, "issue_comment:210") is True
+
+    assert review["sidecars"]["deferred_gaps"] == {"pull_request_review:202": {"reason": "artifact_missing"}}
+    assert review["sidecars"]["reconciled_source_events"] == {}
+
+
 def test_sweeper_visible_review_discovery_records_diagnostic_without_replay_mutation(monkeypatch, freeze_sweeper_now):
     freeze_sweeper_now("2026-03-25T12:30:00Z")
     runtime = _runtime(monkeypatch)
@@ -606,11 +634,13 @@ def test_sweeper_routes_deferred_sidecar_shapes_through_bookkeeping_owner():
     assert "gap_bookkeeping.list_deferred_gap_keys(" in module_text
     assert "gap_bookkeeping.get_deferred_gap(" in module_text
     assert "gap_bookkeeping.update_deferred_gap_fields(" in module_text
+    assert "gap_bookkeeping.begin_observer_surface_scan(" in module_text
     assert "gap_bookkeeping.ensure_observer_discovery_watermark(" in module_text
     assert "gap_bookkeeping.record_observer_watermark_event(" in observer_correlation_text
     assert "gap_bookkeeping.record_observer_watermark_empty_scan(" in observer_correlation_text
     assert "gap_bookkeeping._observer_discovery_watermarks(" not in module_text
     assert "gap_bookkeeping._observer_discovery_watermarks(" not in observer_correlation_text
+    assert "last_scan_started_at" not in module_text
     assert "last_safe_event_time" not in observer_correlation_text
     assert "last_scan_completed_at" not in observer_correlation_text
     assert "review_data.get(\"deferred_gaps\"" not in module_text

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 def _sidecars(review_data: dict) -> dict:
@@ -75,26 +75,78 @@ def _observer_now_iso(bot) -> str:
     return _now_iso(bot)
 
 
+def _parse_observer_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if timestamp.tzinfo is None:
+        return timestamp.replace(tzinfo=timezone.utc)
+    return timestamp
+
+
+def _configured_seconds(bot, name: str, default: int) -> int:
+    value = getattr(bot, name, default)
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return default
+    return seconds if seconds >= 0 else default
+
+
+def begin_observer_surface_scan(
+    bot,
+    review_data: dict,
+    surface: str,
+    *,
+    now: datetime | None = None,
+) -> datetime:
+    watermark = ensure_observer_discovery_watermark(review_data, surface)
+    scan_started_at = now or bot.clock.now()
+    if scan_started_at.tzinfo is None:
+        scan_started_at = scan_started_at.replace(tzinfo=timezone.utc)
+    lookback_seconds = _configured_seconds(bot, "DEFERRED_DISCOVERY_OVERLAP_SECONDS", 3600)
+    bootstrap_window_seconds = _configured_seconds(bot, "DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS", 604800)
+    watermark.update(
+        {
+            "last_scan_started_at": scan_started_at.isoformat(),
+            "lookback_seconds": lookback_seconds,
+            "bootstrap_window_seconds": bootstrap_window_seconds,
+        }
+    )
+    bootstrap_floor = scan_started_at - timedelta(seconds=bootstrap_window_seconds)
+    safe_time = _parse_observer_timestamp(watermark.get("last_safe_event_time"))
+    if safe_time is None:
+        return bootstrap_floor
+    return max(bootstrap_floor, safe_time - timedelta(seconds=lookback_seconds))
+
+
 def record_observer_watermark_event(bot, review_data: dict, surface: str, event_time: str, event_id: str) -> None:
     current = ensure_observer_discovery_watermark(review_data, surface)
+    now = _observer_now_iso(bot)
     current.update(
         {
-            "last_scan_started_at": current.get("last_scan_started_at") or _observer_now_iso(bot),
-            "last_scan_completed_at": _observer_now_iso(bot),
+            "last_scan_started_at": current.get("last_scan_started_at") or now,
+            "last_scan_completed_at": now,
             "last_safe_event_time": event_time,
             "last_safe_event_id": event_id,
-            "lookback_seconds": bot.DEFERRED_DISCOVERY_OVERLAP_SECONDS if hasattr(bot, "DEFERRED_DISCOVERY_OVERLAP_SECONDS") else 3600,
-            "bootstrap_window_seconds": bot.DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS if hasattr(bot, "DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS") else 604800,
-            "bootstrap_completed_at": current.get("bootstrap_completed_at") or _observer_now_iso(bot),
+            "lookback_seconds": _configured_seconds(bot, "DEFERRED_DISCOVERY_OVERLAP_SECONDS", 3600),
+            "bootstrap_window_seconds": _configured_seconds(bot, "DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS", 604800),
+            "bootstrap_completed_at": current.get("bootstrap_completed_at") or now,
         }
     )
 
 
 def record_observer_watermark_empty_scan(bot, review_data: dict, surface: str) -> None:
     watermark = ensure_observer_discovery_watermark(review_data, surface)
-    watermark["last_scan_started_at"] = watermark.get("last_scan_started_at") or _observer_now_iso(bot)
-    watermark["last_scan_completed_at"] = _observer_now_iso(bot)
-    watermark["bootstrap_completed_at"] = watermark.get("bootstrap_completed_at") or _observer_now_iso(bot)
+    now = _observer_now_iso(bot)
+    watermark["last_scan_started_at"] = watermark.get("last_scan_started_at") or now
+    watermark["last_scan_completed_at"] = now
+    watermark["lookback_seconds"] = _configured_seconds(bot, "DEFERRED_DISCOVERY_OVERLAP_SECONDS", 3600)
+    watermark["bootstrap_window_seconds"] = _configured_seconds(bot, "DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS", 604800)
+    watermark["bootstrap_completed_at"] = watermark.get("bootstrap_completed_at") or now
 
 
 def list_deferred_gap_keys(review_data: dict) -> list[str]:
@@ -128,7 +180,7 @@ def _is_valid_reconciled_source_event(existing: object, source_event_key: str) -
     return isinstance(reconciled_at, str) and bool(reconciled_at.strip())
 
 
-def _ensure_source_event_key(review_data: dict, source_event_key: str, payload: dict | None = None) -> None:
+def record_deferred_gap_payload(review_data: dict, source_event_key: str, payload: dict | None = None) -> None:
     deferred_gaps = _deferred_gaps(review_data)
     if payload is None:
         payload = {}
@@ -145,6 +197,7 @@ def clear_deferred_gap(review_data: dict, source_event_key: str) -> bool:
 
 
 def clear_automation_comment_gap(review_data: dict, source_event_key: str) -> bool:
+    """Clear only known self-authored issue-comment observer false positives."""
     if not source_event_key.startswith("issue_comment:"):
         return False
     return clear_deferred_gap(review_data, source_event_key)

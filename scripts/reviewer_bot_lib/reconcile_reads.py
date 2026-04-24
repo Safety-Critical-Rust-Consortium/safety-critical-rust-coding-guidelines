@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 
 class ReconcileReadError(RuntimeError):
@@ -27,6 +28,131 @@ class LiveCommentReplayContext:
     comment_sender_type_available: bool = False
     comment_installation_id_available: bool = False
     comment_performed_via_github_app_available: bool = False
+
+
+@dataclass(frozen=True)
+class DismissalTimeResolution:
+    timestamp: str | None
+    source: str | None = None
+    reason: str | None = None
+    failure_kind: str | None = None
+
+    @property
+    def exact(self) -> bool:
+        return self.timestamp is not None
+
+
+def _valid_exact_timestamp(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    timestamp = value.strip()
+    if "T" not in timestamp:
+        return None
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return timestamp
+
+
+def _dismissed_review_source_time(payload: dict | None) -> DismissalTimeResolution | None:
+    if not isinstance(payload, dict):
+        return None
+    if "source_dismissed_at" not in payload:
+        return None
+    value = payload.get("source_dismissed_at")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    timestamp = _valid_exact_timestamp(value)
+    if timestamp is None:
+        return DismissalTimeResolution(
+            None,
+            reason="payload_invalid_source_dismissed_at",
+            failure_kind="invalid_payload",
+        )
+    return DismissalTimeResolution(timestamp, source="payload")
+
+
+def read_review_dismissal_timeline_events(
+    bot,
+    pr_number: int,
+) -> tuple[list[dict] | None, str | None]:
+    events: list[dict] = []
+    page = 1
+    while True:
+        endpoint = f"issues/{pr_number}/timeline?per_page=100&page={page}"
+        try:
+            response = bot.github_api_request("GET", endpoint, retry_policy="idempotent_read")
+        except SystemExit:
+            payload = bot.github_api("GET", endpoint)
+            if not isinstance(payload, list):
+                return None, "unavailable"
+            page_events = payload
+        else:
+            if not response.ok:
+                return None, response.failure_kind or "unavailable"
+            if not isinstance(response.payload, list):
+                return None, "invalid_payload"
+            page_events = response.payload
+        events.extend(event for event in page_events if isinstance(event, dict))
+        if len(page_events) < 100:
+            return events, None
+        page += 1
+
+
+def resolve_review_dismissal_time(
+    bot,
+    pr_number: int,
+    review_id: int,
+    payload: dict,
+) -> DismissalTimeResolution:
+    payload_time = _dismissed_review_source_time(payload)
+    if payload_time is not None:
+        return payload_time
+    events, failure_kind = read_review_dismissal_timeline_events(bot, pr_number)
+    if events is None:
+        return DismissalTimeResolution(
+            None,
+            reason="timeline_unavailable",
+            failure_kind=failure_kind,
+        )
+    matching_times: list[str] = []
+    for event in events:
+        if event.get("event") != "review_dismissed":
+            continue
+        dismissed_review = event.get("dismissed_review")
+        if not isinstance(dismissed_review, dict) or dismissed_review.get("review_id") != review_id:
+            continue
+        created_at = event.get("created_at")
+        if not isinstance(created_at, str) or not created_at.strip():
+            return DismissalTimeResolution(
+                None,
+                reason="timeline_event_missing_created_at",
+                failure_kind="invalid_payload",
+            )
+        timestamp = _valid_exact_timestamp(created_at)
+        if timestamp is None:
+            return DismissalTimeResolution(
+                None,
+                reason="timeline_event_invalid_created_at",
+                failure_kind="invalid_payload",
+            )
+        matching_times.append(timestamp)
+    if len(matching_times) == 1:
+        return DismissalTimeResolution(matching_times[0], source="timeline")
+    if len(matching_times) > 1:
+        return DismissalTimeResolution(
+            None,
+            reason="ambiguous_timeline_dismissal_events",
+            failure_kind="invalid_payload",
+        )
+    return DismissalTimeResolution(
+        None,
+        reason="timeline_dismissal_event_not_found",
+        failure_kind="not_found",
+    )
 
 
 def read_reconcile_object(bot, endpoint: str, *, label: str) -> dict:

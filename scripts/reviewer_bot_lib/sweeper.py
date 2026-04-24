@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,10 +22,6 @@ from .runtime_protocols import SweeperContext
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _now_iso() -> str:
-    return _now().isoformat()
 
 
 def _retention_days(bot: SweeperContext) -> int:
@@ -170,15 +166,6 @@ def _load_surface_watermark(review_data: dict, surface: str) -> dict:
     return gap_bookkeeping.ensure_observer_discovery_watermark(review_data, surface)
 
 
-def _surface_scan_floor(bot, watermark: dict) -> datetime:
-    now = _now()
-    bootstrap_floor = now - timedelta(seconds=bot.DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS)
-    safe_time = parse_timestamp(watermark.get("last_safe_event_time"))
-    if safe_time is None:
-        return bootstrap_floor
-    return max(bootstrap_floor, safe_time - timedelta(seconds=bot.DEFERRED_DISCOVERY_OVERLAP_SECONDS))
-
-
 def _list_issue_comments_paginated(bot, issue_number: int) -> tuple[list[dict] | None, bool]:
     comments: list[dict] = []
     page = 1
@@ -277,12 +264,10 @@ def _maybe_fetch_single_candidate_run_detail(bot, run_correlation: dict, artifac
 
 
 def _discover_visible_comment_events(bot, issue_number: int, review_data: dict) -> tuple[list[dict] | None, bool]:
-    watermark = _load_surface_watermark(review_data, "comments")
-    watermark["last_scan_started_at"] = _now_iso()
+    floor = gap_bookkeeping.begin_observer_surface_scan(bot, review_data, "comments", now=_now())
     comments, complete = _list_issue_comments_paginated(bot, issue_number)
     if comments is None:
         return None, False
-    floor = _surface_scan_floor(bot, watermark)
     discovered: list[dict] = []
     for comment in comments:
         if _is_automation_comment(comment):
@@ -309,12 +294,10 @@ def _discover_visible_comment_events(bot, issue_number: int, review_data: dict) 
 
 
 def _discover_visible_review_events(bot, issue_number: int, review_data: dict) -> tuple[list[dict] | None, bool]:
-    watermark = _load_surface_watermark(review_data, "reviews_submitted")
-    watermark["last_scan_started_at"] = _now_iso()
+    floor = gap_bookkeeping.begin_observer_surface_scan(bot, review_data, "reviews_submitted", now=_now())
     reviews = bot.github.get_pull_request_reviews(issue_number)
     if reviews is None:
         return None, False
-    floor = _surface_scan_floor(bot, watermark)
     discovered: list[dict] = []
     for review in reviews:
         review_id = review.get("id") if isinstance(review, dict) else None
@@ -342,12 +325,10 @@ def _discover_visible_review_events(bot, issue_number: int, review_data: dict) -
 
 
 def _discover_visible_review_comment_events(bot, issue_number: int, review_data: dict) -> tuple[list[dict] | None, bool]:
-    watermark = _load_surface_watermark(review_data, "review_comments")
-    watermark["last_scan_started_at"] = _now_iso()
+    floor = gap_bookkeeping.begin_observer_surface_scan(bot, review_data, "review_comments", now=_now())
     comments, complete = _list_review_comments_paginated(bot, issue_number)
     if comments is None:
         return None, False
-    floor = _surface_scan_floor(bot, watermark)
     discovered: list[dict] = []
     for comment in comments:
         if not isinstance(comment, dict) or _is_automation_comment(comment):
@@ -374,12 +355,10 @@ def _discover_visible_review_comment_events(bot, issue_number: int, review_data:
 
 
 def _discover_visible_review_dismissal_events(bot, issue_number: int, review_data: dict) -> tuple[list[dict] | None, bool]:
-    watermark = _load_surface_watermark(review_data, "reviews_dismissed")
-    watermark["last_scan_started_at"] = _now_iso()
+    floor = gap_bookkeeping.begin_observer_surface_scan(bot, review_data, "reviews_dismissed", now=_now())
     timeline_events, complete = _list_timeline_events_paginated(bot, issue_number)
     if timeline_events is None:
         return None, False
-    floor = _surface_scan_floor(bot, watermark)
     discovered: list[dict] = []
     for event in timeline_events:
         if event.get("event") != "review_dismissed":

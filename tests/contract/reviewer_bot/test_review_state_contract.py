@@ -183,6 +183,26 @@ def test_core_state_adapter_matches_current_sparse_review_entry_upgrade_contract
     }
 
 
+def test_deferred_gap_sidecar_literals_are_limited_to_owner_and_codec_boundary():
+    sidecar_literals = {
+        '"deferred_gaps"',
+        '"observer_discovery_watermarks"',
+        '"reconciled_source_events"',
+    }
+    paths_with_literals = []
+    for path in (ROOT / "scripts").rglob("*.py"):
+        relative_path = path.relative_to(ROOT).as_posix()
+        text = path.read_text(encoding="utf-8")
+        if any(literal in text for literal in sidecar_literals):
+            paths_with_literals.append(relative_path)
+
+    assert sorted(paths_with_literals) == [
+        "scripts/reviewer_bot_core/state_adapters.py",
+        "scripts/reviewer_bot_lib/deferred_gap_bookkeeping.py",
+    ]
+    assert "Codec boundary exception" in _read("scripts/reviewer_bot_core/state_adapters.py")
+
+
 def test_review_state_mutation_inventory_freezes_overlap_classification_and_live_read_scope():
     inventory = _read_review_state_inventory()
 

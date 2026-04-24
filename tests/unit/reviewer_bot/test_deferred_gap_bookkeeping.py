@@ -3,12 +3,12 @@ from tests.fixtures.fake_runtime import FakeReviewerBotRuntime
 from tests.fixtures.reviewer_bot import make_state
 
 
-def test_ensure_source_event_key_creates_and_updates_deferred_gap_payloads(monkeypatch):
+def test_record_deferred_gap_payload_creates_and_updates_payloads(monkeypatch):
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
     assert review is not None
 
-    deferred_gap_bookkeeping._ensure_source_event_key(review, "issue_comment:210", {"reason": "artifact_missing"})
-    deferred_gap_bookkeeping._ensure_source_event_key(review, "issue_comment:210", {"reason": "reconcile_failed_closed"})
+    deferred_gap_bookkeeping.record_deferred_gap_payload(review, "issue_comment:210", {"reason": "artifact_missing"})
+    deferred_gap_bookkeeping.record_deferred_gap_payload(review, "issue_comment:210", {"reason": "reconcile_failed_closed"})
 
     assert review["sidecars"]["deferred_gaps"]["issue_comment:210"] == {
         "source_event_key": "issue_comment:210",
@@ -162,6 +162,30 @@ def test_bookkeeping_owner_records_observer_watermark_event_and_empty_scan(monke
     comments = review["sidecars"]["observer_discovery_watermarks"]["review_comments"]
     assert comments["last_scan_started_at"] == "2026-03-18T00:00:00+00:00"
     assert comments["last_scan_completed_at"] == "2026-03-18T00:00:00+00:00"
+
+
+def test_bookkeeping_owner_begins_observer_scan_and_returns_overlap_floor(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    review["sidecars"]["observer_discovery_watermarks"]["reviews_dismissed"] = {
+        "last_scan_started_at": None,
+        "last_scan_completed_at": None,
+        "last_safe_event_time": "2026-03-17T10:00:00Z",
+        "last_safe_event_id": "12",
+        "lookback_seconds": None,
+        "bootstrap_window_seconds": None,
+        "bootstrap_completed_at": None,
+    }
+    runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
+
+    floor = deferred_gap_bookkeeping.begin_observer_surface_scan(runtime, review, "reviews_dismissed")
+
+    watermark = review["sidecars"]["observer_discovery_watermarks"]["reviews_dismissed"]
+    assert watermark["last_scan_started_at"] == "2026-03-18T00:00:00+00:00"
+    assert watermark["lookback_seconds"] == runtime.DEFERRED_DISCOVERY_OVERLAP_SECONDS
+    assert watermark["bootstrap_window_seconds"] == runtime.DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS
+    assert floor.isoformat() == "2026-03-17T09:00:00+00:00"
 
 
 def test_update_deferred_gap_preserves_first_noted_and_refreshes_last_checked(monkeypatch):

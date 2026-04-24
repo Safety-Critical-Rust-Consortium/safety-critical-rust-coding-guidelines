@@ -103,6 +103,8 @@ def ensure_sidecar_subtree(review_entry: dict[str, Any], *, state_last_updated: 
         sidecars = {}
         review_entry["sidecars"] = sidecars
 
+    # Codec boundary exception: runtime sidecar mutation belongs to
+    # deferred_gap_bookkeeping, but persisted legacy shapes are normalized here.
     sidecars["pending_privileged_commands"] = (
         deepcopy(sidecars.get("pending_privileged_commands"))
         if isinstance(sidecars.get("pending_privileged_commands"), dict)
