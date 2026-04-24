@@ -219,3 +219,35 @@ def test_execute_run_schedule_warning_diagnostic_mutation_projects_touched_item(
     assert result.state_changed is True
     assert saved_states
     assert synced == [[42]]
+
+
+def test_execute_run_schedule_removes_closed_pr_rows_through_lifecycle_owner(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(EVENT_NAME="schedule", EVENT_ACTION="")
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    saved_active_reviews = []
+    synced = []
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.runtime.github.get_issue_or_pr_snapshot = lambda issue_number: {
+        "number": issue_number,
+        "state": "closed",
+        "pull_request": {},
+        "labels": [],
+    }
+    monkeypatch.setattr(maintenance_schedule, "sweep_deferred_gaps", lambda bot, current: False)
+    monkeypatch.setattr(maintenance_schedule, "check_overdue_reviews", lambda bot, current: [])
+    harness.stub_save_state(lambda current: saved_active_reviews.append(dict(current["active_reviews"])) or True)
+    harness.stub_sync_status_labels(lambda current, issue_numbers: synced.append(list(issue_numbers)) or True)
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert saved_active_reviews == [{}]
+    assert synced == [[42]]

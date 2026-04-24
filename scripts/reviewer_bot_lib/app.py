@@ -150,6 +150,7 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
     sync_changes: list[str] = []
     restored: list[str] = []
     loaded_active_reviews_count = 0
+    loaded_active_review_numbers: set[int] = set()
     touched_items: list[int] = []
     projection_failure: RuntimeError | None = None
     loaded_epoch: str | None = None
@@ -186,6 +187,11 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
         active_reviews = state.get("active_reviews")
         if isinstance(active_reviews, dict):
             loaded_active_reviews_count = len(active_reviews)
+            loaded_active_review_numbers = {
+                int(issue_key)
+                for issue_key in active_reviews
+                if isinstance(issue_key, str) and issue_key.isdigit()
+            }
         loaded_epoch = state.get("freshness_runtime_epoch") if isinstance(state.get("freshness_runtime_epoch"), str) else None
 
         if lock_required:
@@ -297,10 +303,16 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                 allow_empty_override = (
                     bot.get_config_value("ALLOW_EMPTY_ACTIVE_REVIEWS_WRITE").strip().lower() == "true"
                 )
+                allow_closed_cleanup_empty = (
+                    loaded_active_reviews_count == len(loaded_active_review_numbers)
+                    and bool(loaded_active_review_numbers)
+                    and set(touched_items) == loaded_active_review_numbers
+                )
                 if (
                     loaded_active_reviews_count > 0
                     and current_active_reviews_count == 0
                     and not allow_empty_override
+                    and not allow_closed_cleanup_empty
                 ):
                     raise RuntimeError(
                         "STATE_GUARD_BLOCKED_EMPTY_ACTIVE_REVIEWS: refusing to persist schedule "

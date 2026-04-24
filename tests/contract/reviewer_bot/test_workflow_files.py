@@ -99,6 +99,15 @@ def test_pr_metadata_workflow_exports_raw_timestamp_boundary_fields():
     assert "EVENT_CREATED_AT: ${{ github.event.pull_request.updated_at }}" not in workflow_text
 
 
+def test_reconcile_workflow_permissions_cover_live_replay_reads():
+    workflow = yaml.safe_load(Path(".github/workflows/reviewer-bot-reconcile.yml").read_text(encoding="utf-8"))
+    permissions = workflow["jobs"]["reconcile"]["permissions"]
+
+    assert permissions["actions"] == "read"
+    assert permissions["issues"] in {"read", "write"}
+    assert permissions["pull-requests"] in {"read", "write"}
+
+
 @pytest.mark.parametrize(
     "workflow_path",
     [

@@ -53,6 +53,20 @@ def get_observer_discovery_watermarks(review_data: dict) -> dict:
     return _observer_discovery_watermarks(review_data)
 
 
+def _deferred_gap_keys(review_data: dict) -> list[str]:
+    return list(_deferred_gaps(review_data))
+
+
+def _get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
+    gap = _deferred_gaps(review_data).get(source_event_key)
+    return gap if isinstance(gap, dict) else {}
+
+
+def _deferred_gap_reason(review_data: dict, source_event_key: str) -> str | None:
+    reason = _get_deferred_gap(review_data, source_event_key).get("reason")
+    return reason if isinstance(reason, str) else None
+
+
 def _now_iso(bot) -> str:
     return bot.clock.now().isoformat()
 
@@ -75,6 +89,16 @@ def _clear_source_event_key(review_data: dict, source_event_key: str) -> bool:
         deferred_gaps.pop(source_event_key, None)
         return True
     return False
+
+
+def _update_deferred_gap_fields(review_data: dict, source_event_key: str, fields: dict) -> bool:
+    deferred_gaps = _deferred_gaps(review_data)
+    existing = deferred_gaps.get(source_event_key)
+    if not isinstance(existing, dict):
+        return False
+    previous = deepcopy(existing)
+    existing.update(fields)
+    return previous != existing
 
 
 def _mark_reconciled_source_event(
@@ -100,7 +124,13 @@ def _mark_reconciled_source_event(
 
 
 def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
-    return source_event_key in _reconciled_source_events(review_data)
+    existing = _reconciled_source_events(review_data).get(source_event_key)
+    if not isinstance(existing, dict):
+        return False
+    if existing.get("source_event_key") != source_event_key:
+        return False
+    reconciled_at = existing.get("reconciled_at")
+    return isinstance(reconciled_at, str) and bool(reconciled_at.strip())
 
 
 def _payload_or_existing(payload: dict, existing: dict, key: str):

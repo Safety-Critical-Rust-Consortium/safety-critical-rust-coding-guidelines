@@ -53,9 +53,8 @@ def test_execute_run_closed_issue_comment_safe_noop_keeps_lifecycle_cleanup_owne
 
     assert result.exit_code == 0
     assert save_calls == []
-    assert len(sync_calls) == 1
-    assert sync_calls[0][0] is initial_state
-    assert sync_calls[0][1] == [42]
+    assert sync_calls == []
+
 
 def test_execute_run_closed_issue_comment_without_entry_skips_save(monkeypatch):
     harness = AppHarness(monkeypatch)
@@ -91,7 +90,56 @@ def test_execute_run_closed_issue_comment_without_entry_skips_save(monkeypatch):
 
     assert result.exit_code == 0
     assert save_called["value"] is False
-    assert sync_calls == [[42]]
+    assert sync_calls == []
+
+
+def test_execute_run_closed_pr_comment_safe_noop_does_not_save_or_project(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(
+        EVENT_NAME="issue_comment",
+        EVENT_ACTION="created",
+        ISSUE_NUMBER=42,
+        IS_PULL_REQUEST="true",
+        ISSUE_STATE="closed",
+        ISSUE_AUTHOR="dana",
+        COMMENT_USER_TYPE="User",
+        COMMENT_SENDER_TYPE="User",
+        COMMENT_AUTHOR="alice",
+        COMMENT_AUTHOR_ID=101,
+        COMMENT_AUTHOR_ASSOCIATION="MEMBER",
+        COMMENT_ID=100,
+        COMMENT_CREATED_AT="2026-03-17T10:00:00Z",
+        COMMENT_BODY="@guidelines-bot /queue",
+        COMMENT_PERFORMED_VIA_GITHUB_APP="false",
+        REVIEWER_BOT_ROUTE_OUTCOME="trusted_direct",
+        REVIEWER_BOT_TRUST_CLASS="pr_trusted_direct",
+        GITHUB_REPOSITORY="rustfoundation/safety-critical-rust-coding-guidelines",
+        PR_HEAD_FULL_NAME="rustfoundation/safety-critical-rust-coding-guidelines",
+        PR_AUTHOR="dana",
+        GITHUB_RUN_ID="123",
+        GITHUB_RUN_ATTEMPT="1",
+    )
+
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    save_called = {"value": False}
+    sync_calls = []
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.stub_save_state(lambda current: save_called.__setitem__("value", True) or True)
+    harness.stub_sync_status_labels(lambda current, issue_numbers: sync_calls.append(list(issue_numbers)) or False)
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert state["active_reviews"]["42"] is review
+    assert save_called["value"] is False
+    assert sync_calls == []
 
 
 def test_execute_run_late_workflow_run_reconcile_missing_row_safe_noop(monkeypatch):

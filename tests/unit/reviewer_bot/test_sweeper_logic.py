@@ -204,7 +204,7 @@ def test_sweeper_skips_dismissed_reviews_already_reconciled_by_source_event_key(
     review["sidecars"]["reconciled_source_events"] = {
         "pull_request_review_dismissed:303": {
             "source_event_key": "pull_request_review_dismissed:303",
-            "reconciled_at": None,
+            "reconciled_at": "2026-03-17T12:01:00+00:00",
         }
     }
     routes = (
@@ -265,8 +265,8 @@ def test_sweeper_skips_events_already_reconciled_by_source_event_key(monkeypatch
     assert review is not None
     review["current_reviewer"] = "alice"
     review["sidecars"]["reconciled_source_events"] = {
-        "issue_comment:101": {"source_event_key": "issue_comment:101", "reconciled_at": None},
-        "pull_request_review:202": {"source_event_key": "pull_request_review:202", "reconciled_at": None},
+        "issue_comment:101": {"source_event_key": "issue_comment:101", "reconciled_at": "2026-03-17T10:01:00+00:00"},
+        "pull_request_review:202": {"source_event_key": "pull_request_review:202", "reconciled_at": "2026-03-17T11:01:00+00:00"},
     }
     routes = (
         RouteGitHubApi()

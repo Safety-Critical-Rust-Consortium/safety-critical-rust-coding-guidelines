@@ -192,6 +192,7 @@ def test_deferred_review_dismissal_replay_uses_source_dismissal_time(monkeypatch
     assert review["review_dismissal"]["accepted"]["timestamp"] == "2026-03-17T10:10:00Z"
     assert "pull_request_review_dismissed:12" in _reconciled_source_events(review)
     assert "pull_request_review_dismissed:12" not in _deferred_gaps(review)
+    assert "issues/42/timeline?per_page=100&page=1" not in harness.github.requested_endpoints()
 
 
 def test_deferred_review_dismissal_replay_uses_exact_timeline_dismissed_at(monkeypatch):
@@ -229,6 +230,59 @@ def test_deferred_review_dismissal_replay_uses_exact_timeline_dismissed_at(monke
     assert harness.run(state) is True
     assert review["review_dismissal"]["accepted"]["timestamp"] == "2026-03-17T10:12:00Z"
     assert "pull_request_review_dismissed:12" in _reconciled_source_events(review)
+
+
+def test_deferred_review_dismissal_replay_finds_exact_time_on_paginated_timeline(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at=None,
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    )
+    harness.add_pull_request(pr_number=42, head_sha="head-1", author="dana")
+    first_page = [
+        {
+            "event": "review_dismissed",
+            "created_at": "2026-03-17T10:00:00Z",
+            "dismissed_review": {"review_id": 99, "state": "commented"},
+        }
+        for _ in range(100)
+    ]
+    harness.github.add_request(
+        "GET",
+        "issues/42/timeline?per_page=100&page=1",
+        status_code=200,
+        payload=first_page,
+    )
+    harness.github.add_request(
+        "GET",
+        "issues/42/timeline?per_page=100&page=2",
+        status_code=200,
+        payload=[
+            {
+                "event": "review_dismissed",
+                "created_at": "2026-03-17T10:12:00Z",
+                "dismissed_review": {"review_id": 12, "state": "commented"},
+            }
+        ],
+    )
+    harness.stub_review_rebuild(changed=False)
+    harness.stub_head_repair(changed=False)
+
+    assert harness.run(state) is True
+
+    assert review["review_dismissal"]["accepted"]["timestamp"] == "2026-03-17T10:12:00Z"
+    assert "issues/42/timeline?per_page=100&page=1" in harness.github.requested_endpoints()
+    assert "issues/42/timeline?per_page=100&page=2" in harness.github.requested_endpoints()
 
 
 def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(monkeypatch):
@@ -281,6 +335,11 @@ def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(mon
         ),
         (
             None,
+            [{"event": "review_dismissed", "dismissed_review": {"review_id": 12}}],
+            "timeline_event_missing_created_at",
+        ),
+        (
+            None,
             [
                 {"event": "review_dismissed", "created_at": "2026-03-17T10:12:00Z", "dismissed_review": {"review_id": 12}},
                 {"event": "review_dismissed", "created_at": "2026-03-17T10:13:00Z", "dismissed_review": {"review_id": 12}},
@@ -325,6 +384,38 @@ def test_deferred_review_dismissal_without_valid_exact_time_stays_diagnostic_onl
     gap = _deferred_gaps(review)["pull_request_review_dismissed:12"]
     assert gap["reason"] == "reconcile_failed_closed"
     assert expected_reason in gap["diagnostic_summary"]
+
+
+def test_deferred_review_dismissal_timeline_failure_stays_diagnostic_with_failure_kind(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at=None,
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    )
+    harness.add_pull_request(pr_number=42, head_sha="head-1", author="dana")
+    harness.add_request_failure(
+        endpoint="issues/42/timeline?per_page=100&page=1",
+        status_code=403,
+        payload={"message": "resource not accessible by integration"},
+        failure_kind="forbidden",
+    )
+
+    assert harness.run(state) is True
+
+    gap = _deferred_gaps(review)["pull_request_review_dismissed:12"]
+    assert gap["reason"] == "reconcile_failed_closed"
+    assert gap["failure_kind"] == "forbidden"
+    assert "timeline_unavailable" in gap["diagnostic_summary"]
 
 
 def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raising(monkeypatch):

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .lifecycle import handle_transition_notice, maybe_record_head_observation_repair
+from .lifecycle import (
+    handle_transition_notice,
+    maybe_record_head_observation_repair,
+    remove_closed_review_entry,
+)
 from .overdue import (
     backfill_transition_notice_if_present,
     check_overdue_reviews,
@@ -108,12 +112,15 @@ def _run_tracked_pr_repairs(bot, state: dict) -> bool:
     active_reviews = state.get("active_reviews")
     if not isinstance(active_reviews, dict):
         return False
-    for issue_key, review_data in active_reviews.items():
+    for issue_key, review_data in list(active_reviews.items()):
         if not isinstance(review_data, dict) or not review_data.get("current_reviewer"):
             continue
         issue_number = int(issue_key)
         issue_snapshot = bot.github.get_issue_or_pr_snapshot(issue_number)
         if not isinstance(issue_snapshot, dict) or not isinstance(issue_snapshot.get("pull_request"), dict):
+            continue
+        if str(issue_snapshot.get("state", "")).lower() == "closed":
+            changed = remove_closed_review_entry(bot, state, issue_number, reason="scheduled_closed_snapshot") or changed
             continue
         changed = _run_tracked_pr_repair(bot, issue_number, review_data) or changed
     return changed

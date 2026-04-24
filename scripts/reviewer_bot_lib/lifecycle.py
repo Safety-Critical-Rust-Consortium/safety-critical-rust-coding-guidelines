@@ -558,8 +558,20 @@ def handle_closed_event(bot, state: dict) -> bool:
     if not issue_number:
         return False
     bot.collect_touched_item(issue_number)
+    return remove_closed_review_entry(bot, state, issue_number, reason="closed_event")
+
+
+def remove_closed_review_entry(bot, state: dict, issue_number: int, *, reason: str) -> bool:
     issue_key = str(issue_number)
     if isinstance(state.get("active_reviews"), dict) and issue_key in state["active_reviews"]:
         del state["active_reviews"][issue_key]
+        _log(
+            bot,
+            "info",
+            f"Removed active review row for closed item #{issue_number}",
+            issue_number=issue_number,
+            reason=reason,
+        )
+        bot.collect_touched_item(issue_number)
         return True
     return False
