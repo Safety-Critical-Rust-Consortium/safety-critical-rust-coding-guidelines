@@ -231,6 +231,21 @@ def _list_review_comments_paginated(bot, issue_number: int) -> tuple[list[dict] 
         page += 1
 
 
+def _list_timeline_events_paginated(bot, issue_number: int) -> tuple[list[dict] | None, bool]:
+    events: list[dict] = []
+    page = 1
+    while True:
+        response, _ = _read_api_payload(bot, f"issues/{issue_number}/timeline?per_page=100&page={page}")
+        if response is None:
+            return None, False
+        if not isinstance(response, list):
+            return None, False
+        events.extend([event for event in response if isinstance(event, dict)])
+        if len(response) < 100:
+            return events, True
+        page += 1
+
+
 def _is_automation_comment(comment: dict) -> bool:
     user = comment.get("user") if isinstance(comment, dict) else None
     login = user.get("login") if isinstance(user, dict) else None
@@ -412,19 +427,17 @@ def _discover_visible_review_comment_events(bot, issue_number: int, review_data:
 def _discover_visible_review_dismissal_events(bot, issue_number: int, review_data: dict) -> tuple[list[dict] | None, bool]:
     watermark = _load_surface_watermark(review_data, "reviews_dismissed")
     watermark["last_scan_started_at"] = _now_iso()
-    reviews = bot.github.get_pull_request_reviews(issue_number)
-    if reviews is None:
+    timeline_events, complete = _list_timeline_events_paginated(bot, issue_number)
+    if timeline_events is None:
         return None, False
     floor = _surface_scan_floor(bot, watermark)
     discovered: list[dict] = []
-    for review in reviews:
-        if not isinstance(review, dict):
+    for event in timeline_events:
+        if event.get("event") != "review_dismissed":
             continue
-        review_id = review.get("id")
-        state = str(review.get("state", "")).strip().upper()
-        dismissed_at = review.get("dismissed_at")
-        if state != "DISMISSED":
-            continue
+        dismissed_review = event.get("dismissed_review")
+        review_id = dismissed_review.get("review_id") if isinstance(dismissed_review, dict) else None
+        dismissed_at = event.get("created_at")
         if not isinstance(review_id, int) or not isinstance(dismissed_at, str):
             continue
         dismissed_dt = parse_timestamp(dismissed_at)
@@ -440,7 +453,7 @@ def _discover_visible_review_dismissal_events(bot, issue_number: int, review_dat
                 "surface": "reviews_dismissed",
             }
         )
-    return discovered, True
+    return discovered, complete
 
 
 def _record_gap_diagnostics(

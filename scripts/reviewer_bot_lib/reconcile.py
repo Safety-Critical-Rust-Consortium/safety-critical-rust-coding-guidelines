@@ -75,6 +75,18 @@ class WorkflowRunHandlerResult:
     touched_items: list[int]
 
 
+@dataclass(frozen=True)
+class DismissalTimeResolution:
+    timestamp: str | None
+    source: str | None = None
+    reason: str | None = None
+    failure_kind: str | None = None
+
+    @property
+    def exact(self) -> bool:
+        return self.timestamp is not None
+
+
 def _log(bot: ReconcileWorkflowRuntimeContext, level: str, message: str, **fields) -> None:
     bot.logger.event(level, message, **fields)
 
@@ -492,15 +504,8 @@ def _handle_review_dismissed_workflow_run(
         expected_event_action="dismissed",
     )
     source_event_key = context.source_event_key
-    source_dismissed_at = _dismissed_review_source_time(parsed_payload.raw_payload)
-    if source_dismissed_at is None:
-        live_review = _read_optional_reconcile_object(
-            bot,
-            f"pulls/{context.pr_number}/reviews/{context.review_id}",
-            label=f"live dismissed review #{context.review_id}",
-        )
-        source_dismissed_at = _dismissed_review_source_time(live_review)
-    if source_dismissed_at is None:
+    dismissal_time = _resolve_review_dismissal_time(bot, context, parsed_payload.raw_payload)
+    if not dismissal_time.exact:
         return gap_bookkeeping._update_deferred_gap(
             bot,
             review_data,
@@ -508,13 +513,14 @@ def _handle_review_dismissed_workflow_run(
             "reconcile_failed_closed",
             (
                 f"Deferred review dismissal {context.review_id} lacks exact source dismissal time; "
-                f"dismissal replay suppressed. See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}."
+                f"dismissal replay suppressed ({dismissal_time.reason or 'unavailable'}). "
+                f"See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}."
             ),
-            failure_kind="invalid_payload",
+            failure_kind=dismissal_time.failure_kind,
         )
     decision = reconcile_replay_policy.decide_review_dismissed_replay(
         source_event_key=source_event_key,
-        timestamp=source_dismissed_at,
+        timestamp=str(dismissal_time.timestamp),
     )
     state_changed = False
     if decision.accept_review_dismissal:
@@ -546,11 +552,79 @@ def _dismissed_review_source_time(payload: dict | None) -> str | None:
     value = payload.get("source_dismissed_at")
     if isinstance(value, str) and value.strip():
         return value.strip()
-    if str(payload.get("state", "")).strip().upper() == "DISMISSED":
-        dismissed_at = payload.get("dismissed_at")
-        if isinstance(dismissed_at, str) and dismissed_at.strip():
-            return dismissed_at.strip()
     return None
+
+
+def _read_review_dismissal_timeline_events(
+    bot: ReconcileWorkflowRuntimeContext,
+    pr_number: int,
+) -> tuple[list[dict] | None, str | None]:
+    events: list[dict] = []
+    page = 1
+    while True:
+        endpoint = f"issues/{pr_number}/timeline?per_page=100&page={page}"
+        try:
+            response = bot.github_api_request("GET", endpoint, retry_policy="idempotent_read")
+        except SystemExit:
+            payload = bot.github_api("GET", endpoint)
+            if not isinstance(payload, list):
+                return None, "unavailable"
+            page_events = payload
+        else:
+            if not response.ok:
+                return None, response.failure_kind or "unavailable"
+            if not isinstance(response.payload, list):
+                return None, "invalid_payload"
+            page_events = response.payload
+        events.extend(event for event in page_events if isinstance(event, dict))
+        if len(page_events) < 100:
+            return events, None
+        page += 1
+
+
+def _resolve_review_dismissal_time(
+    bot: ReconcileWorkflowRuntimeContext,
+    context: DeferredReviewReplayContext,
+    payload: dict,
+) -> DismissalTimeResolution:
+    payload_time = _dismissed_review_source_time(payload)
+    if payload_time is not None:
+        return DismissalTimeResolution(payload_time, source="payload")
+    events, failure_kind = _read_review_dismissal_timeline_events(bot, context.pr_number)
+    if events is None:
+        return DismissalTimeResolution(
+            None,
+            reason="timeline_unavailable",
+            failure_kind=failure_kind,
+        )
+    matching_times: list[str] = []
+    for event in events:
+        if event.get("event") != "review_dismissed":
+            continue
+        dismissed_review = event.get("dismissed_review")
+        if not isinstance(dismissed_review, dict) or dismissed_review.get("review_id") != context.review_id:
+            continue
+        created_at = event.get("created_at")
+        if not isinstance(created_at, str) or not created_at.strip():
+            return DismissalTimeResolution(
+                None,
+                reason="timeline_event_missing_created_at",
+                failure_kind="invalid_payload",
+            )
+        matching_times.append(created_at.strip())
+    if len(matching_times) == 1:
+        return DismissalTimeResolution(matching_times[0], source="timeline")
+    if len(matching_times) > 1:
+        return DismissalTimeResolution(
+            None,
+            reason="ambiguous_timeline_dismissal_events",
+            failure_kind="invalid_payload",
+        )
+    return DismissalTimeResolution(
+        None,
+        reason="timeline_dismissal_event_not_found",
+        failure_kind="not_found",
+    )
 
 
 _WORKFLOW_RUN_HANDLER_MATRIX: dict[tuple[str, str], tuple[type[DeferredCommentPayload] | type[DeferredReviewPayload], object]] = {

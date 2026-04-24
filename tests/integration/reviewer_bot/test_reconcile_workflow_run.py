@@ -122,7 +122,7 @@ def test_deferred_review_dismissal_replay_uses_source_dismissal_time(monkeypatch
     assert "pull_request_review_dismissed:12" not in _deferred_gaps(review)
 
 
-def test_deferred_review_dismissal_replay_uses_exact_live_dismissed_at(monkeypatch):
+def test_deferred_review_dismissal_replay_uses_exact_timeline_dismissed_at(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")
     harness = ReconcileHarness(
@@ -138,15 +138,18 @@ def test_deferred_review_dismissal_replay_uses_exact_live_dismissed_at(monkeypat
             source_run_attempt=1,
         ),
     )
-    live_review = review_payload(
-        12,
-        submitted_at="2026-03-17T10:00:00Z",
-        state="DISMISSED",
-        commit_id="head-1",
-        author="alice",
+    harness.github.add_request(
+        "GET",
+        "issues/42/timeline?per_page=100&page=1",
+        status_code=200,
+        payload=[
+            {
+                "event": "review_dismissed",
+                "created_at": "2026-03-17T10:12:00Z",
+                "dismissed_review": {"review_id": 12, "state": "commented"},
+            }
+        ],
     )
-    live_review["dismissed_at"] = "2026-03-17T10:12:00Z"
-    harness.github.add_request("GET", "pulls/42/reviews/12", status_code=200, payload=live_review)
     harness.stub_review_rebuild(changed=False)
     harness.stub_head_repair(changed=False)
 
@@ -171,13 +174,17 @@ def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(mon
             source_run_attempt=1,
         ),
     )
-    harness.add_review(
-        pr_number=42,
-        review_id=12,
-        submitted_at="2026-03-17T10:00:00Z",
-        state="DISMISSED",
-        commit_id="head-1",
-        author="alice",
+    harness.github.add_request(
+        "GET",
+        "issues/42/timeline?per_page=100&page=1",
+        status_code=200,
+        payload=[
+            {
+                "event": "review_dismissed",
+                "created_at": "2026-03-17T10:12:00Z",
+                "dismissed_review": {"review_id": 99, "state": "commented"},
+            }
+        ],
     )
 
     assert harness.run(state) is True
@@ -186,6 +193,7 @@ def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(mon
     gap = _deferred_gaps(review)["pull_request_review_dismissed:12"]
     assert gap["reason"] == "reconcile_failed_closed"
     assert "lacks exact source dismissal time" in gap["diagnostic_summary"]
+    assert "timeline_dismissal_event_not_found" in gap["diagnostic_summary"]
 
 
 def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raising(monkeypatch):

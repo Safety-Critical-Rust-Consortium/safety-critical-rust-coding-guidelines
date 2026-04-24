@@ -7,6 +7,7 @@ pytestmark = pytest.mark.integration
 
 from scripts.reviewer_bot_lib import reconcile, review_state
 from tests.fixtures.app_harness import AppHarness
+from tests.fixtures.reconcile_harness import review_dismissed_payload
 from tests.fixtures.reviewer_bot import make_state
 
 
@@ -264,6 +265,56 @@ def test_execute_run_workflow_run_deferred_review_comment_bookkeeping_only_recon
     assert save_snapshots == [
         {"reconciled": ["pull_request_review_comment:310"], "gap_present": False}
     ]
+
+
+def test_execute_run_workflow_run_missing_row_safe_noop_does_not_save_or_project(
+    tmp_path, monkeypatch
+):
+    harness = AppHarness(monkeypatch)
+    harness.set_workflow_run_name("Reviewer Bot PR Review Dismissed Observer")
+    payload = review_dismissed_payload(
+        pr_number=42,
+        review_id=12,
+        source_event_key="pull_request_review_dismissed:12",
+        source_dismissed_at=None,
+        source_commit_id="head-1",
+        actor_login="alice",
+        source_run_id=712,
+        source_run_attempt=1,
+    )
+    payload_path = tmp_path / "deferred-review-dismissed.json"
+    payload_path.write_text(
+        json.dumps(payload),
+        encoding="utf-8",
+    )
+    harness.runtime.stub_deferred_payload(payload)
+    harness.set_event(
+        EVENT_NAME="workflow_run",
+        EVENT_ACTION="completed",
+        REVIEWER_BOT_WORKFLOW_KIND="reconcile",
+        WORKFLOW_RUN_TRIGGERING_CONCLUSION="success",
+        DEFERRED_CONTEXT_PATH=str(payload_path),
+        WORKFLOW_RUN_TRIGGERING_ID="712",
+        WORKFLOW_RUN_TRIGGERING_ATTEMPT="1",
+    )
+    state = make_state()
+    save_snapshots = []
+    projected_issue_numbers = []
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.stub_save_state(lambda current: save_snapshots.append(current) or True)
+    harness.stub_sync_status_labels(lambda current, issue_numbers: projected_issue_numbers.extend(issue_numbers) or True)
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert result.state_changed is False
+    assert state["active_reviews"] == {}
+    assert save_snapshots == []
+    assert projected_issue_numbers == []
 
 
 def test_m1_reconcile_exposes_typed_workflow_run_result_shape():
