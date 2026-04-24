@@ -143,6 +143,32 @@ def test_ensure_review_entry_repairs_missing_nested_maps_and_legacy_list_fields(
     assert review["sidecars"]["reconciled_source_events"] == {}
 
 
+def test_ensure_review_entry_preserves_deferred_gap_replay_provenance_fields():
+    state = make_state()
+    state["active_reviews"]["42"] = {
+        "deferred_gaps": {
+            "issue_comment:210": {
+                "source_event_key": "issue_comment:210",
+                "source_run_id": 610,
+                "source_run_attempt": 1,
+                "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-router.yml",
+                "source_artifact_name": "reviewer-bot-comment-context-610-attempt-1",
+            }
+        }
+    }
+
+    review = review_state.ensure_review_entry(state, 42, create=False)
+
+    assert review is not None
+    assert review["sidecars"]["deferred_gaps"]["issue_comment:210"] == {
+        "source_event_key": "issue_comment:210",
+        "source_run_id": 610,
+        "source_run_attempt": 1,
+        "source_workflow_file": ".github/workflows/reviewer-bot-pr-comment-router.yml",
+        "source_artifact_name": "reviewer-bot-comment-context-610-attempt-1",
+    }
+
+
 def test_core_state_adapter_matches_current_sparse_review_entry_upgrade_contract():
     state = make_state()
     state["active_reviews"]["42"] = ["alice", "bob"]

@@ -365,7 +365,11 @@ def _reconcile_deferred_comment(
             return record_artifact_invalid(exc)
     reconciled_changed = False
     if decision.mark_reconciled:
-        reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(review_data, str(payload.get("source_event_key", "")))
+        reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(
+            review_data,
+            str(payload.get("source_event_key", "")),
+            reconciled_at=_now_iso(bot),
+        )
         gap_cleared_changed = False
         if decision.clear_gap:
             gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, str(payload.get("source_event_key", "")))
@@ -450,7 +454,11 @@ def _handle_review_submitted_workflow_run(
         state_changed = True
     if _record_review_rebuild(bot, state, pr_number, review_data):
         state_changed = True
-    reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(review_data, source_event_key)
+    reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(
+        review_data,
+        source_event_key,
+        reconciled_at=_now_iso(bot),
+    )
     gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
     return state_changed or reconciled_changed or gap_cleared_changed
 
@@ -481,7 +489,11 @@ def _handle_review_dismissed_workflow_run(
         )
     bot.adapters.review_state.maybe_record_head_observation_repair(context.pr_number, review_data)
     _record_review_rebuild(bot, state, context.pr_number, review_data)
-    gap_bookkeeping._mark_reconciled_source_event(review_data, source_event_key)
+    gap_bookkeeping._mark_reconciled_source_event(
+        review_data,
+        source_event_key,
+        reconciled_at=_now_iso(bot),
+    )
     gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
     return True
 
@@ -511,6 +523,9 @@ def _workflow_run_handler_for_payload(parsed_payload: ParsedWorkflowRunPayload):
 
 def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state: dict) -> WorkflowRunHandlerResult:
     bot.assert_lock_held("handle_workflow_run_event")
+    event_context = build_event_context(bot)
+    if event_context.workflow_run_triggering_conclusion != "success":
+        raise RuntimeError("workflow_run reconcile requires successful triggering conclusion")
     if str(state.get("freshness_runtime_epoch", "")).strip() != "freshness_v15":
         _log(bot, "info", "V18 workflow_run reconcile safe-noop before epoch flip")
         return WorkflowRunHandlerResult(False, [])
@@ -525,7 +540,7 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
     try:
         payload = _load_deferred_context(bot)
     except RuntimeError:
-        if build_event_context(bot).workflow_artifact_contract == "artifact_optional_router":
+        if event_context.workflow_artifact_contract == "artifact_optional_router":
             return WorkflowRunHandlerResult(False, [])
         raise
     parsed_payload = parse_deferred_context_payload(payload)

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from scripts.reviewer_bot_lib import (
+    event_inputs,
     reconcile,
     reconcile_payloads,
     reconcile_reads,
@@ -177,7 +178,72 @@ def test_read_live_comment_replay_context_normalizes_comment_metadata():
     assert context == reconcile_reads.LiveCommentReplayContext(
         comment_author="alice",
         comment_user_type="User",
-        comment_sender_type="User",
-        comment_installation_id="",
-        comment_performed_via_github_app=False,
+        comment_sender_type=None,
+        comment_installation_id=None,
+        comment_performed_via_github_app=None,
     )
+
+
+def test_read_live_comment_replay_context_uses_only_exact_live_provenance_fields():
+    context = reconcile_reads.read_live_comment_replay_context(
+        {
+            "user": {"login": "github-actions[bot]", "type": "Bot"},
+            "sender": {"type": "Bot"},
+            "installation": {"id": 12345},
+            "performed_via_github_app": {"id": 67890},
+        },
+        {"actor_login": "alice"},
+    )
+
+    assert context == reconcile_reads.LiveCommentReplayContext(
+        comment_author="github-actions[bot]",
+        comment_user_type="Bot",
+        comment_sender_type="Bot",
+        comment_installation_id="12345",
+        comment_performed_via_github_app=True,
+    )
+
+
+def test_replay_comment_request_preserves_payload_provenance_without_exact_live_fields():
+    payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json")
+    payload.update(
+        {
+            "comment_sender_type": "User",
+            "comment_installation_id": "12345",
+            "comment_performed_via_github_app": True,
+        }
+    )
+    parsed_payload = reconcile_payloads.parse_deferred_context_payload(payload)
+    live_context = reconcile_reads.LiveCommentReplayContext(
+        comment_author="alice",
+        comment_user_type="User",
+        comment_sender_type=None,
+        comment_installation_id=None,
+        comment_performed_via_github_app=None,
+    )
+
+    request = event_inputs.build_replay_comment_event_request(parsed_payload, live_comment=live_context)
+
+    assert request.comment_sender_type == "User"
+    assert request.comment_installation_id == "12345"
+    assert request.comment_performed_via_github_app is True
+
+
+def test_replay_comment_request_accepts_exact_live_provenance_over_payload():
+    payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json")
+    parsed_payload = reconcile_payloads.parse_deferred_context_payload(payload)
+    live_context = reconcile_reads.LiveCommentReplayContext(
+        comment_author="github-actions[bot]",
+        comment_user_type="Bot",
+        comment_sender_type="Bot",
+        comment_installation_id="12345",
+        comment_performed_via_github_app=True,
+    )
+
+    request = event_inputs.build_replay_comment_event_request(parsed_payload, live_comment=live_context)
+
+    assert request.comment_author == "github-actions[bot]"
+    assert request.comment_user_type == "Bot"
+    assert request.comment_sender_type == "Bot"
+    assert request.comment_installation_id == "12345"
+    assert request.comment_performed_via_github_app is True

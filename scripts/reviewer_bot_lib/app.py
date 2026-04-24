@@ -72,8 +72,8 @@ def _classify_event_intent_from_context(bot: AppEventContextRuntime, context: Ev
     if event_name == "issue_comment":
         if event_action == "created":
             if context.is_pull_request is True:
-                trust_class = bot.get_config_value("REVIEWER_BOT_TRUST_CLASS").strip()
-                if trust_class in {"pr_deferred_reconcile", "safe_noop"}:
+                route_outcome = bot.get_config_value("REVIEWER_BOT_ROUTE_OUTCOME").strip()
+                if route_outcome in {"deferred_reconcile", "safe_noop"}:
                     return bot.EVENT_INTENT_NON_MUTATING_DEFER
             return bot.EVENT_INTENT_MUTATING
         return bot.EVENT_INTENT_NON_MUTATING_READONLY
@@ -219,7 +219,14 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
 
         elif event_name == "issue_comment":
             if event_action == "created":
-                state_changed = bot.handlers.handle_comment_event(state)
+                if event_intent == bot.EVENT_INTENT_NON_MUTATING_DEFER:
+                    _log(
+                        bot,
+                        "info",
+                        "Skipping direct PR issue-comment mutation for deferred router outcome.",
+                    )
+                else:
+                    state_changed = bot.handlers.handle_comment_event(state)
 
         elif event_name == "workflow_dispatch":
             state_changed = bot.handlers.handle_manual_dispatch(state)

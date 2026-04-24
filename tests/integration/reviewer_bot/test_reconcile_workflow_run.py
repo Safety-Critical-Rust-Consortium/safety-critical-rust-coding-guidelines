@@ -66,6 +66,7 @@ def test_handle_workflow_run_event_returns_true_for_submitted_review_bookkeeping
 
     assert harness.run(state) is True
     assert "pull_request_review:11" in _reconciled_source_events(review)
+    assert _reconciled_source_events(review)["pull_request_review:11"]["reconciled_at"] == "2026-01-01T00:00:00+00:00"
     assert "pull_request_review:11" not in _deferred_gaps(review)
 
 
@@ -157,6 +158,7 @@ def test_deferred_comment_reconcile_returns_true_for_bookkeeping_only_mutations(
 
     assert harness.run(state) is True
     assert "issue_comment:210" in _reconciled_source_events(review)
+    assert _reconciled_source_events(review)["issue_comment:210"]["reconciled_at"] == "2026-01-01T00:00:00+00:00"
     assert "issue_comment:210" not in _deferred_gaps(review)
 
 

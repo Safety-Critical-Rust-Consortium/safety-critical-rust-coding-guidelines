@@ -448,6 +448,21 @@ def build_replay_comment_event_request(payload, *, live_comment=None, comment_bo
     if not hasattr(payload, "issue_state") or not hasattr(payload, "issue_author") or not hasattr(payload, "issue_labels"):
         raise InvalidEventInput("build_replay_comment_event_request", ("typed deferred comment payload required",))
     resolved_body = payload.comment_body if comment_body is None else comment_body
+    comment_sender_type = (
+        live_comment.comment_sender_type
+        if live_comment is not None and live_comment.comment_sender_type is not None
+        else payload.comment_sender_type
+    )
+    comment_installation_id = (
+        live_comment.comment_installation_id
+        if live_comment is not None and live_comment.comment_installation_id is not None
+        else payload.comment_installation_id
+    )
+    comment_performed_via_github_app = (
+        live_comment.comment_performed_via_github_app
+        if live_comment is not None and live_comment.comment_performed_via_github_app is not None
+        else payload.comment_performed_via_github_app
+    )
     return CommentEventRequest(
         issue_number=payload.identity.pr_number,
         is_pull_request=True,
@@ -461,11 +476,7 @@ def build_replay_comment_event_request(payload, *, live_comment=None, comment_bo
         comment_created_at=payload.comment_created_at,
         comment_source_event_key=payload.identity.source_event_key,
         comment_user_type=(live_comment.comment_user_type if live_comment is not None else payload.comment_user_type),
-        comment_sender_type=(live_comment.comment_sender_type if live_comment is not None else payload.comment_sender_type),
-        comment_installation_id=(live_comment.comment_installation_id if live_comment is not None else payload.comment_installation_id),
-        comment_performed_via_github_app=(
-            live_comment.comment_performed_via_github_app
-            if live_comment is not None
-            else payload.comment_performed_via_github_app
-        ),
+        comment_sender_type=comment_sender_type,
+        comment_installation_id=comment_installation_id,
+        comment_performed_via_github_app=comment_performed_via_github_app,
     )

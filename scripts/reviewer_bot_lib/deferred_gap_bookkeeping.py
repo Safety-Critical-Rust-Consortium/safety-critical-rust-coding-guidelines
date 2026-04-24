@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timezone
 
 
 def _sidecars(review_data: dict) -> dict:
@@ -56,6 +57,10 @@ def _now_iso(bot) -> str:
     return bot.clock.now().isoformat()
 
 
+def _reconciled_at_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _ensure_source_event_key(review_data: dict, source_event_key: str, payload: dict | None = None) -> None:
     deferred_gaps = _deferred_gaps(review_data)
     if payload is None:
@@ -72,15 +77,26 @@ def _clear_source_event_key(review_data: dict, source_event_key: str) -> bool:
     return False
 
 
-def _mark_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
+def _mark_reconciled_source_event(
+    review_data: dict,
+    source_event_key: str,
+    *,
+    reconciled_at: str | None = None,
+) -> bool:
     reconciled = _reconciled_source_events(review_data)
-    if source_event_key not in reconciled:
-        reconciled[source_event_key] = {
-            "source_event_key": source_event_key,
-            "reconciled_at": None,
-        }
-        return True
-    return False
+    timestamp = reconciled_at or _reconciled_at_now()
+    existing = reconciled.get(source_event_key)
+    if isinstance(existing, dict):
+        if existing.get("source_event_key") != source_event_key or not existing.get("reconciled_at"):
+            existing["source_event_key"] = source_event_key
+            existing["reconciled_at"] = timestamp
+            return True
+        return False
+    reconciled[source_event_key] = {
+        "source_event_key": source_event_key,
+        "reconciled_at": timestamp,
+    }
+    return True
 
 
 def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:

@@ -32,13 +32,6 @@ _CANONICAL_REPAIR_MARKERS = (
     "assignment_confirm_read",
 )
 
-_DEFERRED_GAP_MIGRATION_DROP_KEYS = {
-    "source_run_id",
-    "source_run_attempt",
-    "source_workflow_file",
-    "source_artifact_name",
-}
-
 _REVIEWER_HANDOFF_KEYS = {
     "source_event_key",
     "timestamp",
@@ -73,7 +66,6 @@ def _migrate_deferred_gaps(legacy: Any) -> dict[str, Any]:
         migrated[source_event_key] = {
             key: deepcopy(value)
             for key, value in payload.items()
-            if key not in _DEFERRED_GAP_MIGRATION_DROP_KEYS
         }
     return migrated
 

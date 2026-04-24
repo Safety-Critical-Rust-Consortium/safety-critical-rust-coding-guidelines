@@ -150,6 +150,31 @@ def test_execute_run_reloads_state_before_syncing_status_labels(monkeypatch):
     assert release_calls == ["released"]
 
 
+def test_execute_run_deferred_pr_issue_comment_does_not_call_direct_handler(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(
+        EVENT_NAME="issue_comment",
+        EVENT_ACTION="created",
+        IS_PULL_REQUEST="true",
+        REVIEWER_BOT_ROUTE_OUTCOME="deferred_reconcile",
+    )
+    handler_calls = []
+    lock_calls = []
+    harness.stub_lock(
+        acquire=lambda: lock_calls.append("acquired"),
+        release=lambda: lock_calls.append("released") or True,
+    )
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: make_state())
+    harness.stub_handler("handle_comment_event", lambda state: handler_calls.append(state) or True)
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert result.state_changed is False
+    assert lock_calls == []
+    assert handler_calls == []
+
+
 def test_execute_run_opened_issue_assignment_failure_does_not_persist_reviewer_state(monkeypatch):
     runtime = reviewer_bot._runtime_bot()
     state = make_state()

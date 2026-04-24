@@ -69,6 +69,32 @@ def test_classify_event_intent_issue_synchronize_is_read_only(monkeypatch):
     assert intent == runtime.EVENT_INTENT_NON_MUTATING_READONLY
 
 
+@pytest.mark.parametrize(
+    ("route_outcome", "expected_intent"),
+    [
+        ("trusted_direct", "mutating"),
+        ("deferred_reconcile", "non_mutating_defer"),
+        ("safe_noop", "non_mutating_defer"),
+    ],
+)
+def test_classify_event_intent_pr_issue_comment_uses_router_outcome_for_mutation_lane(
+    monkeypatch,
+    route_outcome,
+    expected_intent,
+):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("IS_PULL_REQUEST", "true")
+    runtime.set_config_value("REVIEWER_BOT_ROUTE_OUTCOME", route_outcome)
+
+    intent = app.classify_event_intent(runtime, "issue_comment", "created")
+
+    expected = {
+        "mutating": runtime.EVENT_INTENT_MUTATING,
+        "non_mutating_defer": runtime.EVENT_INTENT_NON_MUTATING_DEFER,
+    }[expected_intent]
+    assert intent == expected
+
+
 def test_classify_event_intent_review_comment_is_non_mutating_defer(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     intent = app.classify_event_intent(runtime, "pull_request_review_comment", "created")

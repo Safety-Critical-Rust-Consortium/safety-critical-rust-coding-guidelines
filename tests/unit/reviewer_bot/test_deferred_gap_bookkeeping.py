@@ -22,15 +22,43 @@ def test_bookkeeping_owner_marks_clears_and_tracks_reconciled_source_events(monk
     review["sidecars"]["deferred_gaps"]["issue_comment:210"] = {"reason": "artifact_missing"}
 
     assert deferred_gap_bookkeeping._clear_source_event_key(review, "issue_comment:210") is True
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(review, "issue_comment:210") is True
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(review, "issue_comment:210") is False
+    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+        review,
+        "issue_comment:210",
+        reconciled_at="2026-03-18T00:00:00+00:00",
+    ) is True
+    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+        review,
+        "issue_comment:210",
+        reconciled_at="2026-03-18T00:00:00+00:00",
+    ) is False
     assert deferred_gap_bookkeeping._was_reconciled_source_event(review, "issue_comment:210") is True
     assert review["sidecars"]["deferred_gaps"] == {}
     assert review["sidecars"]["reconciled_source_events"] == {
         "issue_comment:210": {
             "source_event_key": "issue_comment:210",
-            "reconciled_at": None,
+            "reconciled_at": "2026-03-18T00:00:00+00:00",
         }
+    }
+
+
+def test_bookkeeping_owner_repairs_legacy_null_reconciled_at(monkeypatch):
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    review["sidecars"]["reconciled_source_events"]["issue_comment:210"] = {
+        "source_event_key": "issue_comment:210",
+        "reconciled_at": None,
+    }
+
+    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+        review,
+        "issue_comment:210",
+        reconciled_at="2026-03-18T00:00:00+00:00",
+    ) is True
+
+    assert review["sidecars"]["reconciled_source_events"]["issue_comment:210"] == {
+        "source_event_key": "issue_comment:210",
+        "reconciled_at": "2026-03-18T00:00:00+00:00",
     }
 
 

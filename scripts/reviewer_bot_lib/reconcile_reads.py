@@ -21,9 +21,9 @@ class LivePrReplayContext:
 class LiveCommentReplayContext:
     comment_author: str
     comment_user_type: str
-    comment_sender_type: str
-    comment_installation_id: str
-    comment_performed_via_github_app: bool
+    comment_sender_type: str | None
+    comment_installation_id: str | None
+    comment_performed_via_github_app: bool | None
 
 
 def read_reconcile_object(bot, endpoint: str, *, label: str) -> dict:
@@ -96,10 +96,28 @@ def read_live_comment_replay_context(live_comment: dict, payload: dict) -> LiveC
     comment_user_type = user.get("type")
     if not isinstance(comment_user_type, str) or not comment_user_type.strip():
         raise RuntimeError("Live deferred comment user type is unavailable")
+    sender = live_comment.get("sender")
+    comment_sender_type = None
+    if isinstance(sender, dict):
+        sender_type = sender.get("type")
+        if isinstance(sender_type, str) and sender_type.strip():
+            comment_sender_type = sender_type.strip()
+    installation = live_comment.get("installation")
+    comment_installation_id = None
+    if isinstance(installation, dict):
+        installation_id = installation.get("id")
+        if installation_id is not None and str(installation_id).strip():
+            comment_installation_id = str(installation_id).strip()
+    performed_via_app = live_comment.get("performed_via_github_app")
+    comment_performed_via_github_app = None
+    if isinstance(performed_via_app, bool):
+        comment_performed_via_github_app = performed_via_app
+    elif isinstance(performed_via_app, dict):
+        comment_performed_via_github_app = True
     return LiveCommentReplayContext(
         comment_author=comment_author,
         comment_user_type=comment_user_type,
-        comment_sender_type=comment_user_type,
-        comment_installation_id="",
-        comment_performed_via_github_app=bool(live_comment.get("performed_via_github_app")),
+        comment_sender_type=comment_sender_type,
+        comment_installation_id=comment_installation_id,
+        comment_performed_via_github_app=comment_performed_via_github_app,
     )

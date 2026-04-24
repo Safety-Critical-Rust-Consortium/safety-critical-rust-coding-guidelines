@@ -363,6 +363,35 @@ def test_workflow_run_reconcile_uses_artifact_contract_for_router_no_artifact_su
     assert result == reconcile.WorkflowRunHandlerResult(False, [])
 
 
+def test_workflow_run_reconcile_rejects_non_success_before_gap_mutation(monkeypatch):
+    state = make_state(epoch="freshness_v15")
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["sidecars"]["deferred_gaps"]["issue_comment:210"] = {"reason": "artifact_missing"}
+    harness = ReconcileHarness(
+        monkeypatch,
+        issue_comment_payload(
+            pr_number=42,
+            comment_id=210,
+            source_event_key="issue_comment:210",
+            body="@guidelines-bot /queue",
+            comment_class="command_only",
+            has_non_command_text=False,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="bob",
+            source_run_id=610,
+            source_run_attempt=1,
+        ),
+    )
+    harness.set_trigger_from_payload(harness.payload, conclusion="failure")
+
+    with pytest.raises(RuntimeError, match="requires successful triggering conclusion"):
+        reconcile.handle_workflow_run_event_result(harness.runtime, state)
+
+    assert review["sidecars"]["deferred_gaps"] == {"issue_comment:210": {"reason": "artifact_missing"}}
+    assert review["sidecars"]["reconciled_source_events"] == {}
+
+
 def test_read_reconcile_reviews_rejects_non_list_payload(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.github.get_pull_request_reviews = lambda issue_number: {"unexpected": True}
