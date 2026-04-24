@@ -21,6 +21,12 @@ def _load_workflow_job(relative_path: str) -> dict:
     return workflow["jobs"][job_name]
 
 
+def _payload_and_upload_steps(job: dict) -> tuple[dict, dict]:
+    build_step = next(step for step in job["steps"] if step.get("env", {}).get("PAYLOAD_PATH", "").endswith(".json"))
+    upload_step = next(step for step in job["steps"] if step.get("uses", "").startswith("actions/upload-artifact@"))
+    return build_step, upload_step
+
+
 @pytest.mark.parametrize(
     ("workflow_path",),
     [
@@ -31,10 +37,7 @@ def _load_workflow_job(relative_path: str) -> dict:
     ],
 )
 def test_observer_workflow_files_upload_exactly_one_json_payload(workflow_path):
-    workflow = __import__("yaml").safe_load(Path(workflow_path).read_text(encoding="utf-8"))
-    job_name = "route-pr-comment" if workflow_path.endswith("reviewer-bot-pr-comment-router.yml") else "observer"
-    build_step = workflow["jobs"][job_name]["steps"][0]
-    upload_step = workflow["jobs"][job_name]["steps"][1]
+    build_step, upload_step = _payload_and_upload_steps(_load_workflow_job(workflow_path))
 
     assert build_step["env"]["PAYLOAD_PATH"].endswith(".json")
     assert upload_step["with"]["path"] == build_step["env"]["PAYLOAD_PATH"]
@@ -110,8 +113,7 @@ def test_deferred_payload_fixtures_do_not_require_exact_artifact_name_helpers(
 ):
     payload = _load_fixture_payload(fixture_path)
     job = _load_workflow_job(workflow_path)
-    build_step = job["steps"][0]
-    upload_step = job["steps"][1]
+    build_step, upload_step = _payload_and_upload_steps(job)
 
     payload_without_artifact_name = dict(payload)
     payload_without_artifact_name.pop("source_artifact_name", None)
