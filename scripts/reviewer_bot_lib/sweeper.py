@@ -121,7 +121,7 @@ def _diagnose_deferred_event(
     source_event_kind: str,
     workflow_runs: list[dict] | None,
 ) -> None:
-    existing_gap = gap_bookkeeping._get_deferred_gap(review_data, source_event_key)
+    existing_gap = gap_bookkeeping.get_deferred_gap(review_data, source_event_key)
     run_correlation = deferred_gap_diagnosis.correlate_candidate_observer_runs(
         source_event_key,
         source_event_kind=source_event_kind,
@@ -275,7 +275,7 @@ def _purge_bot_authored_comment_gap(bot, review_data: dict, source_event_key: st
     live_comment = _fetch_live_issue_comment(bot, comment_id)
     if not isinstance(live_comment, dict) or not _is_automation_comment(live_comment):
         return False
-    if source_event_key not in gap_bookkeeping._deferred_gap_keys(review_data):
+    if source_event_key not in gap_bookkeeping.list_deferred_gap_keys(review_data):
         return False
     return gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
 
@@ -500,14 +500,14 @@ def _record_gap_diagnostics(
         prior_visibility = artifact_correlation.get("prior_visibility", {}).get(run_correlation.get("correlated_run"), {})
         if isinstance(prior_visibility, dict):
             gap_fields.update(prior_visibility)
-    gap_bookkeeping._update_deferred_gap_fields(review_data, source_event_key, gap_fields)
+    gap_bookkeeping.update_deferred_gap_fields(review_data, source_event_key, gap_fields)
 
 
 def _should_skip_discovered_key(bot, review_data: dict, source_event_key: str, channels: tuple[str, ...]) -> bool:
-    if gap_bookkeeping._was_reconciled_source_event(review_data, source_event_key):
+    if gap_bookkeeping.was_reconciled_source_event(review_data, source_event_key):
         return True
-    if source_event_key in gap_bookkeeping._deferred_gap_keys(review_data):
-        if gap_bookkeeping._deferred_gap_reason(review_data, source_event_key) in {
+    if source_event_key in gap_bookkeeping.list_deferred_gap_keys(review_data):
+        if gap_bookkeeping.get_deferred_gap_reason(review_data, source_event_key) in {
             "awaiting_observer_run",
             "awaiting_observer_approval",
             "observer_in_progress",
@@ -536,7 +536,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
         pull_request, _ = _read_api_payload(bot, f"pulls/{issue_number}")
         if not isinstance(pull_request, dict) or str(pull_request.get("state", "")).lower() != "open":
             continue
-        for source_event_key in gap_bookkeeping._deferred_gap_keys(review_data):
+        for source_event_key in gap_bookkeeping.list_deferred_gap_keys(review_data):
             if _purge_bot_authored_comment_gap(bot, review_data, source_event_key):
                 changed = True
         discovered_comments, comments_complete = _discover_visible_comment_events(bot, issue_number, review_data)
@@ -569,7 +569,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
                 submitted_at = discovered["source_created_at"]
                 if _should_skip_discovered_key(bot, review_data, source_event_key, ("reviewer_review",)):
                     continue
-                existing_gap = gap_bookkeeping._get_deferred_gap(review_data, source_event_key)
+                existing_gap = gap_bookkeeping.get_deferred_gap(review_data, source_event_key)
                 workflow_file = ".github/workflows/reviewer-bot-pr-review-submitted-observer.yml"
                 workflow_runs = _fetch_workflow_runs_for_file(bot, workflow_file, "pull_request_review")
                 run_correlation = deferred_gap_diagnosis.correlate_candidate_observer_runs(

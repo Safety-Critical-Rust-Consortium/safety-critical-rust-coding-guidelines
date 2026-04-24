@@ -304,7 +304,9 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                     bot.get_config_value("ALLOW_EMPTY_ACTIVE_REVIEWS_WRITE").strip().lower() == "true"
                 )
                 allow_closed_cleanup_empty = (
-                    loaded_active_reviews_count == len(loaded_active_review_numbers)
+                    schedule_result is not None
+                    and schedule_result.empty_active_reviews_write_reason == maintenance.CLOSED_LIFECYCLE_CLEANUP_REASON
+                    and loaded_active_reviews_count == len(loaded_active_review_numbers)
                     and bool(loaded_active_review_numbers)
                     and set(touched_items) == loaded_active_review_numbers
                 )

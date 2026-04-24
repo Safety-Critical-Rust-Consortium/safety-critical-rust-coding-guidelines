@@ -604,3 +604,14 @@ def test_sweeper_fetches_single_candidate_run_detail_without_exact_artifact_matc
     detail = sweeper._maybe_fetch_single_candidate_run_detail(runtime, run_correlation, {"status": "no_exact_artifact_match"})
     assert detail == {"id": 123, "status": "completed", "conclusion": "action_required"}
     assert run_correlation["correlated_run"] == 123
+
+
+def test_sweeper_routes_deferred_sidecar_shapes_through_bookkeeping_owner():
+    module_text = Path("scripts/reviewer_bot_lib/sweeper.py").read_text(encoding="utf-8")
+
+    assert "gap_bookkeeping.list_deferred_gap_keys(" in module_text
+    assert "gap_bookkeeping.get_deferred_gap(" in module_text
+    assert "gap_bookkeeping.update_deferred_gap_fields(" in module_text
+    assert "review_data.get(\"deferred_gaps\"" not in module_text
+    assert "[\"deferred_gaps\"]" not in module_text
+    assert "[\"reconciled_source_events\"]" not in module_text

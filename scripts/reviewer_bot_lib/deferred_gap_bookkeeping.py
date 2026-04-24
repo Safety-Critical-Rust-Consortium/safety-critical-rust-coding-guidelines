@@ -53,18 +53,30 @@ def get_observer_discovery_watermarks(review_data: dict) -> dict:
     return _observer_discovery_watermarks(review_data)
 
 
-def _deferred_gap_keys(review_data: dict) -> list[str]:
+def list_deferred_gap_keys(review_data: dict) -> list[str]:
     return list(_deferred_gaps(review_data))
 
 
-def _get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
+def _deferred_gap_keys(review_data: dict) -> list[str]:
+    return list_deferred_gap_keys(review_data)
+
+
+def get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
     gap = _deferred_gaps(review_data).get(source_event_key)
     return gap if isinstance(gap, dict) else {}
 
 
-def _deferred_gap_reason(review_data: dict, source_event_key: str) -> str | None:
-    reason = _get_deferred_gap(review_data, source_event_key).get("reason")
+def _get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
+    return get_deferred_gap(review_data, source_event_key)
+
+
+def get_deferred_gap_reason(review_data: dict, source_event_key: str) -> str | None:
+    reason = get_deferred_gap(review_data, source_event_key).get("reason")
     return reason if isinstance(reason, str) else None
+
+
+def _deferred_gap_reason(review_data: dict, source_event_key: str) -> str | None:
+    return get_deferred_gap_reason(review_data, source_event_key)
 
 
 def _now_iso(bot) -> str:
@@ -91,7 +103,7 @@ def _clear_source_event_key(review_data: dict, source_event_key: str) -> bool:
     return False
 
 
-def _update_deferred_gap_fields(review_data: dict, source_event_key: str, fields: dict) -> bool:
+def update_deferred_gap_fields(review_data: dict, source_event_key: str, fields: dict) -> bool:
     deferred_gaps = _deferred_gaps(review_data)
     existing = deferred_gaps.get(source_event_key)
     if not isinstance(existing, dict):
@@ -99,6 +111,10 @@ def _update_deferred_gap_fields(review_data: dict, source_event_key: str, fields
     previous = deepcopy(existing)
     existing.update(fields)
     return previous != existing
+
+
+def _update_deferred_gap_fields(review_data: dict, source_event_key: str, fields: dict) -> bool:
+    return update_deferred_gap_fields(review_data, source_event_key, fields)
 
 
 def _mark_reconciled_source_event(
@@ -123,7 +139,7 @@ def _mark_reconciled_source_event(
     return True
 
 
-def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
+def was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
     existing = _reconciled_source_events(review_data).get(source_event_key)
     if not isinstance(existing, dict):
         return False
@@ -131,6 +147,10 @@ def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bo
         return False
     reconciled_at = existing.get("reconciled_at")
     return isinstance(reconciled_at, str) and bool(reconciled_at.strip())
+
+
+def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
+    return was_reconciled_source_event(review_data, source_event_key)
 
 
 def _payload_or_existing(payload: dict, existing: dict, key: str):

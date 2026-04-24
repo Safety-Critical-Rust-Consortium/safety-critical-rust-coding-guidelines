@@ -14,6 +14,7 @@ from .project_board import (
 )
 
 ScheduleHandlerResult = maintenance_schedule.ScheduleHandlerResult
+CLOSED_LIFECYCLE_CLEANUP_REASON = maintenance_schedule.CLOSED_LIFECYCLE_CLEANUP_REASON
 _now_iso = maintenance_privileged._now_iso
 _finalize_schedule_result = maintenance_schedule._finalize_schedule_result
 _record_maintenance_repair_marker = maintenance_schedule._record_maintenance_repair_marker
