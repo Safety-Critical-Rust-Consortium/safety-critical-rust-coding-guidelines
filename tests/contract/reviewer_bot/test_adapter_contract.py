@@ -509,12 +509,43 @@ def test_event_inputs_rejects_missing_lifecycle_timestamp_for_supported_actions(
         event_inputs.build_issue_lifecycle_request(runtime)
 
 
+@pytest.mark.parametrize(
+    ("event_action", "is_pull_request", "config_name", "expected_problem"),
+    [
+        ("opened", "false", "ISSUE_CREATED_AT", "ISSUE_CREATED_AT must be parseable ISO-8601 for opened"),
+        ("assigned", "false", "ISSUE_UPDATED_AT", "ISSUE_UPDATED_AT must be parseable ISO-8601 for assigned"),
+        ("closed", "true", "PR_CLOSED_AT", "PR_CLOSED_AT must be parseable ISO-8601 for closed"),
+        ("synchronize", "true", "PR_UPDATED_AT", "PR_UPDATED_AT must be parseable ISO-8601 for synchronize"),
+    ],
+)
+def test_event_inputs_rejects_invalid_lifecycle_timestamp_for_supported_actions(
+    monkeypatch, event_action, is_pull_request, config_name, expected_problem
+):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("EVENT_ACTION", event_action)
+    runtime.set_config_value("IS_PULL_REQUEST", is_pull_request)
+    runtime.set_config_value(config_name, "not-a-date")
+
+    with pytest.raises(event_inputs.InvalidEventInput, match=expected_problem):
+        event_inputs.build_issue_lifecycle_request(runtime)
+
+
 def test_event_inputs_rejects_missing_pull_request_sync_timestamp(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("PR_HEAD_SHA", "head-2")
 
     with pytest.raises(event_inputs.InvalidEventInput, match="PR_UPDATED_AT must be non-empty for synchronize"):
+        event_inputs.build_pull_request_sync_request(runtime)
+
+
+def test_event_inputs_rejects_invalid_pull_request_sync_timestamp(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("PR_HEAD_SHA", "head-2")
+    runtime.set_config_value("PR_UPDATED_AT", "not-a-date")
+
+    with pytest.raises(event_inputs.InvalidEventInput, match="PR_UPDATED_AT must be parseable ISO-8601 for synchronize"):
         event_inputs.build_pull_request_sync_request(runtime)
 
 

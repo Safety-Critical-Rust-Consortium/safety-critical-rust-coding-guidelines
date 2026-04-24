@@ -1,4 +1,5 @@
 import json
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -109,17 +110,42 @@ def test_comment_workflows_export_performed_via_app_boolean_truth(workflow_path)
     assert "COMMENT_SENDER_TYPE" in workflow_text
     assert "COMMENT_INSTALLATION_ID" in workflow_text
     assert "COMMENT_PERFORMED_VIA_GITHUB_APP" in workflow_text
-    assert "COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ toJson(github.event.comment.performed_via_github_app) != 'null' && toJson(github.event.comment.performed_via_github_app) != 'false' && 'true' || 'false' }}" in workflow_text
+    assert "COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app.id > 0 && 'true' || 'false' }}" in workflow_text
     assert "github.event.comment.performed_via_github_app != null" not in workflow_text
     assert "github.event.comment.performed_via_github_app && 'true' || 'false'" not in workflow_text
+    assert "toJson(github.event.comment.performed_via_github_app) != 'null'" not in workflow_text
 
 
 def test_pr_comment_router_normalizes_performed_via_app_without_raw_truthiness():
     workflow_text = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
 
-    assert "performed_via_github_app_value = comment.get('performed_via_github_app')" in workflow_text
-    assert "performed_via_github_app = performed_via_github_app_value is True or isinstance(performed_via_github_app_value, dict)" in workflow_text
+    assert "def _performed_via_github_app_truth(value):" in workflow_text
+    assert "return int(value.get('id') or 0) > 0" in workflow_text
     assert "bool(comment.get('performed_via_github_app'))" not in workflow_text
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, False),
+        (False, False),
+        (True, True),
+        ({}, False),
+        ({"id": 0}, False),
+        ({"id": "0"}, False),
+        ({"id": 123}, True),
+        ({"id": "123"}, True),
+        ("false", False),
+    ],
+)
+def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(value, expected):
+    workflow_text = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
+    start = workflow_text.index("def _performed_via_github_app_truth(value):")
+    end = workflow_text.index("\n\n          performed_via_github_app =", start)
+    namespace = {}
+    exec(textwrap.dedent(workflow_text[start:end]), namespace)
+
+    assert namespace["_performed_via_github_app_truth"](value) is expected
 
 def test_pr_comment_router_workflow_builds_payload_inline_without_bot_src_root():
     workflow = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")

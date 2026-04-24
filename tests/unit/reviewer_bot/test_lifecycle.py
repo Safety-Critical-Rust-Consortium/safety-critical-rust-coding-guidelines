@@ -644,6 +644,13 @@ def test_handle_issue_or_pr_opened_rejects_missing_lifecycle_timestamp(monkeypat
         lifecycle.handle_issue_or_pr_opened(runtime, state)
 
 
+def test_lifecycle_does_not_fallback_to_updated_at_or_now_for_event_authority():
+    lifecycle_text = Path("scripts/reviewer_bot_lib/lifecycle.py").read_text(encoding="utf-8")
+
+    assert "request.event_created_at or request.updated_at" not in lifecycle_text
+    assert "request.updated_at or _now_iso()" not in lifecycle_text
+
+
 def test_handle_closed_event_removes_reviewer_handoff_with_review_entry(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.ACTIVE_LEASE_CONTEXT = object()

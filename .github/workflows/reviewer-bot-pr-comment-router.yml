@@ -53,8 +53,17 @@ jobs:
           comment_user_type = str((comment.get('user') or {}).get('type') or '').strip()
           comment_sender_type = str(sender.get('type') or '').strip()
           comment_author_association = str(comment.get('author_association') or '').strip()
-          performed_via_github_app_value = comment.get('performed_via_github_app')
-          performed_via_github_app = performed_via_github_app_value is True or isinstance(performed_via_github_app_value, dict)
+          def _performed_via_github_app_truth(value):
+              if isinstance(value, bool):
+                  return value
+              if isinstance(value, dict):
+                  try:
+                      return int(value.get('id') or 0) > 0
+                  except (TypeError, ValueError):
+                      return False
+              return False
+
+          performed_via_github_app = _performed_via_github_app_truth(comment.get('performed_via_github_app'))
           installation_id = installation.get('id')
           route_outcome = 'trusted_direct'
           pr_head_full_name = ''
@@ -190,7 +199,7 @@ jobs:
           COMMENT_USER_TYPE: ${{ github.event.comment.user.type }}
           COMMENT_SENDER_TYPE: ${{ github.event.sender.type }}
           COMMENT_INSTALLATION_ID: ${{ github.event.installation.id }}
-          COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ toJson(github.event.comment.performed_via_github_app) != 'null' && toJson(github.event.comment.performed_via_github_app) != 'false' && 'true' || 'false' }}
+          COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app.id > 0 && 'true' || 'false' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_HEAD_FULL_NAME: ${{ needs.route-pr-comment.outputs.pr_head_full_name }}
           PR_AUTHOR: ${{ needs.route-pr-comment.outputs.pr_author }}
