@@ -103,6 +103,11 @@ def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bo
     return source_event_key in _reconciled_source_events(review_data)
 
 
+def _payload_or_existing(payload: dict, existing: dict, key: str):
+    value = payload.get(key)
+    return existing.get(key) if value is None else value
+
+
 def _update_deferred_gap(
     bot,
     review_data: dict,
@@ -127,8 +132,10 @@ def _update_deferred_gap(
             "pr_number": payload.get("pr_number"),
             "reason": reason,
             "source_event_created_at": payload.get("source_created_at") or payload.get("source_submitted_at"),
-            "source_run_id": payload.get("source_run_id"),
-            "source_run_attempt": payload.get("source_run_attempt"),
+            "source_run_id": _payload_or_existing(payload, existing, "source_run_id"),
+            "source_run_attempt": _payload_or_existing(payload, existing, "source_run_attempt"),
+            "source_workflow_file": _payload_or_existing(payload, existing, "source_workflow_file"),
+            "source_artifact_name": _payload_or_existing(payload, existing, "source_artifact_name"),
             "first_noted_at": existing.get("first_noted_at") or _now_iso(bot),
             "last_checked_at": _now_iso(bot),
             "operator_action_required": True,
