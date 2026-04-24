@@ -450,17 +450,17 @@ def build_replay_comment_event_request(payload, *, live_comment=None, comment_bo
     resolved_body = payload.comment_body if comment_body is None else comment_body
     comment_sender_type = (
         live_comment.comment_sender_type
-        if live_comment is not None and live_comment.comment_sender_type is not None
+        if live_comment is not None and live_comment.comment_sender_type_available
         else payload.comment_sender_type
     )
     comment_installation_id = (
         live_comment.comment_installation_id
-        if live_comment is not None and live_comment.comment_installation_id is not None
+        if live_comment is not None and live_comment.comment_installation_id_available
         else payload.comment_installation_id
     )
     comment_performed_via_github_app = (
         live_comment.comment_performed_via_github_app
-        if live_comment is not None and live_comment.comment_performed_via_github_app is not None
+        if live_comment is not None and live_comment.comment_performed_via_github_app_available
         else payload.comment_performed_via_github_app
     )
     return CommentEventRequest(

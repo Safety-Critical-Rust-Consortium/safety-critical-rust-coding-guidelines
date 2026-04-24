@@ -180,7 +180,8 @@ def test_read_live_comment_replay_context_normalizes_comment_metadata():
         comment_user_type="User",
         comment_sender_type=None,
         comment_installation_id=None,
-        comment_performed_via_github_app=None,
+        comment_performed_via_github_app=False,
+        comment_performed_via_github_app_available=True,
     )
 
 
@@ -201,7 +202,31 @@ def test_read_live_comment_replay_context_uses_only_exact_live_provenance_fields
         comment_sender_type="Bot",
         comment_installation_id="12345",
         comment_performed_via_github_app=True,
+        comment_sender_type_available=True,
+        comment_installation_id_available=True,
+        comment_performed_via_github_app_available=True,
     )
+
+
+def test_read_live_comment_replay_context_distinguishes_absent_from_explicit_false_app():
+    absent_context = reconcile_reads.read_live_comment_replay_context(
+        {
+            "user": {"login": "alice", "type": "User"},
+        },
+        {"actor_login": "alice"},
+    )
+    false_context = reconcile_reads.read_live_comment_replay_context(
+        {
+            "user": {"login": "alice", "type": "User"},
+            "performed_via_github_app": None,
+        },
+        {"actor_login": "alice"},
+    )
+
+    assert absent_context.comment_performed_via_github_app is None
+    assert absent_context.comment_performed_via_github_app_available is False
+    assert false_context.comment_performed_via_github_app is False
+    assert false_context.comment_performed_via_github_app_available is True
 
 
 def test_replay_comment_request_preserves_payload_provenance_without_exact_live_fields():
@@ -238,6 +263,9 @@ def test_replay_comment_request_accepts_exact_live_provenance_over_payload():
         comment_sender_type="Bot",
         comment_installation_id="12345",
         comment_performed_via_github_app=True,
+        comment_sender_type_available=True,
+        comment_installation_id_available=True,
+        comment_performed_via_github_app_available=True,
     )
 
     request = event_inputs.build_replay_comment_event_request(parsed_payload, live_comment=live_context)
@@ -247,3 +275,21 @@ def test_replay_comment_request_accepts_exact_live_provenance_over_payload():
     assert request.comment_sender_type == "Bot"
     assert request.comment_installation_id == "12345"
     assert request.comment_performed_via_github_app is True
+
+
+def test_replay_comment_request_accepts_exact_live_false_performed_via_app():
+    payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json")
+    payload["comment_performed_via_github_app"] = True
+    parsed_payload = reconcile_payloads.parse_deferred_context_payload(payload)
+    live_context = reconcile_reads.LiveCommentReplayContext(
+        comment_author="alice",
+        comment_user_type="User",
+        comment_sender_type=None,
+        comment_installation_id=None,
+        comment_performed_via_github_app=False,
+        comment_performed_via_github_app_available=True,
+    )
+
+    request = event_inputs.build_replay_comment_event_request(parsed_payload, live_comment=live_context)
+
+    assert request.comment_performed_via_github_app is False
