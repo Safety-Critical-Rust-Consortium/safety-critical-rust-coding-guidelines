@@ -603,6 +603,26 @@ def test_handle_reopened_event_reopens_done_completion(monkeypatch):
     assert review["review_completion_source"] is None
 
 
+def test_handle_closed_event_removes_reviewer_handoff_with_review_entry(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+
+    assert lifecycle.handle_closed_event(runtime, state) is True
+    assert "42" not in state["active_reviews"]
+
+
 def test_maybe_record_head_observation_repair_uses_github_api_fallback_after_system_exit(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     review_data = {"active_head_sha": "head-0", "contributor_revision": {"accepted": None}}

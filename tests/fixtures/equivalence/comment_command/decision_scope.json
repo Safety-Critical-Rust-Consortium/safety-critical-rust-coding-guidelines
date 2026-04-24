@@ -17,6 +17,7 @@
     "_multiple_commands",
     "_malformed_known",
     "_malformed_unknown",
+    "_malformed_feedback_args",
     "unknown_command"
   ],
   "deferred_command_set": [

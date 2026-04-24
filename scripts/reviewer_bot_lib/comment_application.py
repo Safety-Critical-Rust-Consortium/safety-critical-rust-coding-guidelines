@@ -133,6 +133,12 @@ def _build_execution_result(command_id: comment_command_policy.OrdinaryCommandId
 
 
 def _execute_pass(bot, state: dict, decision, assignment_request: AssignmentRequest | None) -> CommandExecutionResult:
+    reviewer_authority = assignment_flow.resolve_reviewer_command_authority(
+        bot,
+        state,
+        assignment_request,
+        actor=decision.actor,
+    )
     return _build_execution_result(
         decision.command_id,
         commands_module.handle_pass_command(
@@ -142,6 +148,7 @@ def _execute_pass(bot, state: dict, decision, assignment_request: AssignmentRequ
             decision.actor,
             " ".join(decision.raw_args) if decision.raw_args else None,
             request=assignment_request,
+            reviewer_authority=reviewer_authority,
         ),
     )
 
@@ -214,23 +221,48 @@ def _execute_claim(bot, state: dict, decision, assignment_request: AssignmentReq
 
 
 def _execute_release(bot, state: dict, decision, assignment_request: AssignmentRequest | None) -> CommandExecutionResult:
+    reviewer_authority = assignment_flow.resolve_reviewer_command_authority(
+        bot,
+        state,
+        assignment_request,
+        actor=None,
+    )
     return _build_execution_result(
         decision.command_id,
-        commands_module.handle_release_command(bot, state, decision.issue_number, decision.actor, list(decision.raw_args), request=assignment_request),
+        commands_module.handle_release_command(
+            bot,
+            state,
+            decision.issue_number,
+            decision.actor,
+            list(decision.raw_args),
+            request=assignment_request,
+            reviewer_authority=reviewer_authority,
+        ),
     )
 
 
-def _execute_rectify(bot, state: dict, decision, assignment_request: AssignmentRequest | None) -> CommandExecutionResult:
-    del assignment_request
+def _execute_rectify(bot, state: dict, request: CommentEventRequest, decision) -> CommandExecutionResult:
     from . import reconcile as reconcile_module
 
+    reviewer_authority = assignment_flow.resolve_reviewer_command_authority(
+        bot,
+        state,
+        request,
+        actor=decision.actor,
+    )
     return _build_execution_result(
         decision.command_id,
-        reconcile_module.handle_rectify_command(bot, state, decision.issue_number, decision.actor),
+        reconcile_module.handle_rectify_command(
+            bot,
+            state,
+            decision.issue_number,
+            decision.actor,
+            reviewer_authority=reviewer_authority,
+        ),
     )
 
 
-def _execute_feedback(bot, state: dict, request: CommentEventRequest, decision) -> CommandExecutionResult:
+def handle_feedback_command(bot, state: dict, request: CommentEventRequest, decision) -> CommandExecutionResult:
     if request.issue_state.lower() != "open":
         return CommandExecutionResult(
             response="❌ `/feedback` can only be used on open tracked review items.",
@@ -293,6 +325,13 @@ def _execute_assign_from_queue(bot, state: dict, decision, assignment_request: A
         decision.command_id,
         commands_module.handle_assign_from_queue_command(bot, state, decision.issue_number, request=assignment_request),
     )
+
+
+def _command_skips_freshness_recording(classified: dict) -> bool:
+    return classified.get("command") in {
+        comment_command_policy.OrdinaryCommandId.FEEDBACK.value,
+        "_malformed_feedback_args",
+    }
 
 
 ORDINARY_COMMAND_HANDLERS = {
@@ -365,7 +404,9 @@ def apply_comment_command(
         react = decision.react
     else:
         if decision.command_id == comment_command_policy.OrdinaryCommandId.FEEDBACK:
-            execution = _execute_feedback(bot, state, request, decision)
+            execution = handle_feedback_command(bot, state, request, decision)
+        elif decision.command_id == comment_command_policy.OrdinaryCommandId.RECTIFY:
+            execution = _execute_rectify(bot, state, request, decision)
         else:
             assignment_request = (
                 _build_assignment_request_from_comment_request(request)
@@ -397,7 +438,7 @@ def process_comment_event(
     classified = classify_comment_payload(bot, request.comment_body)
     routing = _route_comment_application(classified, comment_id=comment_id)
     state_changed = False
-    if routing in {"freshness_only", "both"}:
+    if routing in {"freshness_only", "both"} and not _command_skips_freshness_recording(classified):
         state_changed = record_conversation_freshness(bot, state, request) or state_changed
     if routing in {"command_only", "both"}:
         state_changed = apply_comment_command(

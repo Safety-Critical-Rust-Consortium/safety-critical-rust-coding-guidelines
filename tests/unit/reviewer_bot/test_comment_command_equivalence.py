@@ -25,6 +25,7 @@ C3B2_DELETION_MANIFEST = [
     "_multiple_commands",
     "_malformed_known",
     "_malformed_unknown",
+    "_malformed_feedback_args",
     "unknown_command",
 ]
 
@@ -172,7 +173,7 @@ def test_i1_comment_policy_types_ordinary_command_output_shape(monkeypatch):
 def test_i2_comment_application_routing_does_not_reopen_command_semantics_in_adapter():
     module_text = Path("scripts/reviewer_bot_lib/comment_application.py").read_text(encoding="utf-8")
 
-    assert 'if routing in {"freshness_only", "both"}:' in module_text
+    assert 'if routing in {"freshness_only", "both"} and not _command_skips_freshness_recording(classified):' in module_text
     assert 'if routing in {"command_only", "both"}:' in module_text
     assert "if command == " not in module_text
 

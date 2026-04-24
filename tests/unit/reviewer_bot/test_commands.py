@@ -8,6 +8,7 @@ from scripts.reviewer_bot_lib import (
     automation,
     commands,
     comment_application,
+    comment_routing,
     guidance,
     reconcile,
     review_state,
@@ -824,6 +825,77 @@ def test_feedback_command_rejects_triage_actor_who_is_not_current_reviewer(monke
     assert side_effects.reactions == [(100, "eyes")]
 
 
+def test_feedback_command_plus_text_does_not_record_reviewer_comment_channel(monkeypatch):
+    harness = CommentRoutingHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    harness.runtime.github.get_issue_assignees = lambda issue_number: ["alice"]
+    harness.runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: harness.runtime.GitHubApiResult(
+        200,
+        ["alice"],
+        {},
+        "ok",
+        True,
+        None,
+        0,
+        None,
+    )
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.request(
+        issue_number=42,
+        is_pull_request=False,
+        issue_author="dana",
+        comment_author="alice",
+        comment_body="@guidelines-bot /feedback\nadditional feedback text",
+    )
+
+    changed = comment_application.process_comment_event(
+        harness.runtime,
+        state,
+        request,
+        classify_comment_payload=comment_routing.classify_comment_payload,
+        classify_issue_comment_actor=comment_routing.classify_issue_comment_actor,
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"]["command_name"] == "feedback"
+    assert review["reviewer_comment"]["accepted"] is None
+    assert side_effects.comments == [
+        (42, "✅ Recorded reviewer feedback handoff. Reviewer-bot is now waiting on contributor response.")
+    ]
+
+
+def test_feedback_command_with_arguments_rejects_without_channel_mutation(monkeypatch):
+    harness = CommentRoutingHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.request(
+        issue_number=42,
+        is_pull_request=False,
+        issue_author="dana",
+        comment_author="alice",
+        comment_body="@guidelines-bot /feedback please",
+    )
+
+    changed = comment_application.process_comment_event(
+        harness.runtime,
+        state,
+        request,
+        classify_comment_payload=comment_routing.classify_comment_payload,
+        classify_issue_comment_actor=comment_routing.classify_issue_comment_actor,
+    )
+
+    assert changed is False
+    assert review["current_cycle_reviewer_handoff"] is None
+    assert review["reviewer_comment"]["accepted"] is None
+    assert side_effects.comments == [(42, "❌ `/feedback` does not accept arguments. Usage: `@guidelines-bot /feedback`")]
+
+
 def test_manual_dispatch_marks_authorization_unavailable_for_pending_privileged_command(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
@@ -859,6 +931,7 @@ def test_manual_dispatch_marks_authorization_unavailable_for_pending_privileged_
     [
         ("@guidelines-bot /queue", ("queue", [])),
         ("@guidelines-bot /feedback", ("feedback", [])),
+        ("@guidelines-bot /feedback please", ("_malformed_feedback_args", [])),
         ("@guidelines-bot /r? producers", ("assign-from-queue", [])),
         ("@guidelines-bot /r? @alice", ("r?-user", ["@alice"])),
         ("@guidelines-bot queue", ("_malformed_known", ["queue"])),
@@ -916,6 +989,14 @@ def test_comment_application_delegates_ordinary_command_decision_to_core_policy(
 
     assert "comment_command_policy" in module_text
     assert "decision = comment_command_policy.decide_comment_command(" in module_text
+
+
+def test_h1_feedback_command_surface_keeps_inline_execution_owner_explicit():
+    module_text = Path("scripts/reviewer_bot_lib/comment_application.py").read_text(encoding="utf-8")
+
+    assert "def handle_feedback_command(" in module_text
+    assert "handle_feedback_command(bot, state, request, decision)" in module_text
+    assert "assignment_flow.resolve_reviewer_command_authority(" in module_text
 
 
 def test_commands_module_exposes_rectify_handler_for_decision_adapter_surface():

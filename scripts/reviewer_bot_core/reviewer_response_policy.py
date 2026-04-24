@@ -216,6 +216,13 @@ def _current_cycle_reviewer_handoff_record(
         return None
     if not isinstance(source_event_key, str) or not source_event_key.strip():
         return None
+    handoff_time = live_review_support.parse_github_timestamp(timestamp)
+    if handoff_time is None:
+        return None
+    _, cycle_boundary = _initial_cycle_boundary(review_data)
+    cycle_boundary_time = live_review_support.parse_github_timestamp(cycle_boundary)
+    if cycle_boundary_time is not None and handoff_time < cycle_boundary_time:
+        return None
     reviewed_head_sha = handoff.get("reviewed_head_sha")
     if issue_is_pull_request:
         if not isinstance(reviewed_head_sha, str) or reviewed_head_sha != current_head:
@@ -332,6 +339,34 @@ def derive_reviewer_response_state(
             parse_timestamp=live_review_support.parse_github_timestamp,
         ) > 0:
             latest_reviewer_response = reviewer_handoff
+        if reviewer_handoff is not None and latest_reviewer_response is reviewer_handoff:
+            if _compare_cross_channel_conversation(
+                contributor_comment,
+                reviewer_handoff,
+                parse_timestamp=live_review_support.parse_github_timestamp,
+            ) > 0:
+                return _decorate_response(
+                    state="awaiting_reviewer_response",
+                    reason="contributor_comment_newer",
+                    scope_fields=_current_scope_fields(review_data, current_reviewer, None, contributor_comment),
+                    anchor_timestamp=contributor_comment.get("timestamp") if isinstance(contributor_comment, dict) else None,
+                    reviewer_comment=reviewer_comment,
+                    reviewer_review=reviewer_review,
+                    current_cycle_reviewer_handoff=reviewer_handoff,
+                    contributor_comment=contributor_comment,
+                    contributor_handoff=contributor_comment,
+                )
+            return _decorate_response(
+                state="awaiting_contributor_response",
+                reason="completion_missing",
+                scope_fields=_current_scope_fields(review_data, current_reviewer, None, contributor_comment),
+                anchor_timestamp=reviewer_handoff.get("timestamp"),
+                reviewer_comment=reviewer_comment,
+                reviewer_review=reviewer_review,
+                current_cycle_reviewer_handoff=reviewer_handoff,
+                contributor_comment=contributor_comment,
+                contributor_handoff=contributor_comment,
+            )
         completion = review_data.get("current_cycle_completion")
         if isinstance(completion, dict) and completion.get("completed"):
             return _decorate_response(
@@ -467,6 +502,20 @@ def derive_reviewer_response_state(
             reason=reason,
             scope_fields=_current_scope_fields(review_data, current_reviewer, current_head, contributor_handoff),
             anchor_timestamp=contributor_handoff.get("timestamp") if isinstance(contributor_handoff, dict) else None,
+            current_head_sha=current_head,
+            reviewer_comment=reviewer_comment,
+            reviewer_review=reviewer_review,
+            current_cycle_reviewer_handoff=reviewer_handoff,
+            contributor_comment=contributor_comment,
+            contributor_handoff=contributor_handoff,
+        )
+
+    if reviewer_handoff is not None and latest_reviewer_response is reviewer_handoff:
+        return _decorate_response(
+            state="awaiting_contributor_response",
+            reason="accepted_same_scope_reviewer_activity",
+            scope_fields=_current_scope_fields(review_data, current_reviewer, current_head, contributor_handoff),
+            anchor_timestamp=reviewer_handoff.get("timestamp"),
             current_head_sha=current_head,
             reviewer_comment=reviewer_comment,
             reviewer_review=reviewer_review,

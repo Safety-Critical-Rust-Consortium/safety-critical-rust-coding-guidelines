@@ -85,7 +85,7 @@ def parse_command(bot, comment_body: str) -> tuple[str, list[str]] | None:
             return "r?-user", [f"@{username}"]
         return "r?", []
     if command == "feedback" and args_str:
-        return "feedback", args_str.split()
+        return "_malformed_feedback_args", []
     args = []
     if args_str:
         current_arg = ""
@@ -167,12 +167,13 @@ def handle_pass_command(
     comment_author: str,
     reason: str | None,
     request: AssignmentRequest | None = None,
+    reviewer_authority: dict[str, object] | None = None,
 ) -> tuple[str, bool]:
     assignment_request = request or build_assignment_request(bot, issue_number=issue_number)
     issue_data = review_state.ensure_review_entry(state, issue_number, create=True)
     if issue_data is None:
         return "❌ Unable to load review state.", False
-    authority = assignment_flow.resolve_reviewer_command_authority(
+    authority = reviewer_authority or assignment_flow.resolve_reviewer_command_authority(
         bot,
         state,
         assignment_request,
@@ -468,6 +469,7 @@ def handle_release_command(
     comment_author: str,
     args: list | None = None,
     request: AssignmentRequest | None = None,
+    reviewer_authority: dict[str, object] | None = None,
 ) -> tuple[str, bool]:
     args = args or []
     request = request or build_assignment_request(bot, issue_number=issue_number)
@@ -492,7 +494,7 @@ def handle_release_command(
         issue_data = state["active_reviews"][issue_key]
         if isinstance(issue_data, dict):
             assignment_method = issue_data.get("assignment_method")
-    authority = assignment_flow.resolve_reviewer_command_authority(bot, state, request)
+    authority = reviewer_authority or assignment_flow.resolve_reviewer_command_authority(bot, state, request)
     if not authority.get("authorized"):
         return _reviewer_command_authority_error("release", authority), False
     tracked_reviewer = str(authority["tracked_reviewer"])

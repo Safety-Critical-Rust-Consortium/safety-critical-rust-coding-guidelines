@@ -438,6 +438,58 @@ def test_issue_feedback_handoff_returns_turn_to_contributor_without_channel_reco
     assert review["reviewer_comment"]["accepted"] is None
 
 
+def test_issue_feedback_handoff_overrides_existing_completion_without_clearing_it():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["review_completed_at"] = "2026-03-17T09:30:00Z"
+    review["review_completion_source"] = "command: /done"
+    review["current_cycle_completion"] = {"completed": True}
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_contributor_response"
+    assert result["reason"] == "completion_missing"
+    assert review["review_completed_at"] == "2026-03-17T09:30:00Z"
+    assert review["current_cycle_completion"] == {"completed": True}
+
+
+def test_issue_feedback_handoff_before_cycle_boundary_is_not_consumed():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T08:59:59Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_reviewer_response"
+    assert result["reason"] == "no_reviewer_activity"
+    assert result["current_cycle_reviewer_handoff"] is None
+
+
 def test_issue_feedback_handoff_is_consumed_as_stale_after_newer_contributor_followup():
     state = make_state()
     review = make_tracked_review_state(
@@ -500,6 +552,44 @@ def test_pr_feedback_handoff_requires_current_tracked_head():
     assert current_head_result["reason"] == "accepted_same_scope_reviewer_activity"
     assert stale_head_result["state"] == "awaiting_reviewer_response"
     assert stale_head_result["reason"] == "no_reviewer_activity"
+
+
+def test_pr_feedback_handoff_overrides_existing_approval_completion_without_clearing_it():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["current_cycle_completion"] = {"completed": True}
+    review["current_cycle_write_approval"] = {"has_write_approval": True}
+    review["review_completed_at"] = "2026-03-17T09:30:00Z"
+    review["review_completion_source"] = "live_review_rebuild"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": "head-1",
+    }
+
+    result = reviewer_response_policy.derive_reviewer_response_state(
+        review,
+        issue_is_pull_request=True,
+        current_head="head-1",
+        approval_result={
+            "ok": True,
+            "completion": {"completed": True},
+            "write_approval": {"has_write_approval": True},
+        },
+    )
+
+    assert result["state"] == "awaiting_contributor_response"
+    assert result["reason"] == "accepted_same_scope_reviewer_activity"
+    assert review["review_completed_at"] == "2026-03-17T09:30:00Z"
+    assert review["current_cycle_write_approval"] == {"has_write_approval": True}
 
 
 def test_issue_reviewer_response_ignores_prior_reviewer_records_after_reviewer_change():

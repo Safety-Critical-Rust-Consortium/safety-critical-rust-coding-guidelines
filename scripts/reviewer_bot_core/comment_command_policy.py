@@ -118,6 +118,12 @@ def decide_comment_command(bot, request, classified, *, actor_class: str, comman
             raw_args=(),
             needs_assignment_request=False,
         )
+    if command == "_malformed_feedback_args":
+        return InlineResponseDecision(
+            response=f"❌ `/feedback` does not accept arguments. Usage: `{bot.BOT_MENTION} /feedback`",
+            success=False,
+            react=True,
+        )
     if command == OrdinaryCommandId.DONE.value:
         return ExecuteOrdinaryCommandDecision(
             command_id=OrdinaryCommandId.DONE,

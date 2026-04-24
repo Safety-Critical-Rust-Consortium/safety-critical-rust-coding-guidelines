@@ -188,6 +188,7 @@ def handle_rectify_command(
     state: dict,
     issue_number: int,
     comment_author: str,
+    reviewer_authority: dict[str, object] | None = None,
 ) -> tuple[str, bool, bool]:
     request = type(
         "RectifyReviewerAuthorityRequest",
@@ -197,7 +198,7 @@ def handle_rectify_command(
             "is_pull_request": bot.get_config_value("IS_PULL_REQUEST", "false").lower() == "true",
         },
     )()
-    reviewer_authority = assignment_flow.resolve_reviewer_command_authority(
+    reviewer_authority = reviewer_authority or assignment_flow.resolve_reviewer_command_authority(
         bot,
         state,
         request,
