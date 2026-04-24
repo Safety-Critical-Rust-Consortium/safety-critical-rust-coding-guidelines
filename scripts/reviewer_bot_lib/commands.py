@@ -170,9 +170,6 @@ def handle_pass_command(
     reviewer_authority: dict[str, object] | None = None,
 ) -> tuple[str, bool]:
     assignment_request = request or build_assignment_request(bot, issue_number=issue_number)
-    issue_data = review_state.ensure_review_entry(state, issue_number, create=True)
-    if issue_data is None:
-        return "❌ Unable to load review state.", False
     authority = reviewer_authority or assignment_flow.resolve_reviewer_command_authority(
         bot,
         state,
@@ -181,6 +178,9 @@ def handle_pass_command(
     )
     if not authority.get("authorized"):
         return _reviewer_command_authority_error("pass", authority), False
+    issue_data = authority.get("review_data")
+    if not isinstance(issue_data, dict):
+        return "❌ Unable to load review state.", False
     passed_reviewer = str(authority["tracked_reviewer"])
     current_assignees = list(authority.get("live_control_plane_reviewers") or [])
     skipped = list(issue_data["skipped"])

@@ -51,9 +51,6 @@ def _legacy_decide_comment_command(bot, request, classified, *, actor_class: str
 
 def _legacy_apply_ordinary_decision(bot, state: dict, request, decision: dict) -> bool:
     issue_number = request.issue_number
-    review_data = comment_application.ensure_review_entry(state, issue_number, create=True)
-    if review_data is None:
-        return False
     assignment_request = comment_application._build_assignment_request_from_comment_request(request)
     if decision["kind"] == "execute_ordinary_command":
         typed_decision = comment_command_policy.ExecuteOrdinaryCommandDecision(

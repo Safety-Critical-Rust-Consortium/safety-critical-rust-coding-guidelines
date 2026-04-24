@@ -825,6 +825,80 @@ def test_feedback_command_rejects_triage_actor_who_is_not_current_reviewer(monke
     assert side_effects.reactions == [(100, "eyes")]
 
 
+def test_feedback_command_does_not_materialize_review_entry_when_no_active_review(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    harness.stub_assignees([])
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=False,
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is False
+    assert "42" not in state["active_reviews"]
+    assert side_effects.comments == [(42, "❌ No active tracked review exists for this issue/PR.")]
+    assert side_effects.reactions == [(100, "eyes")]
+
+
+def test_feedback_command_does_not_overwrite_newer_handoff(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:101",
+        "timestamp": "2026-03-17T11:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    harness.stub_assignees(["alice"])
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=False,
+        comment_id=100,
+        created_at="2026-03-17T10:00:00Z",
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is False
+    assert review["current_cycle_reviewer_handoff"] == {
+        "source_event_key": "issue_comment:101",
+        "timestamp": "2026-03-17T11:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    assert side_effects.comments == [
+        (42, "ℹ️ Ignored stale `/feedback` handoff because a newer reviewer handoff is already recorded.")
+    ]
+    assert side_effects.reactions == [(100, "eyes"), (100, "+1")]
+
+
 def test_feedback_command_plus_text_does_not_record_reviewer_comment_channel(monkeypatch):
     harness = CommentRoutingHarness(monkeypatch)
     state = make_state()

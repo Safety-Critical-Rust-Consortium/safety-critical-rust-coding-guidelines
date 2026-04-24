@@ -148,6 +148,14 @@ def test_compute_pr_approval_state_result_is_pure():
 
 def test_apply_pr_approval_state_mutates_expected_fields():
     review = make_tracked_review_state(make_state(), 42)
+    review["active_head_sha"] = "head-0"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T09:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": "head-0",
+    }
 
     reviews.apply_pr_approval_state(
         review,
@@ -157,6 +165,7 @@ def test_apply_pr_approval_state_mutates_expected_fields():
     )
 
     assert review["active_head_sha"] == "head-1"
+    assert review["current_cycle_reviewer_handoff"] is None
     assert review["current_cycle_completion"]["completed"] is True
     assert review["current_cycle_write_approval"]["has_write_approval"] is True
     assert review["review_completion_source"] == "live_review_rebuild"

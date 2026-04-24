@@ -51,6 +51,10 @@ def clear_current_reviewer(state: dict, issue_number: int) -> bool:
     return review_state_machine.clear_current_reviewer(state, issue_number)
 
 
+def clear_current_cycle_reviewer_handoff(review_data: dict) -> bool:
+    return review_state_machine.clear_current_cycle_reviewer_handoff(review_data)
+
+
 def semantic_key_seen(review_data: dict, channel_name: str, semantic_key: str) -> bool:
     return review_state_machine.semantic_key_seen(review_data, channel_name, semantic_key)
 

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from scripts.reviewer_bot_core import (
     comment_command_policy,
     comment_freshness_policy,
+    live_review_support,
     privileged_command_policy,
 )
 
@@ -262,6 +263,26 @@ def _execute_rectify(bot, state: dict, request: CommentEventRequest, decision) -
     )
 
 
+def _handoff_order_key(handoff: dict) -> tuple[object, str] | None:
+    timestamp = live_review_support.parse_github_timestamp(handoff.get("timestamp"))
+    if timestamp is None:
+        return None
+    source_event_key = handoff.get("source_event_key")
+    return timestamp, source_event_key if isinstance(source_event_key, str) else ""
+
+
+def _feedback_handoff_should_replace(existing: object, candidate: dict) -> bool:
+    if not isinstance(existing, dict):
+        return True
+    candidate_key = _handoff_order_key(candidate)
+    existing_key = _handoff_order_key(existing)
+    if candidate_key is None:
+        return existing_key is None
+    if existing_key is None:
+        return True
+    return candidate_key >= existing_key
+
+
 def handle_feedback_command(bot, state: dict, request: CommentEventRequest, decision) -> CommandExecutionResult:
     if request.issue_state.lower() != "open":
         return CommandExecutionResult(
@@ -302,6 +323,12 @@ def handle_feedback_command(bot, state: dict, request: CommentEventRequest, deci
         "reviewed_head_sha": reviewed_head_sha,
     }
     before = review_data.get("current_cycle_reviewer_handoff")
+    if not _feedback_handoff_should_replace(before, handoff):
+        return CommandExecutionResult(
+            response="ℹ️ Ignored stale `/feedback` handoff because a newer reviewer handoff is already recorded.",
+            success=True,
+            state_changed=False,
+        )
     review_data["current_cycle_reviewer_handoff"] = handoff
     activity_changed = record_reviewer_activity(review_data, request.comment_created_at)
     state_changed = before != handoff or activity_changed
@@ -370,11 +397,11 @@ def apply_comment_command(
         return False
 
     issue_number = request.issue_number
-    review_data = ensure_review_entry(state, issue_number, create=True)
-    if review_data is None:
-        return False
     source_event_key = request.comment_source_event_key or f"issue_comment:{request.comment_id}"
     if isinstance(decision, comment_command_policy.DeferPrivilegedHandoffDecision):
+        review_data = ensure_review_entry(state, issue_number, create=True)
+        if review_data is None:
+            return False
         permission_status = bot.github.get_user_permission_status(request.comment_author, "triage")
         handoff = privileged_command_policy.validate_accept_no_fls_changes_handoff(
             request,

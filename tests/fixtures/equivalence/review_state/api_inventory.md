@@ -7,6 +7,7 @@ Local-State-Only Mutation APIs
 - update_reviewer_activity: local-state-only mutation
 - mark_review_complete: local-state-only mutation
 - clear_transition_timers: local-state-only mutation
+- clear_current_cycle_reviewer_handoff: local-state-only mutation
 
 Live-Read-Assisted Mutation APIs
 - accept_reviewer_review_from_live_review: live-read-assisted mutation; C1c in-scope

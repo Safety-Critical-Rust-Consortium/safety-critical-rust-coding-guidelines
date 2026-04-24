@@ -117,7 +117,10 @@ def apply_pr_approval_state(
     write_approval: dict,
     current_head_sha: str,
 ) -> None:
+    previous_head_sha = review_data.get("active_head_sha")
     review_data["active_head_sha"] = current_head_sha
+    if previous_head_sha != current_head_sha:
+        review_state.clear_current_cycle_reviewer_handoff(review_data)
     review_data["current_cycle_completion"] = completion
     review_data["current_cycle_write_approval"] = write_approval
     if completion.get("completed"):

@@ -25,6 +25,13 @@ def test_handle_pull_request_target_synchronize_returns_true_for_head_only_mutat
     assert review is not None
     review["current_reviewer"] = "alice"
     review["active_head_sha"] = "head-1"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T09:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": "head-1",
+    }
     review["contributor_revision"]["seen_keys"] = ["pull_request_sync:42:head-2"]
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("PR_HEAD_SHA", "head-2")
@@ -33,6 +40,7 @@ def test_handle_pull_request_target_synchronize_returns_true_for_head_only_mutat
 
     assert lifecycle.handle_pull_request_target_synchronize(runtime, state) is True
     assert review["active_head_sha"] == "head-2"
+    assert review["current_cycle_reviewer_handoff"] is None
 
 
 def test_pr_comment_direct_path_is_epoch_gated(monkeypatch):
@@ -361,6 +369,13 @@ def test_maybe_record_head_observation_repair_records_changed_head_once(monkeypa
     review_data = {
         "active_head_sha": "head-1",
         "contributor_revision": {"accepted": None},
+        "current_cycle_reviewer_handoff": {
+            "source_event_key": "issue_comment:100",
+            "timestamp": "2026-03-17T09:00:00Z",
+            "actor": "alice",
+            "command_name": "feedback",
+            "reviewed_head_sha": "head-1",
+        },
         "current_cycle_completion": {"completed": True},
         "current_cycle_write_approval": {"has_write_approval": True},
         "review_completed_at": "2026-03-10T00:00:00Z",
@@ -385,6 +400,7 @@ def test_maybe_record_head_observation_repair_records_changed_head_once(monkeypa
     assert result.outcome == "changed"
     assert result.changed is True
     assert review_data["active_head_sha"] == "head-2"
+    assert review_data["current_cycle_reviewer_handoff"] is None
     assert accepted[0][0] == "contributor_revision"
     assert accepted[0][1]["semantic_key"] == "pull_request_head_observed:42:head-2"
     assert review_data["current_cycle_completion"] == {}

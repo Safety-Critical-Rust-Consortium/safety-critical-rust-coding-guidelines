@@ -175,6 +175,7 @@ def test_review_state_mutation_inventory_freezes_overlap_classification_and_live
         "- set_current_reviewer: local-state-only mutation",
         "- update_reviewer_activity: local-state-only mutation",
         "- mark_review_complete: local-state-only mutation",
+        "- clear_current_cycle_reviewer_handoff: local-state-only mutation",
         "- get_current_cycle_boundary: read-only helper",
         "- clear_transition_timers: local-state-only mutation",
         "- semantic_key_seen: read-only helper",
@@ -269,6 +270,7 @@ def test_review_state_module_exposes_named_mutation_surface():
         "set_current_reviewer",
         "update_reviewer_activity",
         "mark_review_complete",
+        "clear_current_cycle_reviewer_handoff",
         "get_current_cycle_boundary",
         ]:
         assert hasattr(review_state, name)

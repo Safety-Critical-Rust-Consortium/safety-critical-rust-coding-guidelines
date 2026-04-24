@@ -13,6 +13,7 @@ from . import assignment_flow
 from .config import CODING_GUIDELINE_LABEL, TRANSITION_NOTICE_MARKER_PREFIX
 from .review_state import (
     accept_channel_event,
+    clear_current_cycle_reviewer_handoff,
     ensure_review_entry,
     mark_review_complete,
     record_transition_notice_sent,
@@ -439,6 +440,9 @@ def handle_pull_request_target_synchronize(bot, state: dict) -> bool:
     previous_review_completed_by = review_data.get("review_completed_by")
     previous_review_completion_source = review_data.get("review_completion_source")
     review_data["active_head_sha"] = head_sha
+    handoff_changed = False
+    if previous_head_sha != head_sha:
+        handoff_changed = clear_current_cycle_reviewer_handoff(review_data)
     timestamp = request.event_created_at
     changed = accept_channel_event(
         review_data,
@@ -456,7 +460,7 @@ def handle_pull_request_target_synchronize(bot, state: dict) -> bool:
         or previous_review_completed_by != review_data.get("review_completed_by")
         or previous_review_completion_source != review_data.get("review_completion_source")
     )
-    return changed or previous_head_sha != review_data.get("active_head_sha") or approval_changed
+    return changed or previous_head_sha != review_data.get("active_head_sha") or approval_changed or handoff_changed
 
 
 def maybe_record_head_observation_repair(bot, issue_number: int, review_data: dict) -> HeadObservationRepairResult:
@@ -521,6 +525,7 @@ def maybe_record_head_observation_repair(bot, issue_number: int, review_data: di
     contributor_revision = review_data.get("contributor_revision", {}).get("accepted")
     if isinstance(contributor_revision, dict) and contributor_revision.get("reviewed_head_sha") == head_sha:
         review_data["active_head_sha"] = head_sha
+        clear_current_cycle_reviewer_handoff(review_data)
         return HeadObservationRepairResult(changed=True, outcome="changed")
     changed = accept_channel_event(
         review_data,
@@ -531,6 +536,7 @@ def maybe_record_head_observation_repair(bot, issue_number: int, review_data: di
         source_precedence=0,
     )
     review_data["active_head_sha"] = head_sha
+    clear_current_cycle_reviewer_handoff(review_data)
     review_data["current_cycle_completion"] = {}
     review_data["current_cycle_write_approval"] = {}
     review_data["review_completed_at"] = None

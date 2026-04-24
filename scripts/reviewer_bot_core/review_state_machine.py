@@ -165,6 +165,13 @@ def _reset_cycle_state(review_data: dict) -> None:
     review_data["overdue_anchor"] = None
 
 
+def clear_current_cycle_reviewer_handoff(review_data: dict) -> bool:
+    if review_data.get("current_cycle_reviewer_handoff") is None:
+        return False
+    review_data["current_cycle_reviewer_handoff"] = None
+    return True
+
+
 def set_current_reviewer(
     state: dict,
     issue_number: int,
@@ -205,9 +212,7 @@ def clear_current_reviewer(state: dict, issue_number: int) -> bool:
     if review_data.get("assignment_method") is not None:
         review_data["assignment_method"] = None
         changed = True
-    if review_data.get("current_cycle_reviewer_handoff") is not None:
-        review_data["current_cycle_reviewer_handoff"] = None
-        changed = True
+    changed = clear_current_cycle_reviewer_handoff(review_data) or changed
     clear_transition_timers(review_data)
     return changed
 
