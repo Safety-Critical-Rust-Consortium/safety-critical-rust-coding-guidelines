@@ -259,7 +259,7 @@ def evaluate_deferred_gap_state(
     return "artifact_invalid", str(artifact_correlation.get("reason") or "artifact_invalid")
 
 
-def recommend_visible_review_repair(
+def describe_visible_review_submission(
     review_data: dict,
     review: dict,
     source_event_key: str,
@@ -284,10 +284,14 @@ def recommend_visible_review_repair(
         return None
     if source_event_key != f"pull_request_review:{review_id}":
         return None
-    return author, submitted_at, commit_id
+    return {
+        "author": author,
+        "submitted_at": submitted_at,
+        "commit_id": commit_id,
+    }
 
 
-def recommend_review_submission_gap_repair(
+def describe_review_submission_gap_diagnostic(
     review_data: dict,
     review: dict | None,
     source_event_key: str,
@@ -297,20 +301,15 @@ def recommend_review_submission_gap_repair(
 ) -> dict[str, object] | None:
     if review is None or artifact_status == "exact_artifact_match":
         return None
-    repair = recommend_visible_review_repair(
+    visible_review = describe_visible_review_submission(
         review_data,
         review,
         source_event_key,
         current_cycle_boundary=current_cycle_boundary,
     )
-    if repair is None:
+    if visible_review is None:
         return None
-    author, submitted_at, commit_id = repair
     return {
-        "category": "review_submission_repair",
-        "payload": {
-            "author": author,
-            "submitted_at": submitted_at,
-            "commit_id": commit_id,
-        },
+        "category": "visible_review_without_replay_artifact",
+        "payload": visible_review,
     }

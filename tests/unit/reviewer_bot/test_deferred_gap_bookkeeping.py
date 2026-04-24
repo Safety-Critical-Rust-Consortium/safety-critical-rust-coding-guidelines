@@ -32,7 +32,7 @@ def test_bookkeeping_owner_marks_clears_and_tracks_reconciled_source_events(monk
         "issue_comment:210",
         reconciled_at="2026-03-18T00:00:00+00:00",
     ) is False
-    assert deferred_gap_bookkeeping._was_reconciled_source_event(review, "issue_comment:210") is True
+    assert deferred_gap_bookkeeping.was_reconciled_source_event(review, "issue_comment:210") is True
     assert review["sidecars"]["deferred_gaps"] == {}
     assert review["sidecars"]["reconciled_source_events"] == {
         "issue_comment:210": {
@@ -140,6 +140,30 @@ def test_bookkeeping_owner_ensures_observer_watermark_shape(monkeypatch):
     assert review["sidecars"]["observer_discovery_watermarks"]["reviews_dismissed"] is watermark
 
 
+def test_bookkeeping_owner_records_observer_watermark_event_and_empty_scan(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
+
+    deferred_gap_bookkeeping.record_observer_watermark_event(
+        runtime,
+        review,
+        "reviews_dismissed",
+        "2026-03-17T10:00:00Z",
+        "12",
+    )
+    deferred_gap_bookkeeping.record_observer_watermark_empty_scan(runtime, review, "review_comments")
+
+    dismissed = review["sidecars"]["observer_discovery_watermarks"]["reviews_dismissed"]
+    assert dismissed["last_safe_event_time"] == "2026-03-17T10:00:00Z"
+    assert dismissed["last_safe_event_id"] == "12"
+    assert dismissed["last_scan_completed_at"] == "2026-03-18T00:00:00+00:00"
+    comments = review["sidecars"]["observer_discovery_watermarks"]["review_comments"]
+    assert comments["last_scan_started_at"] == "2026-03-18T00:00:00+00:00"
+    assert comments["last_scan_completed_at"] == "2026-03-18T00:00:00+00:00"
+
+
 def test_update_deferred_gap_preserves_first_noted_and_refreshes_last_checked(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
@@ -209,3 +233,29 @@ def test_update_deferred_gap_preserves_existing_workflow_artifact_provenance_whe
     assert gap["source_run_attempt"] == 1
     assert gap["source_workflow_file"] == ".github/workflows/reviewer-bot-pr-comment-router.yml"
     assert gap["source_artifact_name"] == "reviewer-bot-comment-context-700-attempt-1"
+
+
+def test_update_deferred_gap_preserves_source_dismissed_at_diagnostics(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
+
+    changed = deferred_gap_bookkeeping.record_deferred_gap_diagnostic(
+        runtime,
+        review,
+        {
+            "source_event_key": "pull_request_review_dismissed:12",
+            "source_event_name": "pull_request_review",
+            "source_event_action": "dismissed",
+            "pr_number": 42,
+            "source_dismissed_at": "not-a-timestamp",
+        },
+        "reconcile_failed_closed",
+        "dismissal timestamp invalid",
+    )
+
+    assert changed is True
+    gap = review["sidecars"]["deferred_gaps"]["pull_request_review_dismissed:12"]
+    assert gap["source_event_created_at"] == "not-a-timestamp"
+    assert gap["source_dismissed_at"] == "not-a-timestamp"

@@ -432,8 +432,9 @@ def test_production_modules_use_review_state_as_live_repair_bridge_home():
 
     assert "repair_missing_reviewer_review_state = maintenance_schedule.repair_missing_reviewer_review_state" in maintenance_text
     assert "refresh_reviewer_review_from_live_preferred_review," in reconcile_text
-    assert "accept_reviewer_review_from_live_review," in sweeper_text
-    assert "refresh_reviewer_review_from_live_preferred_review," in sweeper_text
+    assert "accept_reviewer_review_from_live_review," not in sweeper_text
+    assert "refresh_reviewer_review_from_live_preferred_review," not in sweeper_text
+    assert "deferred_gap_diagnosis.describe_review_submission_gap_diagnostic(" in sweeper_text
     assert "from .reviews import refresh_reviewer_review_from_live_preferred_review" not in reconcile_text
     assert "from .reviews import accept_reviewer_review_from_live_review" not in sweeper_text
     assert "from .reviews import refresh_reviewer_review_from_live_preferred_review" not in sweeper_text

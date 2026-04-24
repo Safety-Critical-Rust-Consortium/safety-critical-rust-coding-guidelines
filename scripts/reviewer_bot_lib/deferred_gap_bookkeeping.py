@@ -71,12 +71,34 @@ def ensure_observer_discovery_watermark(review_data: dict, surface: str) -> dict
     return current
 
 
+def _observer_now_iso(bot) -> str:
+    return _now_iso(bot)
+
+
+def record_observer_watermark_event(bot, review_data: dict, surface: str, event_time: str, event_id: str) -> None:
+    current = ensure_observer_discovery_watermark(review_data, surface)
+    current.update(
+        {
+            "last_scan_started_at": current.get("last_scan_started_at") or _observer_now_iso(bot),
+            "last_scan_completed_at": _observer_now_iso(bot),
+            "last_safe_event_time": event_time,
+            "last_safe_event_id": event_id,
+            "lookback_seconds": bot.DEFERRED_DISCOVERY_OVERLAP_SECONDS if hasattr(bot, "DEFERRED_DISCOVERY_OVERLAP_SECONDS") else 3600,
+            "bootstrap_window_seconds": bot.DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS if hasattr(bot, "DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS") else 604800,
+            "bootstrap_completed_at": current.get("bootstrap_completed_at") or _observer_now_iso(bot),
+        }
+    )
+
+
+def record_observer_watermark_empty_scan(bot, review_data: dict, surface: str) -> None:
+    watermark = ensure_observer_discovery_watermark(review_data, surface)
+    watermark["last_scan_started_at"] = watermark.get("last_scan_started_at") or _observer_now_iso(bot)
+    watermark["last_scan_completed_at"] = _observer_now_iso(bot)
+    watermark["bootstrap_completed_at"] = watermark.get("bootstrap_completed_at") or _observer_now_iso(bot)
+
+
 def list_deferred_gap_keys(review_data: dict) -> list[str]:
     return list(_deferred_gaps(review_data))
-
-
-def _deferred_gap_keys(review_data: dict) -> list[str]:
-    return list_deferred_gap_keys(review_data)
 
 
 def get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
@@ -84,17 +106,9 @@ def get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
     return gap if isinstance(gap, dict) else {}
 
 
-def _get_deferred_gap(review_data: dict, source_event_key: str) -> dict:
-    return get_deferred_gap(review_data, source_event_key)
-
-
 def get_deferred_gap_reason(review_data: dict, source_event_key: str) -> str | None:
     reason = get_deferred_gap(review_data, source_event_key).get("reason")
     return reason if isinstance(reason, str) else None
-
-
-def _deferred_gap_reason(review_data: dict, source_event_key: str) -> str | None:
-    return get_deferred_gap_reason(review_data, source_event_key)
 
 
 def _now_iso(bot) -> str:
@@ -130,7 +144,9 @@ def clear_deferred_gap(review_data: dict, source_event_key: str) -> bool:
     return False
 
 
-def _clear_source_event_key(review_data: dict, source_event_key: str) -> bool:
+def clear_automation_comment_gap(review_data: dict, source_event_key: str) -> bool:
+    if not source_event_key.startswith("issue_comment:"):
+        return False
     return clear_deferred_gap(review_data, source_event_key)
 
 
@@ -142,10 +158,6 @@ def update_deferred_gap_fields(review_data: dict, source_event_key: str, fields:
     previous = deepcopy(existing)
     existing.update(fields)
     return previous != existing
-
-
-def _update_deferred_gap_fields(review_data: dict, source_event_key: str, fields: dict) -> bool:
-    return update_deferred_gap_fields(review_data, source_event_key, fields)
 
 
 def mark_reconciled_source_event(
@@ -170,19 +182,6 @@ def mark_reconciled_source_event(
     return True
 
 
-def _mark_reconciled_source_event(
-    review_data: dict,
-    source_event_key: str,
-    *,
-    reconciled_at: str | None = None,
-) -> bool:
-    return mark_reconciled_source_event(
-        review_data,
-        source_event_key,
-        reconciled_at=reconciled_at,
-    )
-
-
 def was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
     return _is_valid_reconciled_source_event(
         _reconciled_source_events(review_data).get(source_event_key),
@@ -190,13 +189,18 @@ def was_reconciled_source_event(review_data: dict, source_event_key: str) -> boo
     )
 
 
-def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
-    return was_reconciled_source_event(review_data, source_event_key)
-
-
 def _payload_or_existing(payload: dict, existing: dict, key: str):
     value = payload.get(key)
     return existing.get(key) if value is None else value
+
+
+def _source_event_created_at(payload: dict, existing: dict):
+    return (
+        payload.get("source_created_at")
+        or payload.get("source_submitted_at")
+        or payload.get("source_dismissed_at")
+        or existing.get("source_event_created_at")
+    )
 
 
 def record_deferred_gap_diagnostic(
@@ -216,43 +220,26 @@ def record_deferred_gap_diagnostic(
     if not isinstance(existing, dict):
         existing = {}
     previous = deepcopy(existing)
-    existing.update(
-        {
-            "source_event_key": source_event_key,
-            "source_event_kind": f"{payload.get('source_event_name')}:{payload.get('source_event_action')}",
-            "pr_number": payload.get("pr_number"),
-            "reason": reason,
-            "source_event_created_at": payload.get("source_created_at") or payload.get("source_submitted_at"),
-            "source_run_id": _payload_or_existing(payload, existing, "source_run_id"),
-            "source_run_attempt": _payload_or_existing(payload, existing, "source_run_attempt"),
-            "source_workflow_file": _payload_or_existing(payload, existing, "source_workflow_file"),
-            "source_artifact_name": _payload_or_existing(payload, existing, "source_artifact_name"),
-            "first_noted_at": existing.get("first_noted_at") or _now_iso(bot),
-            "last_checked_at": _now_iso(bot),
-            "operator_action_required": True,
-            "diagnostic_summary": diagnostic_summary,
-            "failure_kind": failure_kind,
-        }
-    )
+    fields = {
+        "source_event_key": source_event_key,
+        "source_event_kind": f"{payload.get('source_event_name')}:{payload.get('source_event_action')}",
+        "pr_number": payload.get("pr_number"),
+        "reason": reason,
+        "source_event_created_at": _source_event_created_at(payload, existing),
+        "source_run_id": _payload_or_existing(payload, existing, "source_run_id"),
+        "source_run_attempt": _payload_or_existing(payload, existing, "source_run_attempt"),
+        "source_workflow_file": _payload_or_existing(payload, existing, "source_workflow_file"),
+        "source_artifact_name": _payload_or_existing(payload, existing, "source_artifact_name"),
+        "first_noted_at": existing.get("first_noted_at") or _now_iso(bot),
+        "last_checked_at": _now_iso(bot),
+        "operator_action_required": True,
+        "diagnostic_summary": diagnostic_summary,
+        "failure_kind": failure_kind,
+    }
+    source_dismissed_at = _payload_or_existing(payload, existing, "source_dismissed_at")
+    if source_dismissed_at is not None:
+        fields["source_dismissed_at"] = source_dismissed_at
+    existing.update(fields)
     changed = previous != existing
     deferred_gaps[source_event_key] = existing
     return changed
-
-
-def _update_deferred_gap(
-    bot,
-    review_data: dict,
-    payload: dict,
-    reason: str,
-    diagnostic_summary: str,
-    *,
-    failure_kind: str | None = None,
-) -> bool:
-    return record_deferred_gap_diagnostic(
-        bot,
-        review_data,
-        payload,
-        reason,
-        diagnostic_summary,
-        failure_kind=failure_kind,
-    )

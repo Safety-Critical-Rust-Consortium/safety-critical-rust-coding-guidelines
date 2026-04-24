@@ -1,3 +1,5 @@
+import pytest
+
 from scripts.reviewer_bot_lib import (
     lifecycle,
     maintenance,
@@ -158,19 +160,14 @@ def test_finalize_schedule_result_drains_touched_items_for_projection_followup(m
     assert bot.drain_touched_items() == []
 
 
-def test_manual_dispatch_check_overdue_preserves_touched_items_for_projection_followup(monkeypatch):
+def test_manual_dispatch_check_overdue_rejects_unstructured_bool_path(monkeypatch):
     bot = FakeReviewerBotRuntime(monkeypatch)
     bot.ACTIVE_LEASE_CONTEXT = object()
     state = make_state()
     bot.set_config_value("MANUAL_ACTION", "check-overdue")
-    monkeypatch.setattr(
-        maintenance_schedule,
-        "handle_scheduled_check_result",
-        lambda runtime, current: maintenance.ScheduleHandlerResult(False, [42, 99]),
-    )
 
-    assert maintenance.handle_manual_dispatch(bot, state) is False
-    assert bot.drain_touched_items() == [42, 99]
+    with pytest.raises(RuntimeError, match="handle_scheduled_check_result"):
+        maintenance.handle_manual_dispatch(bot, state)
 
 
 def test_scheduled_check_collects_touched_item_for_warning_diagnostic_mutation(monkeypatch):

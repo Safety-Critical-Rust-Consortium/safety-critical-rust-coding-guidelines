@@ -384,6 +384,9 @@ def test_deferred_review_dismissal_without_valid_exact_time_stays_diagnostic_onl
     gap = _deferred_gaps(review)["pull_request_review_dismissed:12"]
     assert gap["reason"] == "reconcile_failed_closed"
     assert expected_reason in gap["diagnostic_summary"]
+    if source_dismissed_at is not None:
+        assert gap["source_dismissed_at"] == source_dismissed_at
+        assert gap["source_event_created_at"] == source_dismissed_at
 
 
 def test_deferred_review_dismissal_timeline_failure_stays_diagnostic_with_failure_kind(monkeypatch):

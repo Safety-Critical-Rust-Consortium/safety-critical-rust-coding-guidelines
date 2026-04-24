@@ -12,13 +12,13 @@ def _load_matrix() -> dict:
     )
 
 
-def test_h4a_review_submission_gap_matrix_freezes_exact_visible_review_repair_outputs():
+def test_h4a_review_submission_gap_matrix_freezes_exact_visible_review_diagnostic_outputs():
     matrix = _load_matrix()
 
-    assert matrix["harness_id"] == "H4a review-submitted gap repair flow equivalence"
+    assert matrix["harness_id"] == "H4a review-submitted gap diagnostic flow equivalence"
     scenario = matrix["scenarios"][0]
 
-    recommendation = deferred_gap_diagnosis.recommend_visible_review_repair(
+    diagnostic_payload = deferred_gap_diagnosis.describe_visible_review_submission(
         {"current_reviewer": "alice"},
         {
             "id": 202,
@@ -32,19 +32,15 @@ def test_h4a_review_submission_gap_matrix_freezes_exact_visible_review_repair_ou
 
     assert scenario["expected_reason"] is None
     assert scenario["expected_diagnostic_reason"] is None
-    assert scenario["expected_repair_category"] == "review_submission_repair"
-    assert recommendation == (
-        scenario["expected_recommendation_payload"]["author"],
-        scenario["expected_recommendation_payload"]["submitted_at"],
-        scenario["expected_recommendation_payload"]["commit_id"],
-    )
+    assert scenario["expected_diagnostic_category"] == "visible_review_without_replay_artifact"
+    assert diagnostic_payload == scenario["expected_diagnostic_payload"]
 
 
-def test_h4b_review_submission_gap_recommendation_flow_moves_to_core_owner():
+def test_h4b_review_submission_gap_diagnostic_flow_moves_to_core_owner():
     matrix = _load_matrix()
     scenario = matrix["scenarios"][0]
 
-    recommendation = deferred_gap_diagnosis.recommend_review_submission_gap_repair(
+    diagnostic = deferred_gap_diagnosis.describe_review_submission_gap_diagnostic(
         {"current_reviewer": "alice"},
         {
             "id": 202,
@@ -58,9 +54,9 @@ def test_h4b_review_submission_gap_recommendation_flow_moves_to_core_owner():
     )
     sweeper_text = Path("scripts/reviewer_bot_lib/sweeper.py").read_text(encoding="utf-8")
 
-    assert recommendation == {
-        "category": scenario["expected_repair_category"],
-        "payload": scenario["expected_recommendation_payload"],
+    assert diagnostic == {
+        "category": scenario["expected_diagnostic_category"],
+        "payload": scenario["expected_diagnostic_payload"],
     }
-    assert "deferred_gap_diagnosis.recommend_review_submission_gap_repair(" in sweeper_text
+    assert "deferred_gap_diagnosis.describe_review_submission_gap_diagnostic(" in sweeper_text
     assert "artifact_status != \"exact_artifact_match\"" not in sweeper_text

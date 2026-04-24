@@ -178,7 +178,7 @@ def test_c5c_sweeper_cleanup_keeps_mutation_apply_but_removes_embedded_diagnosis
     assert "def correlate_candidate_observer_runs(" not in module_text
     assert "def correlate_run_artifacts_exact(" not in module_text
     assert "def evaluate_deferred_gap_state(" not in module_text
-    assert "def _repair_visible_review_gap(" in module_text
+    assert "def _repair_visible_review_gap(" not in module_text
     assert "deferred_gap_diagnosis.evaluate_deferred_gap_state(" in module_text
 
 
@@ -188,4 +188,4 @@ def test_h4a_review_submission_gap_fixture_keeps_only_one_repair_flow():
     )
 
     assert len(matrix["scenarios"]) == 1
-    assert matrix["scenarios"][0]["expected_repair_category"] == "review_submission_repair"
+    assert matrix["scenarios"][0]["expected_diagnostic_category"] == "visible_review_without_replay_artifact"

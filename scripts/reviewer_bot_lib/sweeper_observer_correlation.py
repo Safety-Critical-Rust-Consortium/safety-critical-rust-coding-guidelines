@@ -172,24 +172,12 @@ def inspect_run_artifact_payloads(bot, workflow_runs: list[dict], source_event_k
 
 
 def update_observer_watermark(bot, review_data: dict, surface: str, event_time: str, event_id: str) -> None:
-    current = gap_bookkeeping.ensure_observer_discovery_watermark(review_data, surface)
-    current.update({
-        "last_scan_started_at": current.get("last_scan_started_at") or _now_iso(bot),
-        "last_scan_completed_at": _now_iso(bot),
-        "last_safe_event_time": event_time,
-        "last_safe_event_id": event_id,
-        "lookback_seconds": bot.DEFERRED_DISCOVERY_OVERLAP_SECONDS if hasattr(bot, "DEFERRED_DISCOVERY_OVERLAP_SECONDS") else 3600,
-        "bootstrap_window_seconds": bot.DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS if hasattr(bot, "DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS") else 604800,
-        "bootstrap_completed_at": current.get("bootstrap_completed_at") or _now_iso(bot),
-    })
+    gap_bookkeeping.record_observer_watermark_event(bot, review_data, surface, event_time, event_id)
 
 
-def complete_surface_scan(bot, review_data: dict, surface: str, discovered: list[dict], load_surface_watermark) -> None:
+def complete_surface_scan(bot, review_data: dict, surface: str, discovered: list[dict]) -> None:
     if discovered:
         last_seen = discovered[-1]
         update_observer_watermark(bot, review_data, surface, last_seen["source_created_at"], last_seen["object_id"])
         return
-    watermark = load_surface_watermark(review_data, surface)
-    watermark["last_scan_started_at"] = watermark.get("last_scan_started_at") or _now_iso(bot)
-    watermark["last_scan_completed_at"] = _now_iso(bot)
-    watermark["bootstrap_completed_at"] = watermark.get("bootstrap_completed_at") or _now_iso(bot)
+    gap_bookkeeping.record_observer_watermark_empty_scan(bot, review_data, surface)

@@ -26,17 +26,16 @@ def test_deferred_gap_diagnosis_vocabulary_matrix_exists_and_lists_reason_sets()
     assert "exact_artifact_missing" in matrix["diagnostic_reason_values"]
 
 
-def test_deferred_gap_diagnosis_matrix_freezes_visible_review_repair_categories_and_ownership():
+def test_deferred_gap_diagnosis_matrix_freezes_visible_review_diagnostic_categories_and_ownership():
     matrix = _load_matrix()
 
-    assert matrix["visible_review_repair_categories"] == [
-        "review_submission_repair",
-        "review_dismissal_repair",
-        "no_repair_recommended",
+    assert matrix["visible_review_diagnostic_categories"] == [
+        "visible_review_without_replay_artifact",
+        "no_diagnostic_recommended",
     ]
     assert matrix["ownership_decision"] == {
-        "diagnosis": "recommends",
-        "sweeper": "mutates",
+        "diagnosis": "classifies",
+        "sweeper": "records_diagnostics",
     }
 
 
@@ -48,7 +47,7 @@ def test_deferred_gap_diagnosis_core_produces_frozen_reason_and_recommendation_o
     artifact_reason = deferred_gap_diagnosis.classify_artifact_gap_reason(
         {"artifact_inspection_complete": True},
     )
-    recommendation = deferred_gap_diagnosis.recommend_visible_review_repair(
+    diagnostic_payload = deferred_gap_diagnosis.describe_visible_review_submission(
         {"current_reviewer": "alice"},
         {
             "id": 202,
@@ -62,4 +61,8 @@ def test_deferred_gap_diagnosis_core_produces_frozen_reason_and_recommendation_o
 
     assert run_reason == "awaiting_observer_approval"
     assert artifact_reason == "artifact_missing"
-    assert recommendation == ("alice", "2026-03-25T11:00:00Z", "head-1")
+    assert diagnostic_payload == {
+        "author": "alice",
+        "submitted_at": "2026-03-25T11:00:00Z",
+        "commit_id": "head-1",
+    }

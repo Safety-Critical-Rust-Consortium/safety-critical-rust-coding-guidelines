@@ -319,7 +319,7 @@ def test_discover_visible_comment_events_skips_github_actions_and_bot_comments(m
     assert [item["source_event_key"] for item in discovered] == ["issue_comment:101"]
 
 
-def test_sweeper_visible_review_repair_refreshes_current_reviewer_activity_without_artifact(monkeypatch, freeze_sweeper_now):
+def test_sweeper_visible_review_discovery_records_diagnostic_without_replay_mutation(monkeypatch, freeze_sweeper_now):
     freeze_sweeper_now("2026-03-25T12:30:00Z")
     runtime = _runtime(monkeypatch)
     state = make_state()
@@ -349,14 +349,16 @@ def test_sweeper_visible_review_repair_refreshes_current_reviewer_activity_witho
     runtime.github.get_pull_request_reviews = lambda issue_number: [pull_request_review_event(202, submitted_at="2026-03-25T11:00:00Z", state="COMMENTED", commit_id="head-1")]
 
     assert sweeper.sweep_deferred_gaps(runtime, state) is True
-    assert review["last_reviewer_activity"] == "2026-03-25T11:00:00Z"
-    assert review["transition_warning_sent"] is None
-    assert review["transition_notice_sent_at"] is None
-    assert "pull_request_review:202" not in review["sidecars"]["deferred_gaps"]
-    assert "pull_request_review:202" in review["sidecars"]["reconciled_source_events"]
+    assert review.get("last_reviewer_activity") is None
+    assert review["transition_warning_sent"] == "2026-03-18T00:00:00Z"
+    assert review["transition_notice_sent_at"] == "2026-03-25T00:00:00Z"
+    gap = review["sidecars"]["deferred_gaps"]["pull_request_review:202"]
+    assert gap["reason"] == "observer_state_unknown"
+    assert gap["visible_review_diagnostic"]["category"] == "visible_review_without_replay_artifact"
+    assert "pull_request_review:202" not in review["sidecars"]["reconciled_source_events"]
 
 
-def test_visible_review_repair_does_not_clear_transition_warning_for_stale_replayed_review(monkeypatch, freeze_sweeper_now):
+def test_visible_review_diagnostic_does_not_clear_transition_warning_for_stale_replayed_review(monkeypatch, freeze_sweeper_now):
     freeze_sweeper_now("2026-03-25T12:30:00Z")
     runtime = _runtime(monkeypatch)
     state = make_state()
@@ -390,30 +392,18 @@ def test_visible_review_repair_does_not_clear_transition_warning_for_stale_repla
     assert review["last_reviewer_activity"] == "2026-03-25T11:00:00Z"
     assert review["transition_warning_sent"] == "2026-04-01T12:12:04Z"
     assert review["transition_notice_sent_at"] == "2026-04-15T12:12:04Z"
+    assert "pull_request_review:202" in review["sidecars"]["deferred_gaps"]
+    assert "pull_request_review:202" not in review["sidecars"]["reconciled_source_events"]
 
 
-def test_repair_visible_review_gap_returns_true_for_bookkeeping_only_mutations(monkeypatch):
-    runtime = _runtime(monkeypatch)
-    review = review_state.ensure_review_entry(make_state(), 42, create=True)
-    assert review is not None
-    review["current_reviewer"] = "alice"
-    review["active_cycle_started_at"] = "2026-03-17T09:00:00Z"
-    review["sidecars"]["deferred_gaps"]["pull_request_review:303"] = {"reason": "artifact_missing"}
-    monkeypatch.setattr(sweeper, "accept_reviewer_review_from_live_review", lambda review_data, live_review, actor=None: False)
-    monkeypatch.setattr(sweeper, "refresh_reviewer_review_from_live_preferred_review", lambda bot, issue_number, review_data, actor=None: (False, None))
-    monkeypatch.setattr(sweeper, "rebuild_pr_approval_state", lambda bot, issue_number, review_data: (None, None))
+def test_sweeper_no_longer_owns_visible_review_replay_mutation():
+    module_text = Path("scripts/reviewer_bot_lib/sweeper.py").read_text(encoding="utf-8")
 
-    changed = sweeper._repair_visible_review_gap(
-        runtime,
-        review,
-        42,
-        "pull_request_review:303",
-        pull_request_review_event(303, submitted_at="2026-03-25T11:00:00Z", state="COMMENTED", commit_id="head-1"),
-    )
-
-    assert changed is True
-    assert "pull_request_review:303" in review["sidecars"]["reconciled_source_events"]
-    assert "pull_request_review:303" not in review["sidecars"]["deferred_gaps"]
+    assert "def _repair_visible_review_gap(" not in module_text
+    assert "accept_reviewer_review_from_live_review" not in module_text
+    assert "refresh_reviewer_review_from_live_preferred_review" not in module_text
+    assert "record_reviewer_activity" not in module_text
+    assert "rebuild_pr_approval_state" not in module_text
 
 
 def test_load_surface_watermark_lazily_materializes_missing_surface_state(monkeypatch):
@@ -469,7 +459,7 @@ def test_sweeper_delegates_diagnosis_and_narrow_recommendation_to_core_owner():
     assert "def evaluate_deferred_gap_state(" not in module_text
     assert "def _can_repair_visible_review(" not in module_text
     assert "deferred_gap_diagnosis.evaluate_deferred_gap_state(" in module_text
-    assert "deferred_gap_diagnosis.recommend_review_submission_gap_repair(" in module_text
+    assert "deferred_gap_diagnosis.describe_review_submission_gap_diagnostic(" in module_text
 
 
 def test_h4a_review_submission_gap_fixture_stays_narrow_and_explicit():
@@ -477,7 +467,7 @@ def test_h4a_review_submission_gap_fixture_stays_narrow_and_explicit():
         Path("tests/fixtures/equivalence/review_submission_gap_repair/scenario_matrix.json").read_text(encoding="utf-8")
     )
 
-    assert matrix["harness_id"] == "H4a review-submitted gap repair flow equivalence"
+    assert matrix["harness_id"] == "H4a review-submitted gap diagnostic flow equivalence"
     assert matrix["out_of_scope"] == [
         "production cutover",
         "other sweeper repair flows",
@@ -485,6 +475,7 @@ def test_h4a_review_submission_gap_fixture_stays_narrow_and_explicit():
     assert [scenario["scenario_id"] for scenario in matrix["scenarios"]] == [
         "submitted_review_visible_without_exact_artifact",
     ]
+    assert matrix["scenarios"][0]["expected_diagnostic_category"] == "visible_review_without_replay_artifact"
 
 
 def test_stage_a_candidate_run_correlation_is_exact_to_workflow_event_pr_and_window(monkeypatch):
@@ -616,9 +607,12 @@ def test_sweeper_routes_deferred_sidecar_shapes_through_bookkeeping_owner():
     assert "gap_bookkeeping.get_deferred_gap(" in module_text
     assert "gap_bookkeeping.update_deferred_gap_fields(" in module_text
     assert "gap_bookkeeping.ensure_observer_discovery_watermark(" in module_text
-    assert "gap_bookkeeping.ensure_observer_discovery_watermark(" in observer_correlation_text
+    assert "gap_bookkeeping.record_observer_watermark_event(" in observer_correlation_text
+    assert "gap_bookkeeping.record_observer_watermark_empty_scan(" in observer_correlation_text
     assert "gap_bookkeeping._observer_discovery_watermarks(" not in module_text
     assert "gap_bookkeeping._observer_discovery_watermarks(" not in observer_correlation_text
+    assert "last_safe_event_time" not in observer_correlation_text
+    assert "last_scan_completed_at" not in observer_correlation_text
     assert "review_data.get(\"deferred_gaps\"" not in module_text
     assert "[\"deferred_gaps\"]" not in module_text
     assert "[\"reconciled_source_events\"]" not in module_text

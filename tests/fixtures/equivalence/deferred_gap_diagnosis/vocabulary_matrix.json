@@ -18,13 +18,12 @@
     "artifact_ambiguity",
     "artifact_invalid"
   ],
-  "visible_review_repair_categories": [
-    "review_submission_repair",
-    "review_dismissal_repair",
-    "no_repair_recommended"
+  "visible_review_diagnostic_categories": [
+    "visible_review_without_replay_artifact",
+    "no_diagnostic_recommended"
   ],
   "ownership_decision": {
-    "diagnosis": "recommends",
-    "sweeper": "mutates"
+    "diagnosis": "classifies",
+    "sweeper": "records_diagnostics"
   }
 }
