@@ -8,7 +8,7 @@ from tests.fixtures.reviewer_bot import make_state
 pytestmark = pytest.mark.integration
 
 
-def test_execute_run_closed_issue_comment_cleanup_persists_removed_review_entry(monkeypatch):
+def test_execute_run_closed_issue_comment_safe_noop_keeps_lifecycle_cleanup_owner(monkeypatch):
     harness = AppHarness(monkeypatch)
     harness.set_event(
         EVENT_NAME="issue_comment",
@@ -52,9 +52,9 @@ def test_execute_run_closed_issue_comment_cleanup_persists_removed_review_entry(
     result = harness.run_execute()
 
     assert result.exit_code == 0
-    assert save_calls == [False]
+    assert save_calls == []
     assert len(sync_calls) == 1
-    assert sync_calls[0][0] is reloaded_state
+    assert sync_calls[0][0] is initial_state
     assert sync_calls[0][1] == [42]
 
 def test_execute_run_closed_issue_comment_without_entry_skips_save(monkeypatch):
@@ -94,7 +94,7 @@ def test_execute_run_closed_issue_comment_without_entry_skips_save(monkeypatch):
     assert sync_calls == [[42]]
 
 
-def test_execute_run_late_workflow_run_reconcile_does_not_recreate_removed_review_entry(monkeypatch):
+def test_execute_run_late_workflow_run_reconcile_missing_row_safe_noop(monkeypatch):
     harness = AppHarness(monkeypatch)
     harness.set_workflow_run_name("Reviewer Bot PR Comment Router")
     harness.set_event(
@@ -135,7 +135,7 @@ def test_execute_run_late_workflow_run_reconcile_does_not_recreate_removed_revie
 
     result = harness.run_execute()
 
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert state["active_reviews"] == {}
     assert save_called["value"] is False
     assert sync_calls == []
