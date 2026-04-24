@@ -136,7 +136,10 @@ def test_tracked_pr_repair_pass_collects_touched_items_and_clears_review_repair_
         lambda bot, issue_number, review_data: lifecycle.HeadObservationRepairResult(changed=False, outcome="unchanged"),
     )
 
-    assert maintenance_schedule._run_tracked_pr_repairs(bot, state) is True
+    changed, closed_cleanup_removed_items = maintenance_schedule._run_tracked_pr_maintenance(bot, state)
+
+    assert changed is True
+    assert closed_cleanup_removed_items == []
     assert bot.drain_touched_items() == [42]
     assert repair_records.load_repair_marker(review, "review_repair") is None
 

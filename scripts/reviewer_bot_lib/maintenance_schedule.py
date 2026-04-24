@@ -26,14 +26,12 @@ from .review_state import (
 )
 from .sweeper import sweep_deferred_gaps
 
-CLOSED_LIFECYCLE_CLEANUP_REASON = "closed_lifecycle_cleanup"
-
 
 @dataclass(frozen=True)
 class ScheduleHandlerResult:
     state_changed: bool
     touched_items: list[int]
-    empty_active_reviews_write_reason: str | None = None
+    closed_cleanup_removed_items: tuple[int, ...] = ()
 
 
 def _log(bot, level: str, message: str, **fields) -> None:
@@ -110,27 +108,12 @@ def _run_tracked_pr_repair(bot, issue_number: int, review_data: dict) -> bool:
     return changed
 
 
-def _run_tracked_pr_repairs(bot, state: dict) -> bool:
+def _run_tracked_pr_maintenance(bot, state: dict) -> tuple[bool, list[int]]:
     changed = False
+    closed_cleanup_removed_items: list[int] = []
     active_reviews = state.get("active_reviews")
     if not isinstance(active_reviews, dict):
-        return False
-    for issue_key, review_data in list(active_reviews.items()):
-        if not isinstance(review_data, dict) or not review_data.get("current_reviewer"):
-            continue
-        issue_number = int(issue_key)
-        issue_snapshot = bot.github.get_issue_or_pr_snapshot(issue_number)
-        if not isinstance(issue_snapshot, dict) or not isinstance(issue_snapshot.get("pull_request"), dict):
-            continue
-        changed = _run_tracked_pr_repair(bot, issue_number, review_data) or changed
-    return changed
-
-
-def _run_closed_item_cleanup(bot, state: dict) -> bool:
-    changed = False
-    active_reviews = state.get("active_reviews")
-    if not isinstance(active_reviews, dict):
-        return False
+        return False, closed_cleanup_removed_items
     for issue_key, review_data in list(active_reviews.items()):
         if not isinstance(review_data, dict):
             continue
@@ -142,8 +125,16 @@ def _run_closed_item_cleanup(bot, state: dict) -> bool:
         if not isinstance(issue_snapshot, dict):
             continue
         if str(issue_snapshot.get("state", "")).lower() == "closed":
-            changed = remove_closed_review_entry(bot, state, issue_number, reason="scheduled_closed_snapshot") or changed
-    return changed
+            if remove_closed_review_entry(bot, state, issue_number, reason="scheduled_closed_snapshot"):
+                changed = True
+                closed_cleanup_removed_items.append(issue_number)
+            continue
+        if not isinstance(issue_snapshot.get("pull_request"), dict):
+            continue
+        if not review_data.get("current_reviewer"):
+            continue
+        changed = _run_tracked_pr_repair(bot, issue_number, review_data) or changed
+    return changed, closed_cleanup_removed_items
 
 
 def _run_overdue_pass(bot, state: dict) -> bool:
@@ -176,28 +167,25 @@ def _finalize_schedule_result(
     bot,
     state_changed: bool,
     *,
-    empty_active_reviews_write_reason: str | None = None,
+    closed_cleanup_removed_items: list[int] | None = None,
 ) -> ScheduleHandlerResult:
     return ScheduleHandlerResult(
         state_changed=state_changed,
         touched_items=bot.drain_touched_items(),
-        empty_active_reviews_write_reason=empty_active_reviews_write_reason,
+        closed_cleanup_removed_items=tuple(sorted(closed_cleanup_removed_items or [])),
     )
 
 
 def handle_scheduled_check_result(bot, state: dict) -> ScheduleHandlerResult:
     bot.assert_lock_held("handle_scheduled_check_result")
     changed = _run_deferred_gap_sweep(bot, state)
-    closed_cleanup_changed = _run_closed_item_cleanup(bot, state)
-    changed = closed_cleanup_changed or changed
-    changed = _run_tracked_pr_repairs(bot, state) or changed
+    tracked_pr_changed, closed_cleanup_removed_items = _run_tracked_pr_maintenance(bot, state)
+    changed = tracked_pr_changed or changed
     changed = _run_overdue_pass(bot, state) or changed
     return _finalize_schedule_result(
         bot,
         changed,
-        empty_active_reviews_write_reason=(
-            CLOSED_LIFECYCLE_CLEANUP_REASON if closed_cleanup_changed else None
-        ),
+        closed_cleanup_removed_items=closed_cleanup_removed_items,
     )
 
 

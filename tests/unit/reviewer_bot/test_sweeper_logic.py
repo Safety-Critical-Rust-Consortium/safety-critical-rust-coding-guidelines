@@ -608,10 +608,17 @@ def test_sweeper_fetches_single_candidate_run_detail_without_exact_artifact_matc
 
 def test_sweeper_routes_deferred_sidecar_shapes_through_bookkeeping_owner():
     module_text = Path("scripts/reviewer_bot_lib/sweeper.py").read_text(encoding="utf-8")
+    observer_correlation_text = Path("scripts/reviewer_bot_lib/sweeper_observer_correlation.py").read_text(
+        encoding="utf-8"
+    )
 
     assert "gap_bookkeeping.list_deferred_gap_keys(" in module_text
     assert "gap_bookkeeping.get_deferred_gap(" in module_text
     assert "gap_bookkeeping.update_deferred_gap_fields(" in module_text
+    assert "gap_bookkeeping.ensure_observer_discovery_watermark(" in module_text
+    assert "gap_bookkeeping.ensure_observer_discovery_watermark(" in observer_correlation_text
+    assert "gap_bookkeeping._observer_discovery_watermarks(" not in module_text
+    assert "gap_bookkeeping._observer_discovery_watermarks(" not in observer_correlation_text
     assert "review_data.get(\"deferred_gaps\"" not in module_text
     assert "[\"deferred_gaps\"]" not in module_text
     assert "[\"reconciled_source_events\"]" not in module_text

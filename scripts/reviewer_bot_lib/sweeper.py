@@ -175,21 +175,7 @@ def _diagnose_deferred_event(
 
 
 def _load_surface_watermark(review_data: dict, surface: str) -> dict:
-    watermarks = gap_bookkeeping._observer_discovery_watermarks(review_data)
-    current = watermarks.get(surface)
-    if isinstance(current, dict):
-        return current
-    current = {
-        "last_scan_started_at": None,
-        "last_scan_completed_at": None,
-        "last_safe_event_time": None,
-        "last_safe_event_id": None,
-        "lookback_seconds": None,
-        "bootstrap_window_seconds": None,
-        "bootstrap_completed_at": None,
-    }
-    watermarks[surface] = current
-    return current
+    return gap_bookkeeping.ensure_observer_discovery_watermark(review_data, surface)
 
 
 def _surface_scan_floor(bot, watermark: dict) -> datetime:

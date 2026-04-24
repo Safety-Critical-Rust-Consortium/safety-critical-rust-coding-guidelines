@@ -53,6 +53,24 @@ def get_observer_discovery_watermarks(review_data: dict) -> dict:
     return _observer_discovery_watermarks(review_data)
 
 
+def ensure_observer_discovery_watermark(review_data: dict, surface: str) -> dict:
+    watermarks = get_observer_discovery_watermarks(review_data)
+    current = watermarks.get(surface)
+    if isinstance(current, dict):
+        return current
+    current = {
+        "last_scan_started_at": None,
+        "last_scan_completed_at": None,
+        "last_safe_event_time": None,
+        "last_safe_event_id": None,
+        "lookback_seconds": None,
+        "bootstrap_window_seconds": None,
+        "bootstrap_completed_at": None,
+    }
+    watermarks[surface] = current
+    return current
+
+
 def list_deferred_gap_keys(review_data: dict) -> list[str]:
     return list(_deferred_gaps(review_data))
 
@@ -85,6 +103,15 @@ def _now_iso(bot) -> str:
 
 def _reconciled_at_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _is_valid_reconciled_source_event(existing: object, source_event_key: str) -> bool:
+    if not isinstance(existing, dict):
+        return False
+    if existing.get("source_event_key") != source_event_key:
+        return False
+    reconciled_at = existing.get("reconciled_at")
+    return isinstance(reconciled_at, str) and bool(reconciled_at.strip())
 
 
 def _ensure_source_event_key(review_data: dict, source_event_key: str, payload: dict | None = None) -> None:
@@ -127,7 +154,7 @@ def _mark_reconciled_source_event(
     timestamp = reconciled_at or _reconciled_at_now()
     existing = reconciled.get(source_event_key)
     if isinstance(existing, dict):
-        if existing.get("source_event_key") != source_event_key or not existing.get("reconciled_at"):
+        if not _is_valid_reconciled_source_event(existing, source_event_key):
             existing["source_event_key"] = source_event_key
             existing["reconciled_at"] = timestamp
             return True
@@ -140,13 +167,10 @@ def _mark_reconciled_source_event(
 
 
 def was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
-    existing = _reconciled_source_events(review_data).get(source_event_key)
-    if not isinstance(existing, dict):
-        return False
-    if existing.get("source_event_key") != source_event_key:
-        return False
-    reconciled_at = existing.get("reconciled_at")
-    return isinstance(reconciled_at, str) and bool(reconciled_at.strip())
+    return _is_valid_reconciled_source_event(
+        _reconciled_source_events(review_data).get(source_event_key),
+        source_event_key,
+    )
 
 
 def _was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:

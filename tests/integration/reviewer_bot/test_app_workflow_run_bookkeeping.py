@@ -5,7 +5,7 @@ import pytest
 
 pytestmark = pytest.mark.integration
 
-from scripts.reviewer_bot_lib import reconcile, review_state
+from scripts.reviewer_bot_lib import deferred_gap_bookkeeping, reconcile, review_state
 from tests.fixtures.app_harness import AppHarness
 from tests.fixtures.reconcile_harness import review_dismissed_payload
 from tests.fixtures.reviewer_bot import make_state
@@ -67,10 +67,12 @@ def test_execute_run_workflow_run_bookkeeping_only_reconcile_still_saves_state(t
     harness.stub_sync_members(lambda current: (current, []))
     def fake_workflow_run_result(bot, current):
         harness.runtime.collect_touched_item(42)
-        current["active_reviews"]["42"]["sidecars"]["reconciled_source_events"]["pull_request_review:11"] = {
-            "reconciled_at": "2026-01-01T00:00:00+00:00"
-        }
-        current["active_reviews"]["42"]["sidecars"]["deferred_gaps"].pop("pull_request_review:11", None)
+        deferred_gap_bookkeeping._mark_reconciled_source_event(
+            current["active_reviews"]["42"],
+            "pull_request_review:11",
+            reconciled_at="2026-01-01T00:00:00+00:00",
+        )
+        deferred_gap_bookkeeping._clear_source_event_key(current["active_reviews"]["42"], "pull_request_review:11")
         return reconcile.WorkflowRunHandlerResult(True, [42])
 
     monkeypatch.setattr(reconcile, "handle_workflow_run_event_result", fake_workflow_run_result)
@@ -154,10 +156,12 @@ def test_execute_run_workflow_run_deferred_comment_bookkeeping_only_reconcile_st
     harness.stub_sync_members(lambda current: (current, []))
     def fake_comment_workflow_run_result(bot, current):
         harness.runtime.collect_touched_item(42)
-        current["active_reviews"]["42"]["sidecars"]["reconciled_source_events"]["issue_comment:210"] = {
-            "reconciled_at": "2026-01-01T00:00:00+00:00"
-        }
-        current["active_reviews"]["42"]["sidecars"]["deferred_gaps"].pop("issue_comment:210", None)
+        deferred_gap_bookkeeping._mark_reconciled_source_event(
+            current["active_reviews"]["42"],
+            "issue_comment:210",
+            reconciled_at="2026-01-01T00:00:00+00:00",
+        )
+        deferred_gap_bookkeeping._clear_source_event_key(current["active_reviews"]["42"], "issue_comment:210")
         return reconcile.WorkflowRunHandlerResult(True, [42])
 
     monkeypatch.setattr(reconcile, "handle_workflow_run_event_result", fake_comment_workflow_run_result)
@@ -241,10 +245,15 @@ def test_execute_run_workflow_run_deferred_review_comment_bookkeeping_only_recon
 
     def fake_review_comment_workflow_run_result(bot, current):
         harness.runtime.collect_touched_item(42)
-        current["active_reviews"]["42"]["sidecars"]["reconciled_source_events"]["pull_request_review_comment:310"] = {
-            "reconciled_at": "2026-01-01T00:00:00+00:00"
-        }
-        current["active_reviews"]["42"]["sidecars"]["deferred_gaps"].pop("pull_request_review_comment:310", None)
+        deferred_gap_bookkeeping._mark_reconciled_source_event(
+            current["active_reviews"]["42"],
+            "pull_request_review_comment:310",
+            reconciled_at="2026-01-01T00:00:00+00:00",
+        )
+        deferred_gap_bookkeeping._clear_source_event_key(
+            current["active_reviews"]["42"],
+            "pull_request_review_comment:310",
+        )
         return reconcile.WorkflowRunHandlerResult(True, [42])
 
     monkeypatch.setattr(reconcile, "handle_workflow_run_event_result", fake_review_comment_workflow_run_result)
