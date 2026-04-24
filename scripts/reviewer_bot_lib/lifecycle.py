@@ -183,7 +183,9 @@ def _reconcile_lifecycle_reviewer_authority(
     current_assignees = bot.github.get_issue_assignees(issue_number)
     if current_assignees is None:
         raise RuntimeError(f"Unable to determine assignees for #{issue_number}")
-    cycle_started_at = request.event_created_at or request.updated_at or _now_iso()
+    if not request.event_created_at:
+        raise RuntimeError(f"Missing lifecycle timestamp for {request.event_action} event")
+    cycle_started_at = request.event_created_at
     if len(current_assignees) == 1:
         reviewer = current_assignees[0]
         if request.issue_author and reviewer.lower() == request.issue_author.lower():
@@ -297,7 +299,9 @@ def handle_issue_edited_event(bot, state: dict) -> bool:
     review_data = ensure_review_entry(state, issue_number)
     if review_data is None:
         return False
-    updated_at = request.updated_at or _now_iso()
+    if not request.event_created_at:
+        raise RuntimeError("Missing lifecycle timestamp for edited event")
+    updated_at = request.event_created_at
     current_title = request.issue_title
     current_body = request.issue_body
     previous_title = request.previous_title

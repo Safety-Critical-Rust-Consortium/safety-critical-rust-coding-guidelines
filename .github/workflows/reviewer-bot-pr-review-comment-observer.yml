@@ -28,7 +28,7 @@ jobs:
           COMMENT_USER_TYPE: ${{ github.event.comment.user.type }}
           COMMENT_SENDER_TYPE: ${{ github.event.sender.type }}
           COMMENT_INSTALLATION_ID: ${{ github.event.installation.id }}
-          COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app && 'true' || 'false' }}
+          COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ toJson(github.event.comment.performed_via_github_app) != 'null' && toJson(github.event.comment.performed_via_github_app) != 'false' && 'true' || 'false' }}
         run: |
           python - <<'PY'
           import json

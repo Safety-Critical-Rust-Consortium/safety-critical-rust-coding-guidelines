@@ -278,6 +278,34 @@ def test_event_inputs_build_comment_request_and_pr_admission_from_runtime_config
     assert pr_admission.github_run_attempt == 2
 
 
+@pytest.mark.parametrize(
+    ("raw_value", "expected"),
+    [("true", True), ("false", False)],
+)
+def test_event_inputs_parses_performed_via_app_boolean_boundary(monkeypatch, raw_value, expected):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("EVENT_NAME", "issue_comment")
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("IS_PULL_REQUEST", "true")
+    runtime.set_config_value("ISSUE_STATE", "open")
+    runtime.set_config_value("ISSUE_AUTHOR", "dana")
+    runtime.set_config_value("ISSUE_LABELS", '["coding guideline"]')
+    runtime.set_config_value("COMMENT_ID", "100")
+    runtime.set_config_value("COMMENT_AUTHOR", "alice")
+    runtime.set_config_value("COMMENT_AUTHOR_ID", "200")
+    runtime.set_config_value("COMMENT_BODY", "hello")
+    runtime.set_config_value("COMMENT_CREATED_AT", "2026-03-17T10:00:00Z")
+    runtime.set_config_value("COMMENT_SOURCE_EVENT_KEY", "issue_comment:100")
+    runtime.set_config_value("COMMENT_USER_TYPE", "User")
+    runtime.set_config_value("COMMENT_SENDER_TYPE", "User")
+    runtime.set_config_value("COMMENT_INSTALLATION_ID", "")
+    runtime.set_config_value("COMMENT_PERFORMED_VIA_GITHUB_APP", raw_value)
+
+    request = event_inputs.build_comment_event_request(runtime)
+
+    assert request.comment_performed_via_github_app is expected
+
+
 def test_event_inputs_build_pr_admission_rejects_request_boundary_mismatch(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.set_config_value("EVENT_NAME", "issue_comment")
@@ -459,6 +487,35 @@ def test_event_inputs_derives_pr_lifecycle_timestamp_from_action_fields(
     request = event_inputs.build_issue_lifecycle_request(runtime)
 
     assert request.event_created_at == expected_timestamp
+
+
+@pytest.mark.parametrize(
+    ("event_action", "is_pull_request", "expected_problem"),
+    [
+        ("opened", "false", "ISSUE_CREATED_AT must be non-empty for opened"),
+        ("assigned", "false", "ISSUE_UPDATED_AT must be non-empty for assigned"),
+        ("closed", "true", "PR_CLOSED_AT must be non-empty for closed"),
+        ("synchronize", "true", "PR_UPDATED_AT must be non-empty for synchronize"),
+    ],
+)
+def test_event_inputs_rejects_missing_lifecycle_timestamp_for_supported_actions(
+    monkeypatch, event_action, is_pull_request, expected_problem
+):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("EVENT_ACTION", event_action)
+    runtime.set_config_value("IS_PULL_REQUEST", is_pull_request)
+
+    with pytest.raises(event_inputs.InvalidEventInput, match=expected_problem):
+        event_inputs.build_issue_lifecycle_request(runtime)
+
+
+def test_event_inputs_rejects_missing_pull_request_sync_timestamp(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("PR_HEAD_SHA", "head-2")
+
+    with pytest.raises(event_inputs.InvalidEventInput, match="PR_UPDATED_AT must be non-empty for synchronize"):
+        event_inputs.build_pull_request_sync_request(runtime)
 
 
 def test_event_inputs_build_label_and_sync_requests_from_runtime_config(monkeypatch):

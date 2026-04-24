@@ -118,22 +118,48 @@ def _parse_route_outcome(value: str) -> PrCommentRouterOutcome | None:
         return None
 
 
-def _derive_lifecycle_event_created_at(bot: EventInputsContext, *, action: str, is_pull_request: bool) -> str:
+def _lifecycle_timestamp_config_name(*, action: str, is_pull_request: bool) -> str | None:
     if is_pull_request:
         if action == "opened":
-            return bot.get_config_value("PR_CREATED_AT").strip()
+            return "PR_CREATED_AT"
         if action == "closed":
-            return bot.get_config_value("PR_CLOSED_AT").strip()
+            return "PR_CLOSED_AT"
         if action in {"labeled", "unlabeled", "reopened", "synchronize"}:
-            return bot.get_config_value("PR_UPDATED_AT").strip()
-        return ""
+            return "PR_UPDATED_AT"
+        return None
     if action == "opened":
-        return bot.get_config_value("ISSUE_CREATED_AT").strip()
+        return "ISSUE_CREATED_AT"
     if action == "closed":
-        return bot.get_config_value("ISSUE_CLOSED_AT").strip()
+        return "ISSUE_CLOSED_AT"
     if action in {"edited", "assigned", "unassigned", "labeled", "unlabeled", "reopened"}:
-        return bot.get_config_value("ISSUE_UPDATED_AT").strip()
-    return ""
+        return "ISSUE_UPDATED_AT"
+    return None
+
+
+def _derive_lifecycle_event_created_at(bot: EventInputsContext, *, action: str, is_pull_request: bool) -> str:
+    config_name = _lifecycle_timestamp_config_name(action=action, is_pull_request=is_pull_request)
+    if config_name is None:
+        return ""
+    return bot.get_config_value(config_name).strip()
+
+
+def _validate_lifecycle_event_created_at(
+    builder: str,
+    *,
+    action: str,
+    is_pull_request: bool,
+    event_created_at: str,
+) -> None:
+    config_name = _lifecycle_timestamp_config_name(action=action, is_pull_request=is_pull_request)
+    if config_name is None:
+        return
+    problems: list[str] = []
+    if not event_created_at:
+        problems.append(f"{config_name} must be non-empty for {action}")
+    elif not _is_parseable_iso8601(event_created_at):
+        problems.append(f"{config_name} must be parseable ISO-8601 for {action}")
+    if problems:
+        _raise_invalid(builder, problems)
 
 
 def _read_workflow_run_name(bot: EventInputsContext) -> str:
@@ -360,8 +386,20 @@ def build_manual_dispatch_request(bot: EventInputsContext) -> ManualDispatchRequ
 
 
 def build_issue_lifecycle_request(bot: EventInputsContext) -> IssueLifecycleRequest:
+    builder = "build_issue_lifecycle_request"
     event_action = bot.get_config_value("EVENT_ACTION").strip()
     is_pull_request = bool(_parse_optional_bool(bot.get_config_value("IS_PULL_REQUEST")))
+    event_created_at = _derive_lifecycle_event_created_at(
+        bot,
+        action=event_action,
+        is_pull_request=is_pull_request,
+    )
+    _validate_lifecycle_event_created_at(
+        builder,
+        action=event_action,
+        is_pull_request=is_pull_request,
+        event_created_at=event_created_at,
+    )
     return IssueLifecycleRequest(
         event_action=event_action,
         issue_number=_parse_optional_int(bot.get_config_value("ISSUE_NUMBER")) or 0,
@@ -377,11 +415,7 @@ def build_issue_lifecycle_request(bot: EventInputsContext) -> IssueLifecycleRequ
         previous_title=bot.get_config_value("ISSUE_CHANGES_TITLE_FROM"),
         previous_body=bot.get_config_value("ISSUE_CHANGES_BODY_FROM"),
         pr_head_sha=bot.get_config_value("PR_HEAD_SHA").strip(),
-        event_created_at=_derive_lifecycle_event_created_at(
-            bot,
-            action=event_action,
-            is_pull_request=is_pull_request,
-        ),
+        event_created_at=event_created_at,
     )
 
 
@@ -394,10 +428,17 @@ def build_label_event_request(bot: EventInputsContext) -> LabelEventRequest:
 
 
 def build_pull_request_sync_request(bot: EventInputsContext) -> PullRequestSyncRequest:
+    event_created_at = _derive_lifecycle_event_created_at(bot, action="synchronize", is_pull_request=True)
+    _validate_lifecycle_event_created_at(
+        "build_pull_request_sync_request",
+        action="synchronize",
+        is_pull_request=True,
+        event_created_at=event_created_at,
+    )
     return PullRequestSyncRequest(
         issue_number=_parse_optional_int(bot.get_config_value("ISSUE_NUMBER")) or 0,
         head_sha=bot.get_config_value("PR_HEAD_SHA").strip(),
-        event_created_at=_derive_lifecycle_event_created_at(bot, action="synchronize", is_pull_request=True),
+        event_created_at=event_created_at,
     )
 
 

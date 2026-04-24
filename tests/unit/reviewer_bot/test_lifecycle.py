@@ -5,6 +5,7 @@ import pytest
 
 from scripts.reviewer_bot_lib import (
     comment_routing,
+    event_inputs,
     lifecycle,
     maintenance,
     maintenance_schedule,
@@ -415,6 +416,7 @@ def test_handle_issue_or_pr_opened_fails_closed_when_assignees_unavailable(monke
     runtime.set_config_value("EVENT_ACTION", "opened")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.set_config_value("ISSUE_CREATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: None
 
     with pytest.raises(RuntimeError, match="Unable to determine assignees"):
@@ -425,9 +427,11 @@ def test_handle_issue_or_pr_opened_does_not_mutate_reviewer_state_on_assignment_
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.ACTIVE_LEASE_CONTEXT = object()
     state = make_state()
+    runtime.set_config_value("EVENT_ACTION", "opened")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.set_config_value("ISSUE_CREATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: []
     runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
         200,
@@ -490,9 +494,11 @@ def test_handle_assigned_event_clears_reviewer_authority_on_multiple_live_assign
     review = review_state.ensure_review_entry(state, 42, create=True)
     assert review is not None
     review["current_reviewer"] = "alice"
+    runtime.set_config_value("EVENT_ACTION", "assigned")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.set_config_value("ISSUE_UPDATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: ["alice", "bob"]
     runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
         200,
@@ -516,9 +522,11 @@ def test_handle_unassigned_event_clears_reviewer_authority_when_live_assignee_mi
     review = review_state.ensure_review_entry(state, 42, create=True)
     assert review is not None
     review["current_reviewer"] = "alice"
+    runtime.set_config_value("EVENT_ACTION", "unassigned")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+    runtime.set_config_value("ISSUE_UPDATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: []
     runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
         200,
@@ -542,6 +550,7 @@ def test_issue_edit_by_author_records_contributor_freshness(monkeypatch):
     review = review_state.ensure_review_entry(state, 42, create=True)
     assert review is not None
     review["current_reviewer"] = "alice"
+    runtime.set_config_value("EVENT_ACTION", "edited")
     runtime.set_config_value("IS_PULL_REQUEST", "false")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
@@ -602,8 +611,10 @@ def test_handle_reopened_event_reopens_done_completion(monkeypatch):
     review["review_completed_by"] = "alice"
     review["review_completion_source"] = "command: /done"
     review["current_cycle_completion"] = {"completed": True}
+    runtime.set_config_value("EVENT_ACTION", "reopened")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["fls-audit"]))
+    runtime.set_config_value("ISSUE_UPDATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: []
     runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
         200,
@@ -619,6 +630,18 @@ def test_handle_reopened_event_reopens_done_completion(monkeypatch):
     assert lifecycle.handle_reopened_event(runtime, state) is True
     assert review["review_completed_at"] is None
     assert review["review_completion_source"] is None
+
+
+def test_handle_issue_or_pr_opened_rejects_missing_lifecycle_timestamp(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    runtime.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    runtime.set_config_value("EVENT_ACTION", "opened")
+    runtime.set_config_value("ISSUE_NUMBER", "42")
+    runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
+
+    with pytest.raises(event_inputs.InvalidEventInput, match="ISSUE_CREATED_AT must be non-empty for opened"):
+        lifecycle.handle_issue_or_pr_opened(runtime, state)
 
 
 def test_handle_closed_event_removes_reviewer_handoff_with_review_entry(monkeypatch):
