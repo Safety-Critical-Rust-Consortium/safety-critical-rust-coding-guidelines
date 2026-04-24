@@ -416,18 +416,19 @@ class HandlerStub:
         "handle_pull_request_target_synchronize",
         "handle_comment_event",
         "handle_manual_dispatch",
+        "handle_manual_dispatch_result",
         "handle_scheduled_check_result",
     }
 
-    def __init__(self, defaults: dict[str, Callable[[dict], bool]]):
-        self._handlers: dict[str, Callable[[dict], bool]] = defaults
+    def __init__(self, defaults: dict[str, Callable[[dict], Any]]):
+        self._handlers: dict[str, Callable[[dict], Any]] = defaults
 
-    def stub(self, name: str, func: Callable[[dict], bool]) -> None:
+    def stub(self, name: str, func: Callable[[dict], Any]) -> None:
         if name not in self.ALLOWED:
             raise AssertionError(f"Unsupported runtime handler override: {name}")
         self._handlers[name] = func
 
-    def call(self, name: str, state: dict) -> bool:
+    def call(self, name: str, state: dict) -> Any:
         return self._handlers[name](state)
 
     def __getattr__(self, name: str):
@@ -488,7 +489,7 @@ class WorkflowBehaviorStub:
         self._sync_status_labels = func
 
 
-def build_default_handler_map(runtime) -> dict[str, Callable[[dict], bool]]:
+def build_default_handler_map(runtime) -> dict[str, Callable[[dict], Any]]:
     from scripts.reviewer_bot_lib import comment_routing as comment_routing_module
     from scripts.reviewer_bot_lib import lifecycle as lifecycle_module
     from scripts.reviewer_bot_lib import maintenance as maintenance_module
@@ -505,5 +506,6 @@ def build_default_handler_map(runtime) -> dict[str, Callable[[dict], bool]]:
         "handle_pull_request_target_synchronize": lambda state: lifecycle_module.handle_pull_request_target_synchronize(runtime, state),
         "handle_comment_event": lambda state: comment_routing_module.handle_comment_event(runtime, state),
         "handle_manual_dispatch": lambda state: maintenance_module.handle_manual_dispatch(runtime, state),
+        "handle_manual_dispatch_result": lambda state: maintenance_module.handle_manual_dispatch_result(runtime, state),
         "handle_scheduled_check_result": lambda state: maintenance_module.handle_scheduled_check_result(runtime, state),
     }

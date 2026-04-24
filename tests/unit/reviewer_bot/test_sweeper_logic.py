@@ -319,7 +319,7 @@ def test_discover_visible_comment_events_skips_github_actions_and_bot_comments(m
     assert [item["source_event_key"] for item in discovered] == ["issue_comment:101"]
 
 
-def test_bot_authored_comment_gap_cleanup_is_narrow_false_positive_hygiene(monkeypatch):
+def test_bot_authored_comment_false_positive_cleanup_is_narrow_hygiene(monkeypatch):
     runtime = _runtime(monkeypatch)
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
     assert review is not None
@@ -341,10 +341,40 @@ def test_bot_authored_comment_gap_cleanup_is_narrow_false_positive_hygiene(monke
         )
     )
 
-    assert sweeper._purge_bot_authored_comment_gap(runtime, review, "issue_comment:210") is True
+    assert sweeper._clear_bot_authored_comment_false_positive(runtime, review, "issue_comment:210") is True
 
     assert review["sidecars"]["deferred_gaps"] == {"pull_request_review:202": {"reason": "artifact_missing"}}
     assert review["sidecars"]["reconciled_source_events"] == {}
+
+
+def test_bot_authored_comment_false_positive_cleanup_rejects_human_comment(monkeypatch):
+    runtime = _runtime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    review["sidecars"]["deferred_gaps"] = {"issue_comment:210": {"reason": "artifact_missing"}}
+    runtime.github.stub(
+        RouteGitHubApi().add_request(
+            "GET",
+            "issues/comments/210",
+            status_code=200,
+            payload=issue_comment_event(210, created_at="2026-03-25T10:00:00Z", login="alice"),
+        )
+    )
+
+    assert sweeper._clear_bot_authored_comment_false_positive(runtime, review, "issue_comment:210") is False
+
+    assert review["sidecars"]["deferred_gaps"] == {"issue_comment:210": {"reason": "artifact_missing"}}
+
+
+def test_bot_authored_comment_false_positive_cleanup_rejects_non_comment_key(monkeypatch):
+    runtime = _runtime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    review["sidecars"]["deferred_gaps"] = {"pull_request_review:202": {"reason": "artifact_missing"}}
+
+    assert sweeper._clear_bot_authored_comment_false_positive(runtime, review, "pull_request_review:202") is False
+
+    assert review["sidecars"]["deferred_gaps"] == {"pull_request_review:202": {"reason": "artifact_missing"}}
 
 
 def test_sweeper_visible_review_discovery_records_diagnostic_without_replay_mutation(monkeypatch, freeze_sweeper_now):
@@ -432,24 +462,6 @@ def test_sweeper_no_longer_owns_visible_review_replay_mutation():
     assert "refresh_reviewer_review_from_live_preferred_review" not in module_text
     assert "record_reviewer_activity" not in module_text
     assert "rebuild_pr_approval_state" not in module_text
-
-
-def test_load_surface_watermark_lazily_materializes_missing_surface_state(monkeypatch):
-    review = review_state.ensure_review_entry(make_state(), 42, create=True)
-    assert review is not None
-
-    watermark = sweeper._load_surface_watermark(review, "reviewer_comment")
-
-    assert watermark == {
-        "last_scan_started_at": None,
-        "last_scan_completed_at": None,
-        "last_safe_event_time": None,
-        "last_safe_event_id": None,
-        "lookback_seconds": None,
-        "bootstrap_window_seconds": None,
-        "bootstrap_completed_at": None,
-    }
-    assert review["sidecars"]["observer_discovery_watermarks"]["reviewer_comment"] == watermark
 
 
 def test_observer_run_reason_mapping_and_near_miss_signature():
@@ -635,7 +647,9 @@ def test_sweeper_routes_deferred_sidecar_shapes_through_bookkeeping_owner():
     assert "gap_bookkeeping.get_deferred_gap(" in module_text
     assert "gap_bookkeeping.update_deferred_gap_fields(" in module_text
     assert "gap_bookkeeping.begin_observer_surface_scan(" in module_text
-    assert "gap_bookkeeping.ensure_observer_discovery_watermark(" in module_text
+    assert "gap_bookkeeping.clear_automation_comment_false_positive(" in module_text
+    assert "gap_bookkeeping.ensure_observer_discovery_watermark(" not in module_text
+    assert "gap_bookkeeping.clear_automation_comment_gap(" not in module_text
     assert "gap_bookkeeping.record_observer_watermark_event(" in observer_correlation_text
     assert "gap_bookkeeping.record_observer_watermark_empty_scan(" in observer_correlation_text
     assert "gap_bookkeeping._observer_discovery_watermarks(" not in module_text

@@ -406,7 +406,7 @@ def test_execute_run_manual_check_overdue_uses_closed_cleanup_rows_for_empty_gua
     harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
     harness.stub_pass_until(lambda current: (current, []))
     harness.stub_sync_members(lambda current: (current, []))
-    harness.stub_handler("handle_scheduled_check_result", fake_schedule_result)
+    harness.stub_handler("handle_manual_dispatch_result", fake_schedule_result)
     monkeypatch.setattr(app, "collect_status_projection_repair_items", lambda bot, current: [99])
     harness.stub_save_state(lambda current: saved_active_reviews.append(dict(current["active_reviews"])) or True)
     harness.stub_sync_status_labels(lambda current, issue_numbers: synced.append(list(issue_numbers)) or True)
@@ -435,7 +435,7 @@ def test_execute_run_manual_check_overdue_empty_guard_blocks_unowned_full_drop(m
     harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
     harness.stub_pass_until(lambda current: (current, []))
     harness.stub_sync_members(lambda current: (current, []))
-    harness.stub_handler("handle_scheduled_check_result", fake_schedule_result)
+    harness.stub_handler("handle_manual_dispatch_result", fake_schedule_result)
     harness.stub_save_state(lambda current: save_called.__setitem__("value", True) or True)
     harness.stub_sync_status_labels(lambda current, issue_numbers: True)
 

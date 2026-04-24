@@ -953,6 +953,9 @@ class FakeReviewerBotRuntime:
     def handle_manual_dispatch(self, state: dict) -> bool:
         return self.handlers.call("handle_manual_dispatch", state)
 
+    def handle_manual_dispatch_result(self, state: dict):
+        return self.handlers.call("handle_manual_dispatch_result", state)
+
     def handle_scheduled_check_result(self, state: dict):
         return self.handlers.call("handle_scheduled_check_result", state)
 

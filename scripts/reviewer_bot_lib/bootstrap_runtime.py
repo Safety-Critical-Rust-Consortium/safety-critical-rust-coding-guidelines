@@ -187,6 +187,9 @@ class _BootstrapHandlerServices:
     def handle_manual_dispatch(self, current_state):
         return maintenance.handle_manual_dispatch(self._runtime_getter(), current_state)
 
+    def handle_manual_dispatch_result(self, current_state):
+        return maintenance.handle_manual_dispatch_result(self._runtime_getter(), current_state)
+
     def handle_scheduled_check_result(self, current_state):
         return maintenance.handle_scheduled_check_result(self._runtime_getter(), current_state)
 

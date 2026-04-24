@@ -247,8 +247,8 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                     state_changed = bot.handlers.handle_comment_event(state)
 
         elif event_name == "workflow_dispatch":
-            if context.manual_action == "check-overdue":
-                schedule_result = bot.handlers.handle_scheduled_check_result(state)
+            if maintenance.is_schedule_like_manual_action(context.manual_action):
+                schedule_result = bot.handlers.handle_manual_dispatch_result(state)
                 state_changed = schedule_result.state_changed
             else:
                 state_changed = bot.handlers.handle_manual_dispatch(state)

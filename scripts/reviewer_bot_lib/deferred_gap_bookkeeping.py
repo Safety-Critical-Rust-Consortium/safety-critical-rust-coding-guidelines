@@ -23,10 +23,6 @@ def _deferred_gaps(review_data: dict) -> dict:
     return deferred_gaps
 
 
-def get_deferred_gaps(review_data: dict) -> dict:
-    return _deferred_gaps(review_data)
-
-
 def _reconciled_source_events(review_data: dict) -> dict:
     sidecars = _sidecars(review_data)
     reconciled = sidecars.get("reconciled_source_events")
@@ -34,10 +30,6 @@ def _reconciled_source_events(review_data: dict) -> dict:
         reconciled = {}
         sidecars["reconciled_source_events"] = reconciled
     return reconciled
-
-
-def get_reconciled_source_events(review_data: dict) -> dict:
-    return _reconciled_source_events(review_data)
 
 
 def _observer_discovery_watermarks(review_data: dict) -> dict:
@@ -49,12 +41,8 @@ def _observer_discovery_watermarks(review_data: dict) -> dict:
     return watermarks
 
 
-def get_observer_discovery_watermarks(review_data: dict) -> dict:
-    return _observer_discovery_watermarks(review_data)
-
-
-def ensure_observer_discovery_watermark(review_data: dict, surface: str) -> dict:
-    watermarks = get_observer_discovery_watermarks(review_data)
+def _ensure_observer_discovery_watermark(review_data: dict, surface: str) -> dict:
+    watermarks = _observer_discovery_watermarks(review_data)
     current = watermarks.get(surface)
     if isinstance(current, dict):
         return current
@@ -103,7 +91,7 @@ def begin_observer_surface_scan(
     *,
     now: datetime | None = None,
 ) -> datetime:
-    watermark = ensure_observer_discovery_watermark(review_data, surface)
+    watermark = _ensure_observer_discovery_watermark(review_data, surface)
     scan_started_at = now or bot.clock.now()
     if scan_started_at.tzinfo is None:
         scan_started_at = scan_started_at.replace(tzinfo=timezone.utc)
@@ -124,7 +112,7 @@ def begin_observer_surface_scan(
 
 
 def record_observer_watermark_event(bot, review_data: dict, surface: str, event_time: str, event_id: str) -> None:
-    current = ensure_observer_discovery_watermark(review_data, surface)
+    current = _ensure_observer_discovery_watermark(review_data, surface)
     now = _observer_now_iso(bot)
     current.update(
         {
@@ -140,7 +128,7 @@ def record_observer_watermark_event(bot, review_data: dict, surface: str, event_
 
 
 def record_observer_watermark_empty_scan(bot, review_data: dict, surface: str) -> None:
-    watermark = ensure_observer_discovery_watermark(review_data, surface)
+    watermark = _ensure_observer_discovery_watermark(review_data, surface)
     now = _observer_now_iso(bot)
     watermark["last_scan_started_at"] = watermark.get("last_scan_started_at") or now
     watermark["last_scan_completed_at"] = now
@@ -196,7 +184,7 @@ def clear_deferred_gap(review_data: dict, source_event_key: str) -> bool:
     return False
 
 
-def clear_automation_comment_gap(review_data: dict, source_event_key: str) -> bool:
+def clear_automation_comment_false_positive(review_data: dict, source_event_key: str) -> bool:
     """Clear only known self-authored issue-comment observer false positives."""
     if not source_event_key.startswith("issue_comment:"):
         return False

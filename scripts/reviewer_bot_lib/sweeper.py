@@ -162,10 +162,6 @@ def _diagnose_deferred_event(
     )
 
 
-def _load_surface_watermark(review_data: dict, surface: str) -> dict:
-    return gap_bookkeeping.ensure_observer_discovery_watermark(review_data, surface)
-
-
 def _list_issue_comments_paginated(bot, issue_number: int) -> tuple[list[dict] | None, bool]:
     comments: list[dict] = []
     page = 1
@@ -233,16 +229,14 @@ def _fetch_live_issue_comment(bot, comment_id: str) -> dict | None:
     return response if isinstance(response, dict) else None
 
 
-def _purge_bot_authored_comment_gap(bot, review_data: dict, source_event_key: str) -> bool:
+def _clear_bot_authored_comment_false_positive(bot, review_data: dict, source_event_key: str) -> bool:
     if not source_event_key.startswith("issue_comment:"):
         return False
     comment_id = source_event_key.split(":", 1)[1]
     live_comment = _fetch_live_issue_comment(bot, comment_id)
     if not isinstance(live_comment, dict) or not _is_automation_comment(live_comment):
         return False
-    if source_event_key not in gap_bookkeeping.list_deferred_gap_keys(review_data):
-        return False
-    return gap_bookkeeping.clear_automation_comment_gap(review_data, source_event_key)
+    return gap_bookkeeping.clear_automation_comment_false_positive(review_data, source_event_key)
 
 
 def _maybe_fetch_single_candidate_run_detail(bot, run_correlation: dict, artifact_correlation: dict | None) -> dict | None:
@@ -467,7 +461,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
         if not isinstance(pull_request, dict) or str(pull_request.get("state", "")).lower() != "open":
             continue
         for source_event_key in gap_bookkeeping.list_deferred_gap_keys(review_data):
-            if _purge_bot_authored_comment_gap(bot, review_data, source_event_key):
+            if _clear_bot_authored_comment_false_positive(bot, review_data, source_event_key):
                 changed = True
         discovered_comments, comments_complete = _discover_visible_comment_events(bot, issue_number, review_data)
         if comments_complete and isinstance(discovered_comments, list):

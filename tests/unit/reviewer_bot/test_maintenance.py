@@ -166,8 +166,23 @@ def test_manual_dispatch_check_overdue_rejects_unstructured_bool_path(monkeypatc
     state = make_state()
     bot.set_config_value("MANUAL_ACTION", "check-overdue")
 
-    with pytest.raises(RuntimeError, match="handle_scheduled_check_result"):
+    with pytest.raises(RuntimeError, match="handle_manual_dispatch_result"):
         maintenance.handle_manual_dispatch(bot, state)
+
+
+def test_manual_dispatch_result_routes_check_overdue_through_structured_schedule_result(monkeypatch):
+    bot = FakeReviewerBotRuntime(monkeypatch)
+    bot.ACTIVE_LEASE_CONTEXT = object()
+    state = make_state()
+    bot.set_config_value("MANUAL_ACTION", "check-overdue")
+    expected = maintenance.ScheduleHandlerResult(
+        state_changed=True,
+        touched_items=[42],
+        closed_cleanup_removed_items=(42,),
+    )
+    monkeypatch.setattr(maintenance, "handle_scheduled_check_result", lambda bot, state: expected)
+
+    assert maintenance.handle_manual_dispatch_result(bot, state) == expected
 
 
 def test_scheduled_check_collects_touched_item_for_warning_diagnostic_mutation(monkeypatch):

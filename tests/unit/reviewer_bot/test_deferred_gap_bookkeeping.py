@@ -16,6 +16,13 @@ def test_record_deferred_gap_payload_creates_and_updates_payloads(monkeypatch):
     }
 
 
+def test_bookkeeping_does_not_expose_raw_sidecar_map_accessors():
+    assert hasattr(deferred_gap_bookkeeping, "get_deferred_gaps") is False
+    assert hasattr(deferred_gap_bookkeeping, "get_reconciled_source_events") is False
+    assert hasattr(deferred_gap_bookkeeping, "get_observer_discovery_watermarks") is False
+    assert hasattr(deferred_gap_bookkeeping, "ensure_observer_discovery_watermark") is False
+
+
 def test_bookkeeping_owner_marks_clears_and_tracks_reconciled_source_events(monkeypatch):
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
     assert review is not None
@@ -122,22 +129,25 @@ def test_bookkeeping_owner_updates_deferred_gap_fields_without_recreating_missin
     }
 
 
-def test_bookkeeping_owner_ensures_observer_watermark_shape(monkeypatch):
+def test_bookkeeping_owner_lazily_materializes_observer_watermark_shape(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
     assert review is not None
+    runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
 
-    watermark = deferred_gap_bookkeeping.ensure_observer_discovery_watermark(review, "reviews_dismissed")
+    floor = deferred_gap_bookkeeping.begin_observer_surface_scan(runtime, review, "reviews_dismissed")
 
+    watermark = review["sidecars"]["observer_discovery_watermarks"]["reviews_dismissed"]
     assert watermark == {
-        "last_scan_started_at": None,
+        "last_scan_started_at": "2026-03-18T00:00:00+00:00",
         "last_scan_completed_at": None,
         "last_safe_event_time": None,
         "last_safe_event_id": None,
-        "lookback_seconds": None,
-        "bootstrap_window_seconds": None,
+        "lookback_seconds": runtime.DEFERRED_DISCOVERY_OVERLAP_SECONDS,
+        "bootstrap_window_seconds": runtime.DEFERRED_DISCOVERY_BOOTSTRAP_WINDOW_SECONDS,
         "bootstrap_completed_at": None,
     }
-    assert review["sidecars"]["observer_discovery_watermarks"]["reviews_dismissed"] is watermark
+    assert floor.isoformat() == "2026-03-11T00:00:00+00:00"
 
 
 def test_bookkeeping_owner_records_observer_watermark_event_and_empty_scan(monkeypatch):
