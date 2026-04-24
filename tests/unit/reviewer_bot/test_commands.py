@@ -13,6 +13,9 @@ from scripts.reviewer_bot_lib import (
     reconcile,
     review_state,
 )
+from scripts.reviewer_bot_lib import (
+    config as config_module,
+)
 from scripts.reviewer_bot_lib.config import FLS_AUDIT_LABEL
 from tests.fixtures.commands_harness import CommandHarness
 from tests.fixtures.comment_routing_harness import CommentRoutingHarness
@@ -258,28 +261,22 @@ def test_release_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_e
     assert review["current_reviewer"] is None
 
 
-def test_release_command_resolves_reviewer_authority_before_triage_fallback(monkeypatch):
+def test_release_command_rejects_triage_actor_who_is_not_current_reviewer(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
     review = review_state.ensure_review_entry(state, 42, create=True)
     assert review is not None
     review["current_reviewer"] = "bob"
     harness.stub_assignees(["bob"])
-    calls = []
-    original_resolver = commands.assignment_flow.resolve_reviewer_command_authority
-
-    def resolve_with_order(*args, **kwargs):
-        calls.append("resolver")
-        return original_resolver(*args, **kwargs)
-
-    monkeypatch.setattr(commands.assignment_flow, "resolve_reviewer_command_authority", resolve_with_order)
-    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": calls.append("permission") or "granted"
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": (_ for _ in ()).throw(
+        AssertionError("/release must not fall back to triage permission")
+    )
 
     response, success = harness.handle_release(state, 42, "alice", ["@bob"])
 
-    assert success is True
-    assert "@alice has released @bob" in response
-    assert calls[:2] == ["resolver", "permission"]
+    assert success is False
+    assert response == "❌ Only the current reviewer (@bob) can use `/release`."
+    assert review["current_reviewer"] == "bob"
 
 
 def test_rectify_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_empty(monkeypatch):
@@ -303,10 +300,13 @@ def test_rectify_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_e
     assert calls == [(harness.runtime, state, 42)]
 
 
-def test_rectify_command_resolves_reviewer_authority_before_triage_fallback(monkeypatch):
+def test_rectify_command_rejects_triage_actor_who_is_not_current_reviewer(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
-    harness.stub_assignees([])
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    harness.stub_assignees(["alice"])
     calls = []
     original_resolver = reconcile.assignment_flow.resolve_reviewer_command_authority
 
@@ -315,7 +315,9 @@ def test_rectify_command_resolves_reviewer_authority_before_triage_fallback(monk
         return original_resolver(*args, **kwargs)
 
     monkeypatch.setattr(reconcile.assignment_flow, "resolve_reviewer_command_authority", resolve_with_order)
-    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": calls.append("permission") or "granted"
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": (_ for _ in ()).throw(
+        AssertionError("/rectify must not fall back to triage permission")
+    )
     monkeypatch.setattr(
         reconcile,
         "reconcile_active_review_entry",
@@ -324,8 +326,10 @@ def test_rectify_command_resolves_reviewer_authority_before_triage_fallback(monk
 
     message, success, changed = harness.handle_rectify(state, 42, "maintainer")
 
-    assert (message, success, changed) == ("rectified", True, False)
-    assert calls == ["resolver", "permission", "reconcile"]
+    assert success is False
+    assert changed is False
+    assert message == "❌ Only the current reviewer (@alice) can use `/rectify`."
+    assert calls == ["resolver"]
 
 
 def test_assign_from_queue_posts_guidance_only_once(monkeypatch):
@@ -539,19 +543,18 @@ def test_claim_command_fails_closed_when_assignees_unavailable(monkeypatch):
     assert "Unable to determine current assignees/reviewers" in response
 
 
-def test_release_command_fails_closed_when_permission_unavailable(monkeypatch):
+def test_release_command_fails_closed_for_non_current_reviewer(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
     review = review_state.ensure_review_entry(state, 42, create=True)
     assert review is not None
     review["current_reviewer"] = "bob"
     harness.stub_assignees(["bob"])
-    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "unavailable"
 
     response, success = harness.handle_release(state, 42, "alice", ["@bob"])
 
     assert success is False
-    assert "Unable to verify triage permissions right now" in response
+    assert response == "❌ Only the current reviewer (@bob) can use `/release`."
 
 
 def test_release_command_fails_closed_when_assignees_unavailable(monkeypatch):
@@ -577,32 +580,28 @@ def test_assign_from_queue_command_fails_closed_when_assignees_unavailable(monke
     assert "Unable to determine current assignees/reviewers" in response
 
 
-def test_handle_rectify_command_reports_permission_unavailable(monkeypatch):
+def test_handle_rectify_command_reports_live_read_unavailable(monkeypatch):
     state = make_state()
     harness = CommandHarness(monkeypatch)
-    monkeypatch.setattr(reconcile, "ensure_review_entry", lambda current, issue_number, create=False: None)
-    harness.runtime.github.get_issue_assignees = lambda issue_number: []
-    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "unavailable"
+    harness.runtime.github.get_issue_assignees = lambda issue_number: None
 
     message, success, changed = harness.handle_rectify(state, 42, "alice")
 
     assert success is False
     assert changed is False
-    assert "Unable to verify triage permissions right now" in message
+    assert "Unable to determine current assignees/reviewers" in message
 
 
-def test_handle_rectify_command_reports_permission_denied(monkeypatch):
+def test_handle_rectify_command_reports_no_active_review(monkeypatch):
     state = make_state()
     harness = CommandHarness(monkeypatch)
-    monkeypatch.setattr(reconcile, "ensure_review_entry", lambda current, issue_number, create=False: None)
-    harness.runtime.github.get_issue_assignees = lambda issue_number: []
-    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "denied"
+    harness.stub_assignees([])
 
     message, success, changed = harness.handle_rectify(state, 42, "alice")
 
     assert success is False
     assert changed is False
-    assert "Only maintainers with triage+ permission" in message
+    assert message == "❌ No active tracked review exists for this issue/PR."
 
 
 def test_handle_rectify_command_uses_live_assignee_truth_over_stored_reviewer(monkeypatch):
@@ -1251,6 +1250,21 @@ def test_h1_feedback_command_surface_keeps_inline_execution_owner_explicit():
     assert "def handle_feedback_command(" in module_text
     assert "handle_feedback_command(bot, state, request, decision)" in module_text
     assert "assignment_flow.resolve_reviewer_command_authority(" in module_text
+
+
+def test_h1_command_surface_documents_reviewer_only_commands(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    commands_help, success = commands.handle_commands_command(harness.runtime)
+    registry_help = config_module.get_commands_help()
+    pr_guidance = guidance.get_pr_guidance("alice", "dana")
+
+    assert success is True
+    for text in (commands_help, registry_help, pr_guidance):
+        assert "/feedback" in text
+        assert "/release [reason]" in text or "/release`" in text
+        assert "someone else's with triage+" not in text
+        assert "release other reviewers" not in text
+    assert "`@guidelines-bot /rectify` - Reconcile this issue/PR review state from GitHub (current reviewer only)" in commands_help
 
 
 def test_commands_module_exposes_rectify_handler_for_decision_adapter_surface():

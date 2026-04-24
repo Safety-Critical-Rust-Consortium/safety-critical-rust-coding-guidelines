@@ -220,12 +220,20 @@ def resolve_reviewer_command_authority(
     }
     if not resolution["authorized"] or actor is None:
         return resolution
+    return require_reviewer_command_actor(resolution, actor)
+
+
+def require_reviewer_command_actor(resolution: dict[str, object], actor: str) -> dict[str, object]:
+    if not resolution.get("authorized"):
+        return resolution
     tracked_reviewer = resolution.get("tracked_reviewer")
-    if not isinstance(tracked_reviewer, str) or tracked_reviewer.lower() != actor.lower():
-        resolution["authorized"] = False
-        resolution["authorization_status"] = "actor_not_current_reviewer"
-        resolution["reason"] = "actor_not_current_reviewer"
-    return resolution
+    if isinstance(tracked_reviewer, str) and tracked_reviewer.lower() == actor.lower():
+        return resolution
+    denied = dict(resolution)
+    denied["authorized"] = False
+    denied["authorization_status"] = "actor_not_current_reviewer"
+    denied["reason"] = "actor_not_current_reviewer"
+    return denied
 
 
 def reviewer_command_authority_failure_message(command_name: str, resolution: dict[str, object]) -> str:

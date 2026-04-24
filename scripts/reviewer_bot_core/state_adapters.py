@@ -12,6 +12,7 @@ from typing import Any
 
 from .review_state_types import (
     AcceptedChannelRecord,
+    CurrentCycleReviewerHandoff,
     DismissalAcceptedRecord,
     ReviewChannelState,
     ReviewEntryState,
@@ -36,6 +37,14 @@ _DEFERRED_GAP_MIGRATION_DROP_KEYS = {
     "source_run_attempt",
     "source_workflow_file",
     "source_artifact_name",
+}
+
+_REVIEWER_HANDOFF_KEYS = {
+    "source_event_key",
+    "timestamp",
+    "actor",
+    "command_name",
+    "reviewed_head_sha",
 }
 
 
@@ -213,6 +222,45 @@ def _channel_to_persisted(channel: ReviewChannelState) -> dict[str, Any]:
     }
 
 
+def _reviewer_handoff_from_persisted(value: Any) -> CurrentCycleReviewerHandoff | None:
+    if not isinstance(value, dict) or set(value) != _REVIEWER_HANDOFF_KEYS:
+        return None
+    source_event_key = value.get("source_event_key")
+    timestamp = value.get("timestamp")
+    actor = value.get("actor")
+    command_name = value.get("command_name")
+    reviewed_head_sha = value.get("reviewed_head_sha")
+    if not isinstance(source_event_key, str) or not source_event_key.strip():
+        return None
+    if not isinstance(timestamp, str) or not timestamp.strip():
+        return None
+    if not isinstance(actor, str) or not actor.strip():
+        return None
+    if command_name != "feedback":
+        return None
+    if reviewed_head_sha is not None and (not isinstance(reviewed_head_sha, str) or not reviewed_head_sha.strip()):
+        return None
+    return CurrentCycleReviewerHandoff(
+        source_event_key=source_event_key,
+        timestamp=timestamp,
+        actor=actor,
+        command_name=command_name,
+        reviewed_head_sha=reviewed_head_sha,
+    )
+
+
+def _reviewer_handoff_to_persisted(handoff: CurrentCycleReviewerHandoff | None) -> dict[str, Any] | None:
+    if handoff is None:
+        return None
+    return {
+        "source_event_key": handoff.source_event_key,
+        "timestamp": handoff.timestamp,
+        "actor": handoff.actor,
+        "command_name": handoff.command_name,
+        "reviewed_head_sha": handoff.reviewed_head_sha,
+    }
+
+
 def review_entry_from_persisted(review_entry: dict[str, Any] | list[Any] | None) -> ReviewEntryState | None:
     if review_entry is None:
         return None
@@ -297,9 +345,9 @@ def review_entry_from_persisted(review_entry: dict[str, Any] | list[Any] | None)
         current_cycle_write_approval=deepcopy(review_entry.get("current_cycle_write_approval") or {})
         if isinstance(review_entry.get("current_cycle_write_approval"), dict)
         else {},
-        current_cycle_reviewer_handoff=deepcopy(review_entry.get("current_cycle_reviewer_handoff"))
-        if isinstance(review_entry.get("current_cycle_reviewer_handoff"), dict)
-        else None,
+        current_cycle_reviewer_handoff=_reviewer_handoff_from_persisted(
+            review_entry.get("current_cycle_reviewer_handoff")
+        ),
     )
 
 
@@ -331,7 +379,9 @@ def review_entry_to_persisted(review_entry: ReviewEntryState) -> dict[str, Any]:
         "review_dismissal": _channel_to_persisted(review_entry.review_dismissal),
         "current_cycle_completion": deepcopy(review_entry.current_cycle_completion),
         "current_cycle_write_approval": deepcopy(review_entry.current_cycle_write_approval),
-        "current_cycle_reviewer_handoff": deepcopy(review_entry.current_cycle_reviewer_handoff),
+        "current_cycle_reviewer_handoff": _reviewer_handoff_to_persisted(
+            review_entry.current_cycle_reviewer_handoff
+        ),
     }
 
 

@@ -7,11 +7,19 @@ def test_core_review_state_types_are_limited_to_c1_mutation_scope():
     assert is_dataclass(review_state_types.AcceptedChannelRecord)
     assert is_dataclass(review_state_types.DismissalAcceptedRecord)
     assert is_dataclass(review_state_types.ReviewChannelState)
+    assert is_dataclass(review_state_types.CurrentCycleReviewerHandoff)
     assert is_dataclass(review_state_types.ReviewEntryState)
 
     assert [field.name for field in fields(review_state_types.ReviewChannelState)] == [
         "accepted",
         "seen_keys",
+    ]
+    assert [field.name for field in fields(review_state_types.CurrentCycleReviewerHandoff)] == [
+        "source_event_key",
+        "timestamp",
+        "actor",
+        "command_name",
+        "reviewed_head_sha",
     ]
     assert [field.name for field in fields(review_state_types.ReviewEntryState)] == [
         "skipped",

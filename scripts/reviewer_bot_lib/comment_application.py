@@ -226,7 +226,7 @@ def _execute_release(bot, state: dict, decision, assignment_request: AssignmentR
         bot,
         state,
         assignment_request,
-        actor=None,
+        actor=decision.actor,
     )
     return _build_execution_result(
         decision.command_id,

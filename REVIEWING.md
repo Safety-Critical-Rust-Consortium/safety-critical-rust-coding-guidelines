@@ -74,19 +74,6 @@ Use this to release your assignment from an issue/PR without automatically assig
 @guidelines-bot /release Need to focus on other priorities
 ```
 
-### Record Feedback for Contributor Follow-Up
-
-```
-@guidelines-bot /feedback
-```
-
-Use this after you have provided reviewer feedback and are waiting for the contributor to respond. This keeps reviewer-bot's review state aligned without marking the review complete or changing the assigned reviewer.
-
-**Example:**
-```
-@guidelines-bot /feedback
-```
-
 ### Rectify Review State
 
 ```
@@ -99,7 +86,6 @@ permission to persist reviewer-bot state.
 
 Who can run it:
 - The currently assigned reviewer
-- A maintainer with triage+ permission
 
 What it does (for the current PR only):
 - If the latest review by the assigned reviewer is `APPROVED`, it marks the review complete.
@@ -213,7 +199,6 @@ Life happens! Any of these actions will reset the 14-day clock:
 - **Post a review comment** - Any substantive feedback counts
 - **Use `/pass [reason]`** - Pass the review to the next person if you can't review it
 - **Use `/away YYYY-MM-DD [reason]`** - Step away temporarily (e.g., "On vacation until 2025-02-15")
-- **Use `/feedback`** - Record that reviewer feedback is ready for contributor follow-up
 - **Use `/rectify`** - Reconcile PR review state when review activity happened but bot state is stale
 
 #### Before You Pass: Consider the Learning Opportunity

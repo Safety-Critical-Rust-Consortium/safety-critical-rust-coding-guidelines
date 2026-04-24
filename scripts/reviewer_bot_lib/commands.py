@@ -176,6 +176,7 @@ def handle_pass_command(
         assignment_request,
         actor=comment_author,
     )
+    authority = assignment_flow.require_reviewer_command_actor(authority, comment_author)
     if not authority.get("authorized"):
         return _reviewer_command_authority_error("pass", authority), False
     issue_data = authority.get("review_data")
@@ -426,7 +427,7 @@ def handle_queue_command(
 
 
 def handle_commands_command(bot) -> tuple[str, bool]:
-    return (f"ℹ️ **Available Commands**\n\n**Pass or step away:**\n- `{bot.BOT_MENTION} /pass [reason]` - Pass this review to next in queue (current reviewer only)\n- `{bot.BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from queue until a date\n- `{bot.BOT_MENTION} /feedback` - Mark reviewer feedback ready for contributor follow-up\n- `{bot.BOT_MENTION} /release [@username] [reason]` - Release assignment (yours or someone else's with triage+ permission)\n\n**Assign reviewers:**\n- `{bot.BOT_MENTION} /r? @username` - Assign a specific reviewer\n- `{bot.BOT_MENTION} /r? producers` - Request the next reviewer from the queue\n- `{bot.BOT_MENTION} /claim` - Claim this review for yourself\n\n**Other:**\n- `{bot.BOT_MENTION} /done` - Mark a tracked non-PR issue review complete\n- `{bot.BOT_MENTION} /label +label-name` - Add a label\n- `{bot.BOT_MENTION} /label -label-name` - Remove a label\n- `{bot.BOT_MENTION} /rectify` - Reconcile this issue/PR review state from GitHub\n- `{bot.BOT_MENTION} /accept-no-fls-changes` - Update spec.lock and open a PR when no guidelines are impacted\n- `{bot.BOT_MENTION} /queue` - Show current queue status\n- `{bot.BOT_MENTION} /sync-members` - Sync queue with members.md"), True
+    return (f"ℹ️ **Available Commands**\n\n**Pass or step away:**\n- `{bot.BOT_MENTION} /pass [reason]` - Pass this review to next in queue (current reviewer only)\n- `{bot.BOT_MENTION} /away YYYY-MM-DD [reason]` - Step away from queue until a date\n- `{bot.BOT_MENTION} /feedback` - Mark reviewer feedback ready for contributor follow-up\n- `{bot.BOT_MENTION} /release [reason]` - Release your current reviewer assignment\n\n**Assign reviewers:**\n- `{bot.BOT_MENTION} /r? @username` - Assign a specific reviewer\n- `{bot.BOT_MENTION} /r? producers` - Request the next reviewer from the queue\n- `{bot.BOT_MENTION} /claim` - Claim this review for yourself\n\n**Other:**\n- `{bot.BOT_MENTION} /done` - Mark a tracked non-PR issue review complete\n- `{bot.BOT_MENTION} /label +label-name` - Add a label\n- `{bot.BOT_MENTION} /label -label-name` - Remove a label\n- `{bot.BOT_MENTION} /rectify` - Reconcile this issue/PR review state from GitHub (current reviewer only)\n- `{bot.BOT_MENTION} /accept-no-fls-changes` - Update spec.lock and open a PR when no guidelines are impacted\n- `{bot.BOT_MENTION} /queue` - Show current queue status\n- `{bot.BOT_MENTION} /sync-members` - Sync queue with members.md"), True
 
 
 def handle_claim_command(
@@ -475,11 +476,9 @@ def handle_release_command(
     request = request or build_assignment_request(bot, issue_number=issue_number)
     target_username = None
     reason = None
-    releasing_other = False
     if args and args[0].startswith("@"):
         target_username = args[0].lstrip("@")
         reason = " ".join(args[1:]) if len(args) > 1 else None
-        releasing_other = target_username.lower() != comment_author.lower()
     else:
         target_username = comment_author
         reason = " ".join(args) if args else None
@@ -489,22 +488,18 @@ def handle_release_command(
         issue_data = state["active_reviews"][issue_key]
         if isinstance(issue_data, dict):
             assignment_method = issue_data.get("assignment_method")
-    authority = reviewer_authority or assignment_flow.resolve_reviewer_command_authority(bot, state, request)
+    authority = reviewer_authority or assignment_flow.resolve_reviewer_command_authority(
+        bot,
+        state,
+        request,
+        actor=comment_author,
+    )
+    authority = assignment_flow.require_reviewer_command_actor(authority, comment_author)
     if not authority.get("authorized"):
         return _reviewer_command_authority_error("release", authority), False
     tracked_reviewer = str(authority["tracked_reviewer"])
     if target_username.lower() != tracked_reviewer.lower():
         return (f"❌ @{target_username} is not the current reviewer. Current reviewer: @{tracked_reviewer}"), False
-    if releasing_other:
-        permission_status = bot.github.get_user_permission_status(comment_author, "triage")
-        if permission_status == "unavailable":
-            return "❌ Unable to verify triage permissions right now; refusing to continue.", False
-        if permission_status != "granted":
-            return (f"❌ @{comment_author} does not have permission to release other reviewers. Triage access or higher is required."), False
-    if not releasing_other and comment_author.lower() != tracked_reviewer.lower():
-        return (
-            f"❌ Only the current reviewer (@{tracked_reviewer}) can use `/release` without triage+ permission."
-        ), False
     result = assignment_flow.confirm_reviewer_release(
         bot,
         state,
@@ -517,8 +512,6 @@ def handle_release_command(
             result.get("diagnostic_changed") or result.get("cleared_current_reviewer")
         )
     reason_text = f" Reason: {reason}" if reason else ""
-    if releasing_other:
-        return (f"✅ @{comment_author} has released @{target_username} from this review.{reason_text}\n\n_This issue/PR is now unassigned. Use `{bot.BOT_MENTION} /r? producers` to assign the next reviewer from the queue, or `{bot.BOT_MENTION} /claim` to claim it._"), True
     return (f"✅ @{target_username} has released this review.{reason_text}\n\n_This issue/PR is now unassigned. Use `{bot.BOT_MENTION} /r? producers` to assign the next reviewer from the queue, or `{bot.BOT_MENTION} /claim` to claim it._"), True
 
 

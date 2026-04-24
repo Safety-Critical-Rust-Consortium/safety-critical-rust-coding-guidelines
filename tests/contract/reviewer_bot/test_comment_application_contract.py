@@ -185,6 +185,45 @@ def test_n1_comment_application_obeys_policy_selected_handler_without_inline_com
     assert calls == [(harness.runtime, state)]
 
 
+def test_comment_application_records_feedback_handoff_from_policy_command(monkeypatch):
+    harness = CommentRoutingHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    request = harness.request(
+        issue_number=42,
+        is_pull_request=False,
+        issue_author="dana",
+        comment_author="alice",
+        comment_body="@guidelines-bot /feedback",
+        comment_created_at="2026-03-17T10:00:00Z",
+        comment_source_event_key="issue_comment:100",
+    )
+    harness.runtime.github.get_issue_assignees = lambda issue_number: ["alice"]
+    side_effects = harness.capture_comment_side_effects()
+
+    changed = comment_application.process_comment_event(
+        harness.runtime,
+        state,
+        request,
+        classify_comment_payload=comment_routing.classify_comment_payload,
+        classify_issue_comment_actor=comment_routing.classify_issue_comment_actor,
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"] == {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    assert side_effects.comments == [
+        (42, "✅ Recorded reviewer feedback handoff. Reviewer-bot is now waiting on contributor response.")
+    ]
+
+
 def test_comment_application_no_longer_owns_privileged_handoff_validation_or_metadata_shaping():
     module_text = Path("scripts/reviewer_bot_lib/comment_application.py").read_text(encoding="utf-8")
 

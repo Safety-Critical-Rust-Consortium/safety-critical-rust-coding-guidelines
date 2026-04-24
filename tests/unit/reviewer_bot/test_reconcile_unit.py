@@ -549,6 +549,50 @@ def test_k1g_rectify_reconcile_entrypoints_use_finalized_rectify_runtime_protoco
     assert rebuild_hints["bot"] is ReconcileRectifyRuntimeContext
 
 
+def test_rectify_accepts_current_reviewer_when_pr_live_reviewers_are_empty(monkeypatch):
+    bot = FakeReviewerBotRuntime(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    bot.set_config_value("IS_PULL_REQUEST", "true")
+    bot.github.get_issue_assignees = lambda issue_number: []
+    calls = []
+    monkeypatch.setattr(
+        reconcile,
+        "reconcile_active_review_entry",
+        lambda runtime, current_state, issue_number: calls.append((runtime, current_state, issue_number)) or ("rectified", True, False),
+    )
+
+    message, success, changed = reconcile.handle_rectify_command(bot, state, 42, "alice")
+
+    assert (message, success, changed) == ("rectified", True, False)
+    assert calls == [(bot, state, 42)]
+
+
+def test_rectify_rejects_non_current_reviewer_without_triage_fallback(monkeypatch):
+    bot = FakeReviewerBotRuntime(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    bot.github.get_issue_assignees = lambda issue_number: ["alice"]
+    bot.github.get_user_permission_status = lambda username, required_permission="triage": (_ for _ in ()).throw(
+        AssertionError("/rectify must not fall back to triage permission")
+    )
+    monkeypatch.setattr(
+        reconcile,
+        "reconcile_active_review_entry",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("non-current reviewer must not reconcile")),
+    )
+
+    message, success, changed = reconcile.handle_rectify_command(bot, state, 42, "maintainer")
+
+    assert success is False
+    assert changed is False
+    assert message == "❌ Only the current reviewer (@alice) can use `/rectify`."
+
+
 def test_k1d_rectify_refresh_keeps_retained_owner_boundaries_explicit_in_reconcile_source():
     reconcile_text = Path("scripts/reviewer_bot_lib/reconcile.py").read_text(encoding="utf-8")
     context_text = Path("scripts/reviewer_bot_lib/runtime_protocols.py").read_text(encoding="utf-8")

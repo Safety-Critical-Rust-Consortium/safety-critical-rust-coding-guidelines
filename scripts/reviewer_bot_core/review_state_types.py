@@ -46,6 +46,17 @@ class ReviewChannelState:
 
 
 @dataclass
+class CurrentCycleReviewerHandoff:
+    """Maps to the exact persisted `/feedback` reviewer handoff shape."""
+
+    source_event_key: str
+    timestamp: str
+    actor: str
+    command_name: str
+    reviewed_head_sha: str | None = None
+
+
+@dataclass
 class ReviewEntryState:
     """Maps to the persisted review entry fields used by the future C1 cutover.
 
@@ -79,4 +90,4 @@ class ReviewEntryState:
     review_dismissal: ReviewChannelState = field(default_factory=ReviewChannelState)
     current_cycle_completion: dict[str, Any] = field(default_factory=dict)
     current_cycle_write_approval: dict[str, Any] = field(default_factory=dict)
-    current_cycle_reviewer_handoff: dict[str, Any] | None = None
+    current_cycle_reviewer_handoff: CurrentCycleReviewerHandoff | None = None

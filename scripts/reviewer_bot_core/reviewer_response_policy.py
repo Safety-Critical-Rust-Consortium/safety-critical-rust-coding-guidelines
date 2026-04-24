@@ -333,6 +333,12 @@ def derive_reviewer_response_state(
             None,
             issue_is_pull_request=False,
         )
+        if _compare_cross_channel_conversation(
+            contributor_comment,
+            reviewer_handoff,
+            parse_timestamp=live_review_support.parse_github_timestamp,
+        ) > 0:
+            reviewer_handoff = None
         if reviewer_review_helpers.compare_records(
             reviewer_handoff,
             latest_reviewer_response,
@@ -446,6 +452,25 @@ def derive_reviewer_response_state(
         issue_is_pull_request=True,
     )
 
+    contributor_handoff = contributor_comment
+    contributor_revision = _contributor_revision_handoff_record(
+        review_data,
+        current_head,
+        reviewer_review if isinstance(reviewer_review, dict) else None,
+    )
+    if reviewer_review_helpers.compare_records(
+        contributor_revision,
+        contributor_handoff,
+        parse_timestamp=live_review_support.parse_github_timestamp,
+    ) > 0:
+        contributor_handoff = contributor_revision
+    if _compare_cross_channel_conversation(
+        contributor_handoff,
+        reviewer_handoff,
+        parse_timestamp=live_review_support.parse_github_timestamp,
+    ) > 0:
+        reviewer_handoff = None
+
     if not reviewer_comment and not reviewer_review and not reviewer_handoff:
         if not had_reviewer_review:
             return _decorate_response(
@@ -473,19 +498,6 @@ def derive_reviewer_response_state(
         parse_timestamp=live_review_support.parse_github_timestamp,
     ) > 0:
         latest_reviewer_response = reviewer_handoff
-
-    contributor_handoff = contributor_comment
-    contributor_revision = _contributor_revision_handoff_record(
-        review_data,
-        current_head,
-        reviewer_review if isinstance(reviewer_review, dict) else None,
-    )
-    if reviewer_review_helpers.compare_records(
-        contributor_revision,
-        contributor_handoff,
-        parse_timestamp=live_review_support.parse_github_timestamp,
-    ) > 0:
-        contributor_handoff = contributor_revision
 
     if _compare_cross_channel_conversation(
         contributor_handoff,

@@ -521,6 +521,41 @@ def test_issue_feedback_handoff_is_cleared_after_newer_contributor_followup():
     assert review["current_cycle_reviewer_handoff"] is None
 
 
+def test_issue_feedback_handoff_is_ignored_when_persisted_with_newer_contributor_followup():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    review["contributor_comment"] = {
+        "accepted": {
+            "semantic_key": "issue_comment:101",
+            "timestamp": "2026-03-17T11:00:00Z",
+            "actor": "dana",
+            "reviewed_head_sha": None,
+            "source_precedence": 1,
+            "payload": {},
+        },
+        "seen_keys": ["issue_comment:101"],
+    }
+
+    result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
+
+    assert result["state"] == "awaiting_reviewer_response"
+    assert result["reason"] == "no_reviewer_activity"
+    assert result["current_cycle_reviewer_handoff"] is None
+
+
 def test_pr_feedback_handoff_requires_current_tracked_head():
     state = make_state()
     review = make_tracked_review_state(
@@ -553,6 +588,46 @@ def test_pr_feedback_handoff_requires_current_tracked_head():
     assert current_head_result["reason"] == "accepted_same_scope_reviewer_activity"
     assert stale_head_result["state"] == "awaiting_reviewer_response"
     assert stale_head_result["reason"] == "no_reviewer_activity"
+
+
+def test_pr_feedback_handoff_is_ignored_when_persisted_with_newer_contributor_revision():
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["active_head_sha"] = "head-2"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": "head-2",
+    }
+    review["contributor_revision"] = {
+        "accepted": {
+            "semantic_key": "pull_request_sync:42:head-2",
+            "timestamp": "2026-03-17T11:00:00Z",
+            "actor": "dana",
+            "reviewed_head_sha": "head-2",
+            "source_precedence": 1,
+            "payload": {},
+        },
+        "seen_keys": ["pull_request_sync:42:head-2"],
+    }
+
+    result = reviewer_response_policy.derive_reviewer_response_state(
+        review,
+        issue_is_pull_request=True,
+        current_head="head-2",
+    )
+
+    assert result["state"] == "awaiting_reviewer_response"
+    assert result["reason"] == "no_reviewer_activity"
+    assert result["current_cycle_reviewer_handoff"] is None
 
 
 def test_pr_feedback_handoff_overrides_existing_approval_completion_without_clearing_it():

@@ -25,6 +25,8 @@
   ],
   "equivalence_scenarios": [
     "queue_success",
+    "feedback_success",
+    "feedback_malformed_args",
     "label_triplet_handler",
     "away_missing_date",
     "multiple_commands_warning",

@@ -204,55 +204,14 @@ def handle_rectify_command(
         request,
         actor=comment_author,
     )
+    reviewer_authority = assignment_flow.require_reviewer_command_actor(reviewer_authority, comment_author)
     if reviewer_authority.get("authorized"):
         return reconcile_active_review_entry(bot, state, issue_number)
-    if reviewer_authority.get("authorization_status") == "live_read_unavailable":
-        return (
-            assignment_flow.reviewer_command_authority_failure_message("rectify", reviewer_authority),
-            False,
-            False,
-        )
-
-    triage_status = bot.github.get_user_permission_status(comment_author, "triage")
-
-    if triage_status == "unavailable":
-        return (
-            "❌ Unable to verify triage permissions right now; refusing to continue.",
-            False,
-            False,
-        )
-
-    if triage_status != "granted":
-        current_reviewer = reviewer_authority.get("tracked_reviewer")
-        live_reviewers = reviewer_authority.get("live_control_plane_reviewers") or []
-        if reviewer_authority.get("authorization_status") == "control_plane_mismatch":
-            return (
-                assignment_flow.reviewer_command_authority_failure_message("rectify", reviewer_authority),
-                False,
-                False,
-            )
-        if isinstance(current_reviewer, str) and current_reviewer:
-            return (
-                f"❌ Only the current reviewer (@{current_reviewer}) or a maintainer with triage+ "
-                "permission can run `/rectify`.",
-                False,
-                False,
-            )
-        if live_reviewers:
-            return (
-                "❌ Only the current reviewer or a maintainer with triage+ permission can run `/rectify`. "
-                f"Live reviewer(s): @{', @'.join(str(value) for value in live_reviewers)}.",
-                False,
-                False,
-            )
-        return (
-            "❌ Only maintainers with triage+ permission can run `/rectify` when no confirmed assigned "
-            "reviewer is tracked.",
-            False,
-            False,
-        )
-
-    return reconcile_active_review_entry(bot, state, issue_number)
+    return (
+        assignment_flow.reviewer_command_authority_failure_message("rectify", reviewer_authority),
+        False,
+        False,
+    )
 
 
 def _load_deferred_context(bot: ReconcileWorkflowRuntimeContext) -> dict:
