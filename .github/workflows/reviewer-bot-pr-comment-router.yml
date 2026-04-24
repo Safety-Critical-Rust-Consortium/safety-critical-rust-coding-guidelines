@@ -52,7 +52,7 @@ jobs:
           comment_author = str((comment.get('user') or {}).get('login') or '').strip()
           comment_user_type = str((comment.get('user') or {}).get('type') or '').strip()
           comment_sender_type = str(sender.get('type') or '').strip()
-          comment_author_association = str(comment.get('author_association') or '').strip()
+          comment_author_association = str(comment.get('author_association') or '').strip().upper()
           def _classify_issue_comment_actor(comment_user_type, comment_author, comment_sender_type, installation_id, performed_via_github_app):
               if comment_user_type == 'Bot' or comment_author.endswith('[bot]'):
                   return 'bot_account'
@@ -61,6 +61,21 @@ jobs:
               if comment_user_type == 'User' and comment_author and not comment_author.endswith('[bot]') and not str(installation_id or '').strip() and not performed_via_github_app:
                   return 'repo_user_principal'
               return 'unknown_actor'
+
+          def _route_pr_comment_outcome(actor_class, repo, pr_head_full_name, pr_author, comment_author_association, pull_request_read_failed=False):
+              if actor_class != 'repo_user_principal':
+                  return 'safe_noop'
+              if pull_request_read_failed:
+                  return 'deferred_reconcile'
+              if (
+                  not pr_head_full_name
+                  or not pr_author
+                  or pr_head_full_name != repo
+                  or pr_author == 'dependabot[bot]'
+                  or str(comment_author_association or '').strip().upper() not in {'OWNER', 'MEMBER', 'COLLABORATOR'}
+              ):
+                  return 'deferred_reconcile'
+              return 'trusted_direct'
 
           def _performed_via_github_app_truth(value):
               if isinstance(value, bool):
@@ -86,7 +101,7 @@ jobs:
           pr_author = ''
 
           if actor_class != 'repo_user_principal':
-              route_outcome = 'safe_noop'
+              route_outcome = _route_pr_comment_outcome(actor_class, repo, pr_head_full_name, pr_author, comment_author_association)
           else:
               pr_number = issue['number']
               req = urllib.request.Request(
@@ -100,19 +115,12 @@ jobs:
                   with urllib.request.urlopen(req) as response:
                       pull_request = json.load(response)
               except urllib.error.URLError:
-                  route_outcome = 'deferred_reconcile'
+                  route_outcome = _route_pr_comment_outcome(actor_class, repo, pr_head_full_name, pr_author, comment_author_association, pull_request_read_failed=True)
               else:
                   head_repo = pull_request.get('head', {}).get('repo') or {}
                   pr_head_full_name = str(head_repo.get('full_name') or '').strip()
                   pr_author = str((pull_request.get('user') or {}).get('login') or '').strip()
-                  if (
-                      not pr_head_full_name
-                      or not pr_author
-                      or pr_head_full_name != repo
-                      or pr_author == 'dependabot[bot]'
-                      or comment_author_association not in {'OWNER', 'MEMBER', 'COLLABORATOR'}
-                  ):
-                      route_outcome = 'deferred_reconcile'
+                  route_outcome = _route_pr_comment_outcome(actor_class, repo, pr_head_full_name, pr_author, comment_author_association)
 
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as handle:
               print(f'route_outcome={route_outcome}', file=handle)

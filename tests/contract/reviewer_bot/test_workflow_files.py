@@ -10,6 +10,7 @@ pytestmark = pytest.mark.contract
 import yaml
 
 from scripts.reviewer_bot_core import comment_routing_policy
+from scripts.reviewer_bot_lib.context import PrCommentAdmission
 
 
 def _load_observer_contract_matrix() -> dict:
@@ -129,6 +130,16 @@ def test_pr_comment_router_normalizes_performed_via_app_without_raw_truthiness()
     assert "bool(comment.get('performed_via_github_app'))" not in workflow_text
 
 
+def _load_pr_comment_router_inline_namespace():
+    workflow_text = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
+    first_def = workflow_text.index("def _classify_issue_comment_actor(")
+    start = workflow_text.rfind("\n", 0, first_def) + 1
+    end = workflow_text.index("\n\n          performed_via_github_app =", start)
+    namespace = {}
+    exec(textwrap.dedent(workflow_text[start:end]), namespace)
+    return namespace
+
+
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
@@ -172,11 +183,7 @@ def test_pr_comment_router_actor_classifier_matches_core_policy(
     installation_id,
     performed_via_app,
 ):
-    workflow_text = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
-    start = workflow_text.index("def _classify_issue_comment_actor(")
-    end = workflow_text.index("\n          def _performed_via_github_app_truth", start)
-    namespace = {}
-    exec(textwrap.dedent(workflow_text[start:end]), namespace)
+    namespace = _load_pr_comment_router_inline_namespace()
 
     request = SimpleNamespace(
         comment_user_type=comment_user_type,
@@ -193,6 +200,142 @@ def test_pr_comment_router_actor_classifier_matches_core_policy(
         installation_id,
         performed_via_app,
     ) == comment_routing_policy.classify_issue_comment_actor(request)
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        {
+            "name": "same_repo_trusted_member",
+            "comment_user_type": "User",
+            "comment_author": "alice",
+            "comment_sender_type": "User",
+            "installation_id": None,
+            "performed_via_app": False,
+            "comment_author_association": "MEMBER",
+            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_author": "carol",
+            "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
+        },
+        {
+            "name": "same_repo_untrusted_author_association",
+            "comment_user_type": "User",
+            "comment_author": "alice",
+            "comment_sender_type": "User",
+            "installation_id": None,
+            "performed_via_app": False,
+            "comment_author_association": "contributor",
+            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_author": "carol",
+            "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
+        },
+        {
+            "name": "cross_repo_deferred",
+            "comment_user_type": "User",
+            "comment_author": "alice",
+            "comment_sender_type": "User",
+            "installation_id": None,
+            "performed_via_app": False,
+            "comment_author_association": "MEMBER",
+            "pr_head_full_name": "fork/example",
+            "pr_author": "carol",
+            "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
+        },
+        {
+            "name": "dependabot_pr_author_deferred",
+            "comment_user_type": "User",
+            "comment_author": "alice",
+            "comment_sender_type": "User",
+            "installation_id": None,
+            "performed_via_app": False,
+            "comment_author_association": "OWNER",
+            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_author": "dependabot[bot]",
+            "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
+        },
+        {
+            "name": "automation_actor_noop",
+            "comment_user_type": "User",
+            "comment_author": "alice",
+            "comment_sender_type": "Organization",
+            "installation_id": None,
+            "performed_via_app": False,
+            "comment_author_association": "MEMBER",
+            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_author": "carol",
+            "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
+        },
+        {
+            "name": "pull_request_read_failed",
+            "comment_user_type": "User",
+            "comment_author": "alice",
+            "comment_sender_type": "User",
+            "installation_id": None,
+            "performed_via_app": False,
+            "comment_author_association": "MEMBER",
+            "pr_head_full_name": "",
+            "pr_author": "",
+            "pull_request_read_failed": True,
+            "route_outcome": comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE,
+        },
+    ],
+    ids=lambda scenario: scenario["name"],
+)
+def test_pr_comment_router_route_outcome_matches_core_policy(scenario):
+    repo = "rustfoundation/safety-critical-rust-coding-guidelines"
+    namespace = _load_pr_comment_router_inline_namespace()
+    request = SimpleNamespace(
+        is_pull_request=True,
+        comment_user_type=scenario["comment_user_type"],
+        comment_author=scenario["comment_author"],
+        comment_sender_type=scenario["comment_sender_type"],
+        comment_installation_id=scenario["installation_id"],
+        comment_performed_via_github_app=scenario["performed_via_app"],
+        comment_author_association=scenario["comment_author_association"],
+    )
+    pr_admission = PrCommentAdmission(
+        route_outcome=scenario["route_outcome"],
+        declared_trust_class="pr_trusted_direct",
+        github_repository=repo,
+        pr_head_full_name=scenario["pr_head_full_name"],
+        pr_author=scenario["pr_author"],
+        issue_state="open",
+        issue_labels=(),
+        comment_author_id=123,
+        github_run_id=1,
+        github_run_attempt=1,
+    )
+    actor_class = comment_routing_policy.classify_issue_comment_actor(request)
+    processing_target = comment_routing_policy.classify_pr_comment_processing_target(
+        request,
+        pr_admission,
+        actor_class=actor_class,
+        is_self_comment=False,
+    )
+    expected = comment_routing_policy.route_issue_comment_trust(
+        request,
+        pr_admission,
+        processing_target=processing_target,
+    )
+    workflow_actor_class = namespace["_classify_issue_comment_actor"](
+        scenario["comment_user_type"],
+        scenario["comment_author"],
+        scenario["comment_sender_type"],
+        scenario["installation_id"],
+        scenario["performed_via_app"],
+    )
+
+    workflow_route = namespace["_route_pr_comment_outcome"](
+        workflow_actor_class,
+        repo,
+        scenario["pr_head_full_name"],
+        scenario["pr_author"],
+        scenario["comment_author_association"],
+        pull_request_read_failed=scenario.get("pull_request_read_failed", False),
+    )
+
+    assert workflow_actor_class == actor_class
+    assert workflow_route == expected.value
 
 
 def test_pr_comment_router_workflow_builds_payload_inline_without_bot_src_root():

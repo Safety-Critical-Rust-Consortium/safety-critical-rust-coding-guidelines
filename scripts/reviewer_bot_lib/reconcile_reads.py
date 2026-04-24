@@ -109,11 +109,16 @@ def read_live_comment_replay_context(live_comment: dict, payload: dict) -> LiveC
             comment_sender_type_available = True
     installation = live_comment.get("installation")
     comment_installation_id = None
-    comment_installation_id_available = "installation" in live_comment
+    comment_installation_id_available = False
     if isinstance(installation, dict):
         installation_id = installation.get("id")
         if installation_id is not None and str(installation_id).strip():
-            comment_installation_id = str(installation_id).strip()
+            try:
+                if int(installation_id) > 0:
+                    comment_installation_id = str(installation_id).strip()
+                    comment_installation_id_available = True
+            except (TypeError, ValueError):
+                pass
     performed_via_app_available = False
     performed_via_app = live_comment.get("performed_via_github_app")
     comment_performed_via_github_app = None
@@ -122,11 +127,13 @@ def read_live_comment_replay_context(live_comment: dict, payload: dict) -> LiveC
             comment_performed_via_github_app = performed_via_app
             performed_via_app_available = True
         elif isinstance(performed_via_app, dict):
-            try:
-                comment_performed_via_github_app = int(performed_via_app.get("id") or 0) > 0
-            except (TypeError, ValueError):
-                comment_performed_via_github_app = False
-            performed_via_app_available = True
+            app_id = performed_via_app.get("id")
+            if app_id is not None and str(app_id).strip():
+                try:
+                    comment_performed_via_github_app = int(app_id) > 0
+                    performed_via_app_available = True
+                except (TypeError, ValueError):
+                    pass
         elif performed_via_app is None:
             comment_performed_via_github_app = False
             performed_via_app_available = True
