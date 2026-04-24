@@ -60,7 +60,6 @@ def _classify_event_intent_from_context(bot: AppEventContextRuntime, context: Ev
             "unassigned",
             "reopened",
             "closed",
-            "synchronize",
         }:
             return bot.EVENT_INTENT_MUTATING
         return bot.EVENT_INTENT_NON_MUTATING_READONLY

@@ -49,6 +49,26 @@ def test_classify_event_intent_same_repo_dismissed_review_is_read_only(monkeypat
     assert intent == runtime.EVENT_INTENT_NON_MUTATING_READONLY
 
 
+@pytest.mark.parametrize(
+    "event_action",
+    ["opened", "edited", "labeled", "unlabeled", "assigned", "unassigned", "reopened", "closed"],
+)
+def test_classify_event_intent_issue_lifecycle_retained_matrix_is_mutating(monkeypatch, event_action):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+
+    intent = app.classify_event_intent(runtime, "issues", event_action)
+
+    assert intent == runtime.EVENT_INTENT_MUTATING
+
+
+def test_classify_event_intent_issue_synchronize_is_read_only(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+
+    intent = app.classify_event_intent(runtime, "issues", "synchronize")
+
+    assert intent == runtime.EVENT_INTENT_NON_MUTATING_READONLY
+
+
 def test_classify_event_intent_review_comment_is_non_mutating_defer(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     intent = app.classify_event_intent(runtime, "pull_request_review_comment", "created")
