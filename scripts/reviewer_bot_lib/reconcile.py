@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime
 
 from scripts.reviewer_bot_core import comment_routing_policy, reconcile_replay_policy
 from scripts.reviewer_bot_core.comment_routing_policy import (
@@ -89,6 +90,29 @@ class DismissalTimeResolution:
 
 def _log(bot: ReconcileWorkflowRuntimeContext, level: str, message: str, **fields) -> None:
     bot.logger.event(level, message, **fields)
+
+
+def _valid_exact_timestamp(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    timestamp = value.strip()
+    if "T" not in timestamp:
+        return None
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return timestamp
+
+
+def _read_live_pr_state_for_reconcile(bot: ReconcileWorkflowRuntimeContext, pr_number: int) -> str:
+    live_pr = _read_reconcile_object(bot, f"pulls/{pr_number}", label=f"live PR #{pr_number}")
+    live_state = live_pr.get("state")
+    if not isinstance(live_state, str) or not live_state.strip():
+        raise ReconcileReadError(f"live PR #{pr_number} state is invalid", failure_kind="invalid_payload")
+    return live_state.strip().lower()
 
 
 def _now_iso(bot: ReconcileWorkflowRuntimeContext) -> str:
@@ -546,13 +570,22 @@ def _handle_review_dismissed_workflow_run(
     return state_changed or reconciled_changed or gap_cleared_changed
 
 
-def _dismissed_review_source_time(payload: dict | None) -> str | None:
+def _dismissed_review_source_time(payload: dict | None) -> DismissalTimeResolution | None:
     if not isinstance(payload, dict):
         return None
+    if "source_dismissed_at" not in payload:
+        return None
     value = payload.get("source_dismissed_at")
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return None
+    if not isinstance(value, str) or not value.strip():
+        return None
+    timestamp = _valid_exact_timestamp(value)
+    if timestamp is None:
+        return DismissalTimeResolution(
+            None,
+            reason="payload_invalid_source_dismissed_at",
+            failure_kind="invalid_payload",
+        )
+    return DismissalTimeResolution(timestamp, source="payload")
 
 
 def _read_review_dismissal_timeline_events(
@@ -589,7 +622,7 @@ def _resolve_review_dismissal_time(
 ) -> DismissalTimeResolution:
     payload_time = _dismissed_review_source_time(payload)
     if payload_time is not None:
-        return DismissalTimeResolution(payload_time, source="payload")
+        return payload_time
     events, failure_kind = _read_review_dismissal_timeline_events(bot, context.pr_number)
     if events is None:
         return DismissalTimeResolution(
@@ -611,7 +644,14 @@ def _resolve_review_dismissal_time(
                 reason="timeline_event_missing_created_at",
                 failure_kind="invalid_payload",
             )
-        matching_times.append(created_at.strip())
+        timestamp = _valid_exact_timestamp(created_at)
+        if timestamp is None:
+            return DismissalTimeResolution(
+                None,
+                reason="timeline_event_invalid_created_at",
+                failure_kind="invalid_payload",
+            )
+        matching_times.append(timestamp)
     if len(matching_times) == 1:
         return DismissalTimeResolution(matching_times[0], source="timeline")
     if len(matching_times) > 1:
@@ -686,13 +726,29 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
             source_event_key=parsed_payload.identity.source_event_key,
         )
         return WorkflowRunHandlerResult(False, [])
-    bot.collect_touched_item(pr_number)
     try:
+        live_pr_state = _read_live_pr_state_for_reconcile(bot, pr_number)
+        if live_pr_state == "closed":
+            _log(
+                bot,
+                "info",
+                f"Ignoring deferred workflow_run for closed PR #{pr_number}",
+                issue_number=pr_number,
+                source_event_key=parsed_payload.identity.source_event_key,
+            )
+            return WorkflowRunHandlerResult(False, [])
+        if live_pr_state != "open":
+            raise ReconcileReadError(
+                f"live PR #{pr_number} state is unsupported for replay: {live_pr_state}",
+                failure_kind="invalid_payload",
+            )
+        bot.collect_touched_item(pr_number)
         handler = _workflow_run_handler_for_payload(parsed_payload)
         if handler is None:
             raise RuntimeError("Unsupported deferred workflow_run payload")
         return _build_result(handler(bot, state, review_data, parsed_payload), pr_number)
     except RuntimeError as exc:
+        bot.collect_touched_item(pr_number)
         failure_kind = exc.failure_kind if isinstance(exc, ReconcileReadError) else None
         gap_changed = gap_bookkeeping._update_deferred_gap(
             bot,

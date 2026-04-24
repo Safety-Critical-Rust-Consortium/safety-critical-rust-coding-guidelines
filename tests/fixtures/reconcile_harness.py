@@ -196,6 +196,7 @@ class ReconcileHarness:
         pr_number: int,
         head_sha: str | None = None,
         author: str = "dana",
+        state: str = "open",
         labels: list[str] | None = None,
         requested_reviewers: list[str] | None = None,
         status_code: int = 200,
@@ -207,6 +208,7 @@ class ReconcileHarness:
         )
         if head_sha is None:
             payload.pop("head", None)
+        payload["state"] = state
         payload["labels"] = [{"name": label} for label in (labels or [])]
         if requested_reviewers is not None:
             payload["requested_reviewers"] = [

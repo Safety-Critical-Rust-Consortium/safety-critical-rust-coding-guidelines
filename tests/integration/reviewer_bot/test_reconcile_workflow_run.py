@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 
 from scripts.reviewer_bot_lib import reconcile
@@ -96,6 +98,75 @@ def test_late_workflow_run_reconcile_missing_row_is_diagnostic_safe_noop(monkeyp
     assert harness.runtime.drain_touched_items() == []
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        issue_comment_payload(
+            pr_number=42,
+            comment_id=210,
+            source_event_key="issue_comment:210",
+            body="@guidelines-bot /queue",
+            comment_class="command_only",
+            has_non_command_text=False,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="bob",
+            source_run_id=610,
+            source_run_attempt=1,
+        ),
+        review_comment_payload(
+            pr_number=42,
+            comment_id=310,
+            source_event_key="pull_request_review_comment:310",
+            body="plain text review comment",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=11,
+            actor_class="repo_user_principal",
+            pull_request_review_id=77,
+            in_reply_to_id=0,
+            source_run_id=711,
+            source_run_attempt=1,
+        ),
+        review_submitted_payload(
+            pr_number=42,
+            review_id=11,
+            source_event_key="pull_request_review:11",
+            source_submitted_at="2026-03-17T10:00:00Z",
+            source_review_state="COMMENTED",
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=500,
+            source_run_attempt=2,
+        ),
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at="2026-03-17T10:10:00Z",
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    ],
+)
+def test_late_workflow_run_reconcile_closed_live_pr_keeps_row_diagnostic_safe_noop(monkeypatch, payload):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    _deferred_gaps(review)[payload["source_event_key"]] = {"reason": "artifact_missing"}
+    before = deepcopy(review)
+    harness = ReconcileHarness(monkeypatch, payload)
+    harness.add_pull_request(pr_number=42, head_sha="head-1", state="closed")
+
+    result = reconcile.handle_workflow_run_event_result(harness.runtime, state)
+
+    assert result == reconcile.WorkflowRunHandlerResult(False, [])
+    assert state["active_reviews"]["42"] == before
+    assert harness.runtime.drain_touched_items() == []
+
+
 def test_deferred_review_dismissal_replay_uses_source_dismissal_time(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")
@@ -113,6 +184,7 @@ def test_deferred_review_dismissal_replay_uses_source_dismissal_time(monkeypatch
             source_run_attempt=1,
         ),
     )
+    harness.add_pull_request(pr_number=42, head_sha="head-1", author="dana")
     harness.stub_review_rebuild(changed=False)
     harness.stub_head_repair(changed=False)
 
@@ -138,6 +210,7 @@ def test_deferred_review_dismissal_replay_uses_exact_timeline_dismissed_at(monke
             source_run_attempt=1,
         ),
     )
+    harness.add_pull_request(pr_number=42, head_sha="head-1", author="dana")
     harness.github.add_request(
         "GET",
         "issues/42/timeline?per_page=100&page=1",
@@ -174,6 +247,7 @@ def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(mon
             source_run_attempt=1,
         ),
     )
+    harness.add_pull_request(pr_number=42, head_sha="head-1", author="dana")
     harness.github.add_request(
         "GET",
         "issues/42/timeline?per_page=100&page=1",
@@ -194,6 +268,63 @@ def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(mon
     assert gap["reason"] == "reconcile_failed_closed"
     assert "lacks exact source dismissal time" in gap["diagnostic_summary"]
     assert "timeline_dismissal_event_not_found" in gap["diagnostic_summary"]
+
+
+@pytest.mark.parametrize(
+    ("source_dismissed_at", "timeline_payload", "expected_reason"),
+    [
+        ("not-a-timestamp", None, "payload_invalid_source_dismissed_at"),
+        (
+            None,
+            [{"event": "review_dismissed", "created_at": "not-a-timestamp", "dismissed_review": {"review_id": 12}}],
+            "timeline_event_invalid_created_at",
+        ),
+        (
+            None,
+            [
+                {"event": "review_dismissed", "created_at": "2026-03-17T10:12:00Z", "dismissed_review": {"review_id": 12}},
+                {"event": "review_dismissed", "created_at": "2026-03-17T10:13:00Z", "dismissed_review": {"review_id": 12}},
+            ],
+            "ambiguous_timeline_dismissal_events",
+        ),
+    ],
+)
+def test_deferred_review_dismissal_without_valid_exact_time_stays_diagnostic_only(
+    monkeypatch,
+    source_dismissed_at,
+    timeline_payload,
+    expected_reason,
+):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at=source_dismissed_at,
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    )
+    harness.add_pull_request(pr_number=42, head_sha="head-1", author="dana")
+    if timeline_payload is not None:
+        harness.github.add_request(
+            "GET",
+            "issues/42/timeline?per_page=100&page=1",
+            status_code=200,
+            payload=timeline_payload,
+        )
+
+    assert harness.run(state) is True
+    assert review["review_dismissal"]["accepted"] is None
+    assert _reconciled_source_events(review) == {}
+    gap = _deferred_gaps(review)["pull_request_review_dismissed:12"]
+    assert gap["reason"] == "reconcile_failed_closed"
+    assert expected_reason in gap["diagnostic_summary"]
 
 
 def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raising(monkeypatch):

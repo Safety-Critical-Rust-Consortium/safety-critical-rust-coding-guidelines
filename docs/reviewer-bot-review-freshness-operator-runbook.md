@@ -108,5 +108,5 @@ Do not emit `artifact_expired` unless prior visibility or documented retention p
 - Missing runs are not proof that nothing happened.
 - Operator-visible workflow summaries should point to this file path: `docs/reviewer-bot-review-freshness-operator-runbook.md`.
 - Same-repo trusted-direct PR comment handling is limited to repo-associated `User` principals with `OWNER`, `MEMBER`, or `COLLABORATOR` association in the dedicated trusted workflow.
-- Non-human automation PR comments, reviewer-bot self-comments, cross-repo PR comments, Dependabot PR comments, and all PR review freshness events stay deferred or ignored in this rollout.
+- Non-human automation PR comments, reviewer-bot self-comments, cross-repo PR comments, Dependabot PR comments, and PR review freshness events are handled only by trusted observer and reconcile paths in this rollout.
 - Deferred review dismissal replay requires exact source time from the observer payload or an exact `review_dismissed` timeline event matched by review id; otherwise it remains diagnostic-only and must not be replayed manually.
