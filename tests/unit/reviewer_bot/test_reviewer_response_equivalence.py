@@ -490,7 +490,7 @@ def test_issue_feedback_handoff_before_cycle_boundary_is_not_consumed():
     assert result["current_cycle_reviewer_handoff"] is None
 
 
-def test_issue_feedback_handoff_is_consumed_as_stale_after_newer_contributor_followup():
+def test_issue_feedback_handoff_is_cleared_after_newer_contributor_followup():
     state = make_state()
     review = make_tracked_review_state(
         state,
@@ -516,8 +516,9 @@ def test_issue_feedback_handoff_is_consumed_as_stale_after_newer_contributor_fol
     result = reviewer_response_policy.derive_reviewer_response_state(review, issue_is_pull_request=False)
 
     assert result["state"] == "awaiting_reviewer_response"
-    assert result["reason"] == "contributor_comment_newer"
-    assert result["anchor_timestamp"] == "2026-03-17T11:00:00Z"
+    assert result["reason"] == "no_reviewer_activity"
+    assert result["current_cycle_reviewer_handoff"] is None
+    assert review["current_cycle_reviewer_handoff"] is None
 
 
 def test_pr_feedback_handoff_requires_current_tracked_head():

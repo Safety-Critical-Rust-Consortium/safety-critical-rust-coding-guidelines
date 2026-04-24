@@ -258,6 +258,30 @@ def test_release_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_e
     assert review["current_reviewer"] is None
 
 
+def test_release_command_resolves_reviewer_authority_before_triage_fallback(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "bob"
+    harness.stub_assignees(["bob"])
+    calls = []
+    original_resolver = commands.assignment_flow.resolve_reviewer_command_authority
+
+    def resolve_with_order(*args, **kwargs):
+        calls.append("resolver")
+        return original_resolver(*args, **kwargs)
+
+    monkeypatch.setattr(commands.assignment_flow, "resolve_reviewer_command_authority", resolve_with_order)
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": calls.append("permission") or "granted"
+
+    response, success = harness.handle_release(state, 42, "alice", ["@bob"])
+
+    assert success is True
+    assert "@alice has released @bob" in response
+    assert calls[:2] == ["resolver", "permission"]
+
+
 def test_rectify_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_empty(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
@@ -277,6 +301,31 @@ def test_rectify_command_accepts_confirmed_pr_reviewer_when_live_reviewers_are_e
 
     assert (message, success, changed) == ("rectified", True, False)
     assert calls == [(harness.runtime, state, 42)]
+
+
+def test_rectify_command_resolves_reviewer_authority_before_triage_fallback(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    harness.stub_assignees([])
+    calls = []
+    original_resolver = reconcile.assignment_flow.resolve_reviewer_command_authority
+
+    def resolve_with_order(*args, **kwargs):
+        calls.append("resolver")
+        return original_resolver(*args, **kwargs)
+
+    monkeypatch.setattr(reconcile.assignment_flow, "resolve_reviewer_command_authority", resolve_with_order)
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": calls.append("permission") or "granted"
+    monkeypatch.setattr(
+        reconcile,
+        "reconcile_active_review_entry",
+        lambda bot, current_state, issue_number: calls.append("reconcile") or ("rectified", True, False),
+    )
+
+    message, success, changed = harness.handle_rectify(state, 42, "maintainer")
+
+    assert (message, success, changed) == ("rectified", True, False)
+    assert calls == ["resolver", "permission", "reconcile"]
 
 
 def test_assign_from_queue_posts_guidance_only_once(monkeypatch):
@@ -493,6 +542,10 @@ def test_claim_command_fails_closed_when_assignees_unavailable(monkeypatch):
 def test_release_command_fails_closed_when_permission_unavailable(monkeypatch):
     harness = CommandHarness(monkeypatch)
     state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "bob"
+    harness.stub_assignees(["bob"])
     harness.runtime.github.get_user_permission_status = lambda username, required_permission="triage": "unavailable"
 
     response, success = harness.handle_release(state, 42, "alice", ["@bob"])
@@ -894,9 +947,136 @@ def test_feedback_command_does_not_overwrite_newer_handoff(monkeypatch):
         "reviewed_head_sha": None,
     }
     assert side_effects.comments == [
-        (42, "ℹ️ Ignored stale `/feedback` handoff because a newer reviewer handoff is already recorded.")
+        (42, "ℹ️ Ignored stale `/feedback` handoff because a newer or same-time reviewer handoff is already recorded.")
     ]
     assert side_effects.reactions == [(100, "eyes"), (100, "+1")]
+
+
+def test_feedback_command_does_not_overwrite_same_timestamp_different_event(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    harness.stub_assignees(["alice"])
+    side_effects = harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=False,
+        comment_id=101,
+        created_at="2026-03-17T10:00:00Z",
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is False
+    assert review["current_cycle_reviewer_handoff"]["source_event_key"] == "issue_comment:100"
+    assert side_effects.comments == [
+        (42, "ℹ️ Ignored stale `/feedback` handoff because a newer or same-time reviewer handoff is already recorded.")
+    ]
+
+
+def test_feedback_command_replays_same_event_idempotently(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["last_reviewer_activity"] = "2026-03-17T10:00:00Z"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    harness.stub_assignees(["alice"])
+    harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=False,
+        comment_id=100,
+        created_at="2026-03-17T10:00:00Z",
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is False
+    assert review["current_cycle_reviewer_handoff"] == {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+
+def test_feedback_command_overwrites_older_handoff(monkeypatch):
+    harness = CommandHarness(monkeypatch)
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T09:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    harness.stub_assignees(["alice"])
+    harness.capture_comment_side_effects()
+    request = harness.typed_comment_request(
+        issue_number=42,
+        actor="alice",
+        body="@guidelines-bot /feedback",
+        issue_author="dana",
+        is_pull_request=False,
+        comment_id=101,
+        created_at="2026-03-17T10:00:00Z",
+    )
+
+    changed = comment_application.apply_comment_command(
+        harness.runtime,
+        state,
+        request,
+        {"command": "feedback", "args": [], "command_count": 1},
+        classify_issue_comment_actor=lambda current_request: "repo_user_principal",
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"] == {
+        "source_event_key": "issue_comment:101",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
 
 
 def test_feedback_command_plus_text_does_not_record_reviewer_comment_channel(monkeypatch):

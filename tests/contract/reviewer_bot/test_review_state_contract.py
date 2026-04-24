@@ -252,6 +252,80 @@ def test_current_cycle_reviewer_handoff_is_cleared_by_reviewer_replacement_and_r
     assert review["current_cycle_reviewer_handoff"] is None
 
 
+def test_current_cycle_reviewer_handoff_is_cleared_by_newer_contributor_followup():
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+
+    changed = review_state.accept_channel_event(
+        review,
+        "contributor_comment",
+        semantic_key="issue_comment:101",
+        timestamp="2026-03-17T11:00:00Z",
+        actor="dana",
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"] is None
+
+
+def test_current_cycle_reviewer_handoff_survives_older_contributor_followup():
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    handoff = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": None,
+    }
+    review["current_cycle_reviewer_handoff"] = dict(handoff)
+
+    changed = review_state.accept_channel_event(
+        review,
+        "contributor_comment",
+        semantic_key="issue_comment:99",
+        timestamp="2026-03-17T09:00:00Z",
+        actor="dana",
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"] == handoff
+
+
+def test_current_cycle_reviewer_handoff_is_cleared_by_newer_contributor_revision():
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_cycle_reviewer_handoff"] = {
+        "source_event_key": "issue_comment:100",
+        "timestamp": "2026-03-17T10:00:00Z",
+        "actor": "alice",
+        "command_name": "feedback",
+        "reviewed_head_sha": "head-1",
+    }
+
+    changed = review_state.accept_channel_event(
+        review,
+        "contributor_revision",
+        semantic_key="pull_request_sync:42:head-2",
+        timestamp="2026-03-17T11:00:00Z",
+        reviewed_head_sha="head-2",
+        source_precedence=1,
+    )
+
+    assert changed is True
+    assert review["current_cycle_reviewer_handoff"] is None
+
+
 def test_list_open_tracked_review_items_returns_only_assigned_entries():
     state = make_state()
     review_state.ensure_review_entry(state, 42, create=True)

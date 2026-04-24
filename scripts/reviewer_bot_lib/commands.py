@@ -480,11 +480,6 @@ def handle_release_command(
         target_username = args[0].lstrip("@")
         reason = " ".join(args[1:]) if len(args) > 1 else None
         releasing_other = target_username.lower() != comment_author.lower()
-        permission_status = bot.github.get_user_permission_status(comment_author, "triage")
-        if permission_status == "unavailable":
-            return "❌ Unable to verify triage permissions right now; refusing to continue.", False
-        if releasing_other and permission_status != "granted":
-            return (f"❌ @{comment_author} does not have permission to release other reviewers. Triage access or higher is required."), False
     else:
         target_username = comment_author
         reason = " ".join(args) if args else None
@@ -500,6 +495,12 @@ def handle_release_command(
     tracked_reviewer = str(authority["tracked_reviewer"])
     if target_username.lower() != tracked_reviewer.lower():
         return (f"❌ @{target_username} is not the current reviewer. Current reviewer: @{tracked_reviewer}"), False
+    if releasing_other:
+        permission_status = bot.github.get_user_permission_status(comment_author, "triage")
+        if permission_status == "unavailable":
+            return "❌ Unable to verify triage permissions right now; refusing to continue.", False
+        if permission_status != "granted":
+            return (f"❌ @{comment_author} does not have permission to release other reviewers. Triage access or higher is required."), False
     if not releasing_other and comment_author.lower() != tracked_reviewer.lower():
         return (
             f"❌ Only the current reviewer (@{tracked_reviewer}) can use `/release` without triage+ permission."

@@ -280,7 +280,13 @@ def _feedback_handoff_should_replace(existing: object, candidate: dict) -> bool:
         return existing_key is None
     if existing_key is None:
         return True
-    return candidate_key >= existing_key
+    candidate_timestamp, candidate_source = candidate_key
+    existing_timestamp, existing_source = existing_key
+    if candidate_timestamp > existing_timestamp:
+        return True
+    if candidate_timestamp < existing_timestamp:
+        return False
+    return candidate_source == existing_source
 
 
 def handle_feedback_command(bot, state: dict, request: CommentEventRequest, decision) -> CommandExecutionResult:
@@ -325,7 +331,7 @@ def handle_feedback_command(bot, state: dict, request: CommentEventRequest, deci
     before = review_data.get("current_cycle_reviewer_handoff")
     if not _feedback_handoff_should_replace(before, handoff):
         return CommandExecutionResult(
-            response="ℹ️ Ignored stale `/feedback` handoff because a newer reviewer handoff is already recorded.",
+            response="ℹ️ Ignored stale `/feedback` handoff because a newer or same-time reviewer handoff is already recorded.",
             success=True,
             state_changed=False,
         )
