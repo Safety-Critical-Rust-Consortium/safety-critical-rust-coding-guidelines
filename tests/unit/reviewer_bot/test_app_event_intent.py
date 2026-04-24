@@ -56,6 +56,27 @@ def test_classify_event_intent_review_comment_is_non_mutating_defer(monkeypatch)
 
 
 @pytest.mark.parametrize(
+    "event_action",
+    ["opened", "labeled", "unlabeled", "reopened", "closed", "synchronize"],
+)
+def test_classify_event_intent_pr_metadata_retained_matrix_is_mutating(monkeypatch, event_action):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+
+    intent = app.classify_event_intent(runtime, "pull_request_target", event_action)
+
+    assert intent == runtime.EVENT_INTENT_MUTATING
+
+
+@pytest.mark.parametrize("event_action", ["edited", "assigned", "unassigned", "ready_for_review"])
+def test_classify_event_intent_pr_metadata_unshipped_actions_are_read_only(monkeypatch, event_action):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+
+    intent = app.classify_event_intent(runtime, "pull_request_target", event_action)
+
+    assert intent == runtime.EVENT_INTENT_NON_MUTATING_READONLY
+
+
+@pytest.mark.parametrize(
     ("workflow_run_event", "workflow_run_event_action"),
     [
         ("pull_request_review", "submitted"),

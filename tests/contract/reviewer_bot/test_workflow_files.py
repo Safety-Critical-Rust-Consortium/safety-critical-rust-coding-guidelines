@@ -65,7 +65,52 @@ def test_issue_lifecycle_workflow_exports_retained_request_boundary_fields():
     assert "IS_PULL_REQUEST: 'false'" in workflow_text
     assert "ISSUE_STATE: ${{ github.event.issue.state }}" in workflow_text
     assert "LABEL_NAME: ${{ github.event.label.name }}" in workflow_text
-    assert "EVENT_CREATED_AT: ${{ github.event.issue.updated_at }}" in workflow_text
+    assert "ISSUE_CREATED_AT: ${{ github.event.issue.created_at }}" in workflow_text
+    assert "ISSUE_UPDATED_AT: ${{ github.event.issue.updated_at }}" in workflow_text
+    assert "ISSUE_CLOSED_AT: ${{ github.event.issue.closed_at }}" in workflow_text
+    assert "EVENT_CREATED_AT: ${{ github.event.issue.updated_at }}" not in workflow_text
+
+
+def test_pr_metadata_workflow_covers_retained_event_matrix():
+    workflow = yaml.safe_load(Path(".github/workflows/reviewer-bot-pr-metadata.yml").read_text(encoding="utf-8"))
+    on_block = workflow.get("on", workflow.get(True))
+
+    assert on_block["pull_request_target"]["types"] == [
+        "opened",
+        "labeled",
+        "unlabeled",
+        "reopened",
+        "closed",
+        "synchronize",
+    ]
+
+
+def test_pr_metadata_workflow_exports_raw_timestamp_boundary_fields():
+    workflow_text = Path(".github/workflows/reviewer-bot-pr-metadata.yml").read_text(encoding="utf-8")
+
+    assert "PR_CREATED_AT: ${{ github.event.pull_request.created_at }}" in workflow_text
+    assert "PR_UPDATED_AT: ${{ github.event.pull_request.updated_at }}" in workflow_text
+    assert "PR_CLOSED_AT: ${{ github.event.pull_request.closed_at }}" in workflow_text
+    assert "EVENT_CREATED_AT: ${{ github.event.pull_request.updated_at }}" not in workflow_text
+
+
+@pytest.mark.parametrize(
+    "workflow_path",
+    [
+        ".github/workflows/reviewer-bot-pr-comment-router.yml",
+        ".github/workflows/reviewer-bot-issue-comment-direct.yml",
+        ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+    ],
+)
+def test_comment_workflows_export_performed_via_app_boolean_truth(workflow_path):
+    workflow_text = Path(workflow_path).read_text(encoding="utf-8")
+
+    assert "COMMENT_USER_TYPE" in workflow_text
+    assert "COMMENT_SENDER_TYPE" in workflow_text
+    assert "COMMENT_INSTALLATION_ID" in workflow_text
+    assert "COMMENT_PERFORMED_VIA_GITHUB_APP" in workflow_text
+    assert "COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app && 'true' || 'false' }}" in workflow_text
+    assert "github.event.comment.performed_via_github_app != null" not in workflow_text
 
 def test_pr_comment_router_workflow_builds_payload_inline_without_bot_src_root():
     workflow = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")

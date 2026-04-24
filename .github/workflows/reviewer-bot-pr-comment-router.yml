@@ -189,7 +189,7 @@ jobs:
           COMMENT_USER_TYPE: ${{ github.event.comment.user.type }}
           COMMENT_SENDER_TYPE: ${{ github.event.sender.type }}
           COMMENT_INSTALLATION_ID: ${{ github.event.installation.id }}
-          COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app != null }}
+          COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app && 'true' || 'false' }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_HEAD_FULL_NAME: ${{ needs.route-pr-comment.outputs.pr_head_full_name }}
           PR_AUTHOR: ${{ needs.route-pr-comment.outputs.pr_author }}

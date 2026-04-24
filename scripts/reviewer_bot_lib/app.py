@@ -50,7 +50,7 @@ def _classify_event_intent_from_context(bot: AppEventContextRuntime, context: Ev
     event_name = context.event_name
     event_action = context.event_action
 
-    if event_name in {"issues", "pull_request_target"}:
+    if event_name == "issues":
         if event_action in {
             "opened",
             "edited",
@@ -62,6 +62,11 @@ def _classify_event_intent_from_context(bot: AppEventContextRuntime, context: Ev
             "closed",
             "synchronize",
         }:
+            return bot.EVENT_INTENT_MUTATING
+        return bot.EVENT_INTENT_NON_MUTATING_READONLY
+
+    if event_name == "pull_request_target":
+        if event_action in {"opened", "labeled", "unlabeled", "reopened", "closed", "synchronize"}:
             return bot.EVENT_INTENT_MUTATING
         return bot.EVENT_INTENT_NON_MUTATING_READONLY
 
@@ -204,6 +209,10 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                 state_changed = bot.handlers.handle_issue_or_pr_opened(state)
             elif event_action == "labeled":
                 state_changed = bot.handlers.handle_labeled_event(state)
+            elif event_action == "unlabeled":
+                state_changed = bot.handlers.handle_unlabeled_event(state)
+            elif event_action == "reopened":
+                state_changed = bot.handlers.handle_reopened_event(state)
             elif event_action == "closed":
                 state_changed = bot.handlers.handle_closed_event(state)
             elif event_action == "synchronize":

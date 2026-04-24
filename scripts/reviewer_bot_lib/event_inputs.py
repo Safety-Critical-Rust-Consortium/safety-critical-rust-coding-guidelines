@@ -118,6 +118,24 @@ def _parse_route_outcome(value: str) -> PrCommentRouterOutcome | None:
         return None
 
 
+def _derive_lifecycle_event_created_at(bot: EventInputsContext, *, action: str, is_pull_request: bool) -> str:
+    if is_pull_request:
+        if action == "opened":
+            return bot.get_config_value("PR_CREATED_AT").strip()
+        if action == "closed":
+            return bot.get_config_value("PR_CLOSED_AT").strip()
+        if action in {"labeled", "unlabeled", "reopened", "synchronize"}:
+            return bot.get_config_value("PR_UPDATED_AT").strip()
+        return ""
+    if action == "opened":
+        return bot.get_config_value("ISSUE_CREATED_AT").strip()
+    if action == "closed":
+        return bot.get_config_value("ISSUE_CLOSED_AT").strip()
+    if action in {"edited", "assigned", "unassigned", "labeled", "unlabeled", "reopened"}:
+        return bot.get_config_value("ISSUE_UPDATED_AT").strip()
+    return ""
+
+
 def _read_workflow_run_name(bot: EventInputsContext) -> str:
     event_path = bot.get_config_value("GITHUB_EVENT_PATH").strip()
     if not event_path:
@@ -342,10 +360,12 @@ def build_manual_dispatch_request(bot: EventInputsContext) -> ManualDispatchRequ
 
 
 def build_issue_lifecycle_request(bot: EventInputsContext) -> IssueLifecycleRequest:
+    event_action = bot.get_config_value("EVENT_ACTION").strip()
+    is_pull_request = bool(_parse_optional_bool(bot.get_config_value("IS_PULL_REQUEST")))
     return IssueLifecycleRequest(
-        event_action=bot.get_config_value("EVENT_ACTION").strip(),
+        event_action=event_action,
         issue_number=_parse_optional_int(bot.get_config_value("ISSUE_NUMBER")) or 0,
-        is_pull_request=bool(_parse_optional_bool(bot.get_config_value("IS_PULL_REQUEST"))),
+        is_pull_request=is_pull_request,
         issue_state=bot.get_config_value("ISSUE_STATE").strip(),
         issue_labels=_parse_labels(bot.get_config_value("ISSUE_LABELS")),
         label_name=bot.get_config_value("LABEL_NAME").strip(),
@@ -357,7 +377,11 @@ def build_issue_lifecycle_request(bot: EventInputsContext) -> IssueLifecycleRequ
         previous_title=bot.get_config_value("ISSUE_CHANGES_TITLE_FROM"),
         previous_body=bot.get_config_value("ISSUE_CHANGES_BODY_FROM"),
         pr_head_sha=bot.get_config_value("PR_HEAD_SHA").strip(),
-        event_created_at=bot.get_config_value("EVENT_CREATED_AT").strip(),
+        event_created_at=_derive_lifecycle_event_created_at(
+            bot,
+            action=event_action,
+            is_pull_request=is_pull_request,
+        ),
     )
 
 
@@ -373,7 +397,7 @@ def build_pull_request_sync_request(bot: EventInputsContext) -> PullRequestSyncR
     return PullRequestSyncRequest(
         issue_number=_parse_optional_int(bot.get_config_value("ISSUE_NUMBER")) or 0,
         head_sha=bot.get_config_value("PR_HEAD_SHA").strip(),
-        event_created_at=bot.get_config_value("EVENT_CREATED_AT").strip(),
+        event_created_at=_derive_lifecycle_event_created_at(bot, action="synchronize", is_pull_request=True),
     )
 
 

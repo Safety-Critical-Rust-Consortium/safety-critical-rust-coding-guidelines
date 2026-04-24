@@ -431,7 +431,7 @@ def handle_pull_request_target_synchronize(bot, state: dict) -> bool:
     if not head_sha:
         raise RuntimeError("Missing PR_HEAD_SHA for synchronize event")
     if not request.event_created_at:
-        raise RuntimeError("Missing EVENT_CREATED_AT for synchronize event")
+        raise RuntimeError("Missing lifecycle timestamp for synchronize event")
     bot.collect_touched_item(issue_number)
     previous_head_sha = review_data.get("active_head_sha")
     previous_completion = deepcopy(review_data.get("current_cycle_completion"))

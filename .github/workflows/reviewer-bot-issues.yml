@@ -54,8 +54,9 @@ jobs:
           ISSUE_STATE: ${{ github.event.issue.state }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_CREATED_AT: ${{ github.event.issue.created_at }}
           ISSUE_UPDATED_AT: ${{ github.event.issue.updated_at }}
-          EVENT_CREATED_AT: ${{ github.event.issue.updated_at }}
+          ISSUE_CLOSED_AT: ${{ github.event.issue.closed_at }}
           ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
           ISSUE_HTML_URL: ${{ github.event.issue.html_url }}
           ISSUE_LABELS: ${{ toJson(github.event.issue.labels.*.name) }}

@@ -187,7 +187,7 @@ def test_execute_run_opened_issue_assignment_failure_does_not_persist_reviewer_s
     monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
     monkeypatch.setenv("ISSUE_STATE", "open")
     monkeypatch.setenv("IS_PULL_REQUEST", "false")
-    monkeypatch.setenv("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+    monkeypatch.setenv("ISSUE_CREATED_AT", "2026-03-17T10:00:00Z")
 
     result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
 
@@ -224,7 +224,7 @@ def test_execute_run_opened_issue_adopts_existing_single_live_assignee(monkeypat
     monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
     monkeypatch.setenv("ISSUE_STATE", "open")
     monkeypatch.setenv("IS_PULL_REQUEST", "false")
-    monkeypatch.setenv("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+    monkeypatch.setenv("ISSUE_CREATED_AT", "2026-03-17T10:00:00Z")
 
     result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
 
@@ -430,13 +430,74 @@ def test_bootstrapped_runtime_executes_pr_metadata_closed_dispatch_path(monkeypa
     monkeypatch.setenv("ISSUE_AUTHOR", "dana")
     monkeypatch.setenv("ISSUE_LABELS", '["triage"]')
     monkeypatch.setenv("PR_HEAD_SHA", "head-1")
-    monkeypatch.setenv("EVENT_CREATED_AT", "2026-04-13T04:31:00Z")
+    monkeypatch.setenv("PR_CLOSED_AT", "2026-04-13T04:31:00Z")
 
     context = reviewer_bot.build_event_context(runtime)
     result = reviewer_bot.execute_run(context, runtime)
 
     assert context.event_name == "pull_request_target"
     assert context.event_action == "closed"
+    assert calls == [state]
+    assert result.exit_code == 0
+    assert result.state_changed is True
+    assert runtime.ACTIVE_LEASE_CONTEXT is None
+
+
+@pytest.mark.parametrize(
+    ("event_action", "handler_name", "label_name"),
+    [
+        ("opened", "handle_issue_or_pr_opened", ""),
+        ("labeled", "handle_labeled_event", "coding guideline"),
+        ("unlabeled", "handle_unlabeled_event", "coding guideline"),
+        ("reopened", "handle_reopened_event", ""),
+        ("closed", "handle_closed_event", ""),
+        ("synchronize", "handle_pull_request_target_synchronize", ""),
+    ],
+)
+def test_bootstrapped_runtime_executes_pr_metadata_dispatch_matrix(
+    monkeypatch, event_action, handler_name, label_name
+):
+    runtime = reviewer_bot._runtime_bot()
+    state = make_state()
+    calls = []
+
+    def acquire_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = object()
+        return runtime.ACTIVE_LEASE_CONTEXT
+
+    def release_lock():
+        runtime.ACTIVE_LEASE_CONTEXT = None
+        return True
+
+    def handler(current_state):
+        calls.append(current_state)
+        return True
+
+    monkeypatch.setattr(runtime.locks, "acquire", acquire_lock)
+    monkeypatch.setattr(runtime.locks, "release", release_lock)
+    monkeypatch.setattr(runtime.state_store, "load_state", lambda *, fail_on_unavailable=False: state)
+    monkeypatch.setattr(runtime.state_store, "save_state", lambda current_state: True)
+    monkeypatch.setattr(runtime.adapters.workflow, "process_pass_until_expirations", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_members_with_queue", lambda current_state: (current_state, []))
+    monkeypatch.setattr(runtime.adapters.workflow, "sync_status_labels_for_items", lambda current_state, issue_numbers: False)
+    monkeypatch.setattr(runtime.handlers, handler_name, handler)
+    monkeypatch.setenv("EVENT_NAME", "pull_request_target")
+    monkeypatch.setenv("EVENT_ACTION", event_action)
+    monkeypatch.setenv("ISSUE_NUMBER", "42")
+    monkeypatch.setenv("IS_PULL_REQUEST", "true")
+    monkeypatch.setenv("ISSUE_AUTHOR", "dana")
+    monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
+    monkeypatch.setenv("LABEL_NAME", label_name)
+    monkeypatch.setenv("PR_HEAD_SHA", "head-1")
+    monkeypatch.setenv("PR_CREATED_AT", "2026-04-13T04:30:00Z")
+    monkeypatch.setenv("PR_UPDATED_AT", "2026-04-13T04:31:00Z")
+    monkeypatch.setenv("PR_CLOSED_AT", "2026-04-13T04:32:00Z")
+
+    context = reviewer_bot.build_event_context(runtime)
+    result = reviewer_bot.execute_run(context, runtime)
+
+    assert context.event_name == "pull_request_target"
+    assert context.event_action == event_action
     assert calls == [state]
     assert result.exit_code == 0
     assert result.state_changed is True
@@ -491,8 +552,9 @@ def test_bootstrapped_runtime_executes_issue_lifecycle_dispatch_matrix(
     monkeypatch.setenv("ISSUE_AUTHOR", "dana")
     monkeypatch.setenv("ISSUE_LABELS", '["coding guideline"]')
     monkeypatch.setenv("LABEL_NAME", label_name)
+    monkeypatch.setenv("ISSUE_CREATED_AT", "2026-04-13T04:30:00Z")
     monkeypatch.setenv("ISSUE_UPDATED_AT", "2026-04-13T04:31:00Z")
-    monkeypatch.setenv("EVENT_CREATED_AT", "2026-04-13T04:31:00Z")
+    monkeypatch.setenv("ISSUE_CLOSED_AT", "2026-04-13T04:32:00Z")
 
     context = reviewer_bot.build_event_context(runtime)
     result = reviewer_bot.execute_run(context, runtime)
@@ -519,7 +581,7 @@ def test_bootstrapped_runtime_pr_metadata_closed_executes_real_status_label_proj
     monkeypatch.setenv("ISSUE_AUTHOR", "dana")
     monkeypatch.setenv("ISSUE_LABELS", '["triage"]')
     monkeypatch.setenv("PR_HEAD_SHA", "head-1")
-    monkeypatch.setenv("EVENT_CREATED_AT", "2026-04-13T04:31:00Z")
+    monkeypatch.setenv("PR_CLOSED_AT", "2026-04-13T04:31:00Z")
 
     result = reviewer_bot.execute_run(reviewer_bot.build_event_context(runtime), runtime)
 

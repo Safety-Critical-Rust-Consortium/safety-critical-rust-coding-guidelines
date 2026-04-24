@@ -35,7 +35,7 @@ def test_handle_pull_request_target_synchronize_returns_true_for_head_only_mutat
     review["contributor_revision"]["seen_keys"] = ["pull_request_sync:42:head-2"]
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("PR_HEAD_SHA", "head-2")
-    runtime.set_config_value("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+    runtime.set_config_value("PR_UPDATED_AT", "2026-03-17T10:00:00Z")
     monkeypatch.setattr(reviews, "rebuild_pr_approval_state", lambda bot, issue_number, review_data: (None, None))
 
     assert lifecycle.handle_pull_request_target_synchronize(runtime, state) is True
@@ -412,6 +412,7 @@ def test_handle_issue_or_pr_opened_fails_closed_when_assignees_unavailable(monke
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.ACTIVE_LEASE_CONTEXT = object()
     state = make_state()
+    runtime.set_config_value("EVENT_ACTION", "opened")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
     runtime.github.get_issue_assignees = lambda issue_number: None
@@ -458,10 +459,11 @@ def test_handle_issue_or_pr_opened_adopts_existing_single_live_assignee(monkeypa
     runtime = FakeReviewerBotRuntime(monkeypatch)
     runtime.ACTIVE_LEASE_CONTEXT = object()
     state = make_state()
+    runtime.set_config_value("EVENT_ACTION", "opened")
     runtime.set_config_value("ISSUE_NUMBER", "42")
     runtime.set_config_value("ISSUE_AUTHOR", "dana")
     runtime.set_config_value("ISSUE_LABELS", json.dumps(["coding guideline"]))
-    runtime.set_config_value("EVENT_CREATED_AT", "2026-03-17T10:00:00Z")
+    runtime.set_config_value("ISSUE_CREATED_AT", "2026-03-17T10:00:00Z")
     runtime.github.get_issue_assignees = lambda issue_number: ["alice"]
     runtime.github.get_issue_assignees_result = lambda issue_number, is_pull_request=None: runtime.GitHubApiResult(
         200,
