@@ -263,7 +263,7 @@ def _purge_bot_authored_comment_gap(bot, review_data: dict, source_event_key: st
         return False
     if source_event_key not in gap_bookkeeping.list_deferred_gap_keys(review_data):
         return False
-    return gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
+    return gap_bookkeeping.clear_deferred_gap(review_data, source_event_key)
 
 
 def _maybe_fetch_single_candidate_run_detail(bot, run_correlation: dict, artifact_correlation: dict | None) -> dict | None:
@@ -306,8 +306,8 @@ def _repair_visible_review_gap(bot, review_data: dict, issue_number: int, source
     )[0] or changed
     record_reviewer_activity(review_data, submitted_at)
     completion, _ = rebuild_pr_approval_state(bot, issue_number, review_data)
-    reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(review_data, source_event_key)
-    gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
+    reconciled_changed = gap_bookkeeping.mark_reconciled_source_event(review_data, source_event_key)
+    gap_cleared_changed = gap_bookkeeping.clear_deferred_gap(review_data, source_event_key)
     return changed or completion is not None or reconciled_changed or gap_cleared_changed
 
 
@@ -456,7 +456,7 @@ def _record_gap_diagnostics(
     reason: str,
     diagnostic_reason: str,
 ) -> None:
-    gap_bookkeeping._update_deferred_gap(
+    gap_bookkeeping.record_deferred_gap_diagnostic(
         bot,
         review_data,
         {

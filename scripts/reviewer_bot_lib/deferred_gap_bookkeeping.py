@@ -122,12 +122,16 @@ def _ensure_source_event_key(review_data: dict, source_event_key: str, payload: 
     deferred_gaps[source_event_key] = payload
 
 
-def _clear_source_event_key(review_data: dict, source_event_key: str) -> bool:
+def clear_deferred_gap(review_data: dict, source_event_key: str) -> bool:
     deferred_gaps = _deferred_gaps(review_data)
     if source_event_key in deferred_gaps:
         deferred_gaps.pop(source_event_key, None)
         return True
     return False
+
+
+def _clear_source_event_key(review_data: dict, source_event_key: str) -> bool:
+    return clear_deferred_gap(review_data, source_event_key)
 
 
 def update_deferred_gap_fields(review_data: dict, source_event_key: str, fields: dict) -> bool:
@@ -144,7 +148,7 @@ def _update_deferred_gap_fields(review_data: dict, source_event_key: str, fields
     return update_deferred_gap_fields(review_data, source_event_key, fields)
 
 
-def _mark_reconciled_source_event(
+def mark_reconciled_source_event(
     review_data: dict,
     source_event_key: str,
     *,
@@ -166,6 +170,19 @@ def _mark_reconciled_source_event(
     return True
 
 
+def _mark_reconciled_source_event(
+    review_data: dict,
+    source_event_key: str,
+    *,
+    reconciled_at: str | None = None,
+) -> bool:
+    return mark_reconciled_source_event(
+        review_data,
+        source_event_key,
+        reconciled_at=reconciled_at,
+    )
+
+
 def was_reconciled_source_event(review_data: dict, source_event_key: str) -> bool:
     return _is_valid_reconciled_source_event(
         _reconciled_source_events(review_data).get(source_event_key),
@@ -182,7 +199,7 @@ def _payload_or_existing(payload: dict, existing: dict, key: str):
     return existing.get(key) if value is None else value
 
 
-def _update_deferred_gap(
+def record_deferred_gap_diagnostic(
     bot,
     review_data: dict,
     payload: dict,
@@ -220,3 +237,22 @@ def _update_deferred_gap(
     changed = previous != existing
     deferred_gaps[source_event_key] = existing
     return changed
+
+
+def _update_deferred_gap(
+    bot,
+    review_data: dict,
+    payload: dict,
+    reason: str,
+    diagnostic_summary: str,
+    *,
+    failure_kind: str | None = None,
+) -> bool:
+    return record_deferred_gap_diagnostic(
+        bot,
+        review_data,
+        payload,
+        reason,
+        diagnostic_summary,
+        failure_kind=failure_kind,
+    )

@@ -155,7 +155,7 @@
       ]
     },
     {
-      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._clear_source_event_key",
+      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.clear_deferred_gap",
       "classification": "retained support owner",
       "production_importers": [
         "scripts/reviewer_bot_lib/reconcile.py",
@@ -166,7 +166,7 @@
       ]
     },
     {
-      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._mark_reconciled_source_event",
+      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.mark_reconciled_source_event",
       "classification": "retained support owner",
       "production_importers": [
         "scripts/reviewer_bot_lib/reconcile.py",
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._update_deferred_gap",
+      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.record_deferred_gap_diagnostic",
       "classification": "retained support owner",
       "production_importers": [
         "scripts/reviewer_bot_lib/reconcile.py",
@@ -188,7 +188,7 @@
       ]
     },
     {
-      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._was_reconciled_source_event",
+      "symbol": "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.was_reconciled_source_event",
       "classification": "retained support owner",
       "production_importers": [
         "scripts/reviewer_bot_lib/sweeper.py"

@@ -113,10 +113,10 @@ def test_f1a_support_layer_inventory_fixture_records_candidate_classifications_a
     assert symbols["scripts.reviewer_bot_core.live_review_support.normalize_reviews_with_parsed_timestamps"]["classification"] == "retained support owner"
     assert symbols["scripts.reviewer_bot_core.live_review_support.filter_current_head_reviews_for_cycle"]["classification"] == "retained support owner"
     assert symbols["scripts.reviewer_bot_core.live_review_support.collect_permission_statuses"]["classification"] == "retained support owner"
-    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping._clear_source_event_key"]["classification"] == "retained support owner"
-    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping._mark_reconciled_source_event"]["classification"] == "retained support owner"
-    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping._update_deferred_gap"]["classification"] == "retained support owner"
-    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping._was_reconciled_source_event"]["classification"] == "retained support owner"
+    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping.clear_deferred_gap"]["classification"] == "retained support owner"
+    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping.mark_reconciled_source_event"]["classification"] == "retained support owner"
+    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping.record_deferred_gap_diagnostic"]["classification"] == "retained support owner"
+    assert symbols["scripts.reviewer_bot_lib.deferred_gap_bookkeeping.was_reconciled_source_event"]["classification"] == "retained support owner"
     assert symbols["scripts.reviewer_bot_lib.reviews.list_open_items_with_status_labels"]["classification"] == "retained support behavior"
     assert symbols["scripts.reviewer_bot_lib.reviews.rebuild_pr_approval_state"]["classification"] == "retained final surface"
     assert symbols["scripts.reviewer_bot_lib.sweeper.sweep_deferred_gaps"]["classification"] == "retained final surface"
@@ -135,10 +135,10 @@ def test_f1a_support_layer_inventory_records_transitional_importer_examples_with
         "scripts.reviewer_bot_core.live_review_support.normalize_reviews_with_parsed_timestamps",
         "scripts.reviewer_bot_core.live_review_support.filter_current_head_reviews_for_cycle",
         "scripts.reviewer_bot_core.live_review_support.collect_permission_statuses",
-        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._clear_source_event_key",
-        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._mark_reconciled_source_event",
-        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._update_deferred_gap",
-        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping._was_reconciled_source_event",
+        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.clear_deferred_gap",
+        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.mark_reconciled_source_event",
+        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.record_deferred_gap_diagnostic",
+        "scripts.reviewer_bot_lib.deferred_gap_bookkeeping.was_reconciled_source_event",
         "scripts.reviewer_bot_lib.reviews.list_open_items_with_status_labels",
         "scripts.reviewer_bot_lib.reviews.rebuild_pr_approval_state",
         "scripts.reviewer_bot_lib.reviews.rebuild_pr_approval_state_result",

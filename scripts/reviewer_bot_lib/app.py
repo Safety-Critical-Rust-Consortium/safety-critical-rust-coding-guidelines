@@ -247,7 +247,11 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                     state_changed = bot.handlers.handle_comment_event(state)
 
         elif event_name == "workflow_dispatch":
-            state_changed = bot.handlers.handle_manual_dispatch(state)
+            if context.manual_action == "check-overdue":
+                schedule_result = bot.handlers.handle_scheduled_check_result(state)
+                state_changed = schedule_result.state_changed
+            else:
+                state_changed = bot.handlers.handle_manual_dispatch(state)
 
         elif event_name == "schedule":
             schedule_result = bot.handlers.handle_scheduled_check_result(state)
@@ -295,7 +299,7 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                     "Acquire lock before mutating state."
                 )
 
-            if event_name == "schedule":
+            if schedule_result is not None:
                 current_active_reviews = state.get("active_reviews")
                 current_active_reviews_count = (
                     len(current_active_reviews) if isinstance(current_active_reviews, dict) else 0
@@ -316,7 +320,7 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
                     and not allow_closed_cleanup_empty
                 ):
                     raise RuntimeError(
-                        "STATE_GUARD_BLOCKED_EMPTY_ACTIVE_REVIEWS: refusing to persist schedule "
+                        "STATE_GUARD_BLOCKED_EMPTY_ACTIVE_REVIEWS: refusing to persist maintenance "
                         f"state update that drops active_reviews from {loaded_active_reviews_count} "
                         "to 0. Set ALLOW_EMPTY_ACTIVE_REVIEWS_WRITE=true to override."
                     )

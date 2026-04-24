@@ -997,8 +997,8 @@ def test_d2_reconcile_replay_path_stays_decode_read_apply_orchestration_only():
     assert "_read_live_comment_replay_context(" in module_text
     assert "process_comment_event(" in module_text
     assert "record_conversation_freshness(" in module_text
-    assert "_mark_reconciled_source_event(" in module_text
-    assert "_clear_source_event_key(" in module_text
+    assert "mark_reconciled_source_event(" in module_text
+    assert "clear_deferred_gap(" in module_text
     assert "reconcile_replay_policy.decide_comment_replay(" in module_text
     assert "reconcile_replay_policy.decide_review_submitted_replay(" in module_text
     assert "reconcile_replay_policy.decide_review_dismissed_replay(" in module_text

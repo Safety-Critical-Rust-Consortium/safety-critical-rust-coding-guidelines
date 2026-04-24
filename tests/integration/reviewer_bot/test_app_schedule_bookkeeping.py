@@ -25,7 +25,7 @@ def test_execute_run_schedule_sweeper_bookkeeping_only_mutation_still_saves_stat
     save_calls = []
 
     def fake_sweep(bot, current):
-        deferred_gap_bookkeeping._mark_reconciled_source_event(
+        deferred_gap_bookkeeping.mark_reconciled_source_event(
             current["active_reviews"]["42"],
             "pull_request_review:500",
             reconciled_at="2026-03-18T00:00:00+00:00",
@@ -374,6 +374,68 @@ def test_execute_run_schedule_empty_active_reviews_guard_blocks_partial_cleanup_
     harness.stub_pass_until(lambda current: (current, []))
     harness.stub_sync_members(lambda current: (current, []))
     monkeypatch.setattr(maintenance, "handle_scheduled_check_result", fake_schedule_result)
+    harness.stub_save_state(lambda current: save_called.__setitem__("value", True) or True)
+    harness.stub_sync_status_labels(lambda current, issue_numbers: True)
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 1
+    assert save_called["value"] is False
+
+
+def test_execute_run_manual_check_overdue_uses_closed_cleanup_rows_for_empty_guard(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(EVENT_NAME="workflow_dispatch", EVENT_ACTION="", MANUAL_ACTION="check-overdue")
+    state = make_state()
+    state["status_projection_epoch"] = None
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    saved_active_reviews = []
+    synced = []
+
+    def fake_schedule_result(current):
+        current["active_reviews"].clear()
+        return maintenance.ScheduleHandlerResult(
+            True,
+            [42],
+            closed_cleanup_removed_items=(42,),
+        )
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.stub_handler("handle_scheduled_check_result", fake_schedule_result)
+    monkeypatch.setattr(app, "collect_status_projection_repair_items", lambda bot, current: [99])
+    harness.stub_save_state(lambda current: saved_active_reviews.append(dict(current["active_reviews"])) or True)
+    harness.stub_sync_status_labels(lambda current, issue_numbers: synced.append(list(issue_numbers)) or True)
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert saved_active_reviews == [{}, {}]
+    assert synced == [[42, 99]]
+
+
+def test_execute_run_manual_check_overdue_empty_guard_blocks_unowned_full_drop(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_event(EVENT_NAME="workflow_dispatch", EVENT_ACTION="", MANUAL_ACTION="check-overdue")
+    state = make_state()
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    review["current_reviewer"] = "alice"
+    save_called = {"value": False}
+
+    def fake_schedule_result(current):
+        current["active_reviews"].clear()
+        return maintenance.ScheduleHandlerResult(True, [42])
+
+    harness.stub_lock(acquire=lambda: None, release=lambda: True)
+    harness.stub_load_state(lambda *, fail_on_unavailable=False: state)
+    harness.stub_pass_until(lambda current: (current, []))
+    harness.stub_sync_members(lambda current: (current, []))
+    harness.stub_handler("handle_scheduled_check_result", fake_schedule_result)
     harness.stub_save_state(lambda current: save_called.__setitem__("value", True) or True)
     harness.stub_sync_status_labels(lambda current, issue_numbers: True)
 

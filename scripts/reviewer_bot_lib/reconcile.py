@@ -306,7 +306,7 @@ def _reconcile_deferred_comment(
         )
 
     def record_artifact_invalid(problem: InvalidEventInput) -> bool:
-        return gap_bookkeeping._update_deferred_gap(
+        return gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
             payload,
@@ -334,7 +334,7 @@ def _reconcile_deferred_comment(
                 changed = record_conversation_freshness(bot, state, replay_request())
             except InvalidEventInput as exc:
                 return record_artifact_invalid(exc)
-        gap_changed = gap_bookkeeping._update_deferred_gap(
+        gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
             payload,
@@ -370,7 +370,7 @@ def _reconcile_deferred_comment(
                 changed = record_conversation_freshness(bot, state, replay_request(comment_context, comment_body=live_body))
             except InvalidEventInput as exc:
                 return record_artifact_invalid(exc)
-        gap_changed = gap_bookkeeping._update_deferred_gap(
+        gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
             payload,
@@ -396,7 +396,7 @@ def _reconcile_deferred_comment(
         except InvalidEventInput as exc:
             return record_artifact_invalid(exc)
     if decision.failed_closed_reason is not None:
-        gap_changed = gap_bookkeeping._update_deferred_gap(
+        gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
             payload,
@@ -418,14 +418,14 @@ def _reconcile_deferred_comment(
             return record_artifact_invalid(exc)
     reconciled_changed = False
     if decision.mark_reconciled:
-        reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(
+        reconciled_changed = gap_bookkeeping.mark_reconciled_source_event(
             review_data,
             str(payload.get("source_event_key", "")),
             reconciled_at=_now_iso(bot),
         )
         gap_cleared_changed = False
         if decision.clear_gap:
-            gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, str(payload.get("source_event_key", "")))
+            gap_cleared_changed = gap_bookkeeping.clear_deferred_gap(review_data, str(payload.get("source_event_key", "")))
         return changed or reconciled_changed or gap_cleared_changed
 
 
@@ -507,12 +507,12 @@ def _handle_review_submitted_workflow_run(
         state_changed = True
     if _record_review_rebuild(bot, state, pr_number, review_data):
         state_changed = True
-    reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(
+    reconciled_changed = gap_bookkeeping.mark_reconciled_source_event(
         review_data,
         source_event_key,
         reconciled_at=_now_iso(bot),
     )
-    gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
+    gap_cleared_changed = gap_bookkeeping.clear_deferred_gap(review_data, source_event_key)
     return state_changed or reconciled_changed or gap_cleared_changed
 
 
@@ -530,7 +530,7 @@ def _handle_review_dismissed_workflow_run(
     source_event_key = context.source_event_key
     dismissal_time = _resolve_review_dismissal_time(bot, context, parsed_payload.raw_payload)
     if not dismissal_time.exact:
-        return gap_bookkeeping._update_deferred_gap(
+        return gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
             parsed_payload.raw_payload,
@@ -559,14 +559,14 @@ def _handle_review_dismissed_workflow_run(
     state_changed = _record_review_rebuild(bot, state, context.pr_number, review_data) or state_changed
     reconciled_changed = False
     if decision.mark_reconciled:
-        reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(
+        reconciled_changed = gap_bookkeeping.mark_reconciled_source_event(
             review_data,
             source_event_key,
             reconciled_at=_now_iso(bot),
         )
     gap_cleared_changed = False
     if decision.clear_gap:
-        gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
+        gap_cleared_changed = gap_bookkeeping.clear_deferred_gap(review_data, source_event_key)
     return state_changed or reconciled_changed or gap_cleared_changed
 
 
@@ -750,7 +750,7 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
     except RuntimeError as exc:
         bot.collect_touched_item(pr_number)
         failure_kind = exc.failure_kind if isinstance(exc, ReconcileReadError) else None
-        gap_changed = gap_bookkeeping._update_deferred_gap(
+        gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
             payload,

@@ -21,13 +21,13 @@ def test_bookkeeping_owner_marks_clears_and_tracks_reconciled_source_events(monk
     assert review is not None
     review["sidecars"]["deferred_gaps"]["issue_comment:210"] = {"reason": "artifact_missing"}
 
-    assert deferred_gap_bookkeeping._clear_source_event_key(review, "issue_comment:210") is True
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+    assert deferred_gap_bookkeeping.clear_deferred_gap(review, "issue_comment:210") is True
+    assert deferred_gap_bookkeeping.mark_reconciled_source_event(
         review,
         "issue_comment:210",
         reconciled_at="2026-03-18T00:00:00+00:00",
     ) is True
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+    assert deferred_gap_bookkeeping.mark_reconciled_source_event(
         review,
         "issue_comment:210",
         reconciled_at="2026-03-18T00:00:00+00:00",
@@ -46,7 +46,7 @@ def test_bookkeeping_owner_creates_non_null_reconciled_at_by_default(monkeypatch
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
     assert review is not None
 
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(review, "issue_comment:210") is True
+    assert deferred_gap_bookkeeping.mark_reconciled_source_event(review, "issue_comment:210") is True
 
     reconciled_at = review["sidecars"]["reconciled_source_events"]["issue_comment:210"]["reconciled_at"]
     assert isinstance(reconciled_at, str)
@@ -63,7 +63,7 @@ def test_bookkeeping_owner_repairs_legacy_null_reconciled_at(monkeypatch):
     }
 
     assert deferred_gap_bookkeeping.was_reconciled_source_event(review, "issue_comment:210") is False
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+    assert deferred_gap_bookkeeping.mark_reconciled_source_event(
         review,
         "issue_comment:210",
         reconciled_at="2026-03-18T00:00:00+00:00",
@@ -85,7 +85,7 @@ def test_bookkeeping_owner_repairs_legacy_invalid_reconciled_at_values(monkeypat
     }
 
     assert deferred_gap_bookkeeping.was_reconciled_source_event(review, "issue_comment:210") is False
-    assert deferred_gap_bookkeeping._mark_reconciled_source_event(
+    assert deferred_gap_bookkeeping.mark_reconciled_source_event(
         review,
         "issue_comment:210",
         reconciled_at="2026-03-18T00:00:00+00:00",
@@ -150,7 +150,7 @@ def test_update_deferred_gap_preserves_first_noted_and_refreshes_last_checked(mo
     }
     runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
 
-    changed = deferred_gap_bookkeeping._update_deferred_gap(
+    changed = deferred_gap_bookkeeping.record_deferred_gap_diagnostic(
         runtime,
         review,
         {
@@ -189,7 +189,7 @@ def test_update_deferred_gap_preserves_existing_workflow_artifact_provenance_whe
     }
     runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
 
-    changed = deferred_gap_bookkeeping._update_deferred_gap(
+    changed = deferred_gap_bookkeeping.record_deferred_gap_diagnostic(
         runtime,
         review,
         {
