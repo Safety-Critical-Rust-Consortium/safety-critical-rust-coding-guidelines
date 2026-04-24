@@ -125,6 +125,11 @@ def classify_pr_comment_processing_target(
     raise RuntimeError("Ambiguous same-repo PR comment trust posture; failing closed")
 
 
+def is_self_comment_author(comment_author: str, *, bot_name: str, bot_mention: str) -> bool:
+    author = comment_author.strip().lower()
+    return author == bot_name.lower() or author == bot_mention.lstrip("@").lower()
+
+
 def route_issue_comment_trust(request, pr_admission: PrCommentAdmission | None, *, processing_target=None):
     if not request.is_pull_request:
         return ProcessingTarget.ISSUE_DIRECT
@@ -136,3 +141,26 @@ def route_issue_comment_trust(request, pr_admission: PrCommentAdmission | None, 
     if pr_admission is None:
         raise RuntimeError("Trusted direct PR comment handling requires pr_admission")
     return pr_admission.route_outcome
+
+
+def classify_pr_comment_router_outcome(
+    request,
+    pr_admission: PrCommentAdmission,
+    *,
+    is_self_comment: bool,
+) -> PrCommentRouterOutcome:
+    actor_class = classify_issue_comment_actor(request)
+    processing_target = classify_pr_comment_processing_target(
+        request,
+        pr_admission,
+        actor_class=actor_class,
+        is_self_comment=is_self_comment,
+    )
+    outcome = route_issue_comment_trust(
+        request,
+        pr_admission,
+        processing_target=processing_target,
+    )
+    if isinstance(outcome, PrCommentRouterOutcome):
+        return outcome
+    raise RuntimeError("PR comment router outcome must be trusted_direct, deferred_reconcile, or safe_noop")

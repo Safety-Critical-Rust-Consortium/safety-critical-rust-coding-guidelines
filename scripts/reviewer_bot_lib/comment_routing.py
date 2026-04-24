@@ -92,7 +92,11 @@ def classify_issue_comment_actor(request: CommentEventRequest | None = None) -> 
 
 
 def _is_self_comment(bot: CommentRoutingRuntimeContext, author: str) -> bool:
-    return author.strip().lower() == bot.BOT_NAME.lower() or author.strip().lower() == bot.BOT_MENTION.lstrip("@").lower()
+    return comment_routing_policy.is_self_comment_author(
+        author,
+        bot_name=bot.BOT_NAME,
+        bot_mention=bot.BOT_MENTION,
+    )
 
 
 def _classify_pr_comment_processing_target(
