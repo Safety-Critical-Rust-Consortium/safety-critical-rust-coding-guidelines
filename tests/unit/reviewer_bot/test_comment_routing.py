@@ -111,6 +111,25 @@ def test_route_issue_comment_trust_allows_only_same_repo_repo_user_principal(mon
     assert comment_routing.route_issue_comment_trust(harness.runtime, 42, request, pr_admission) == PrCommentRouterOutcome.TRUSTED_DIRECT
 
 
+def test_route_issue_comment_trust_defers_untrusted_author_association(monkeypatch):
+    harness = CommentRoutingHarness(monkeypatch)
+    request = harness.request(
+        issue_number=42,
+        is_pull_request=True,
+        issue_author="carol",
+        comment_author="alice",
+        comment_body="hello",
+        comment_author_association="CONTRIBUTOR",
+    )
+    pr_admission = harness.pr_admission(
+        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        pr_author="carol",
+    )
+
+    assert comment_routing.route_issue_comment_trust(harness.runtime, 42, request, pr_admission) == PrCommentRouterOutcome.DEFERRED_RECONCILE
+
+
 def test_route_issue_comment_trust_fails_closed_for_ambiguous_same_repo(monkeypatch):
     harness = CommentRoutingHarness(monkeypatch)
     request = harness.request(

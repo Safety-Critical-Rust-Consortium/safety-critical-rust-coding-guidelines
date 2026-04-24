@@ -61,6 +61,7 @@ def build_comment_event_request(
     comment_sender_type: str = "",
     comment_installation_id: str = "",
     comment_performed_via_github_app: bool = False,
+    comment_author_association: str = "MEMBER",
 ) -> CommentEventRequest:
     return CommentEventRequest(
         issue_number=issue_number,
@@ -78,6 +79,7 @@ def build_comment_event_request(
         comment_sender_type=comment_sender_type,
         comment_installation_id=comment_installation_id,
         comment_performed_via_github_app=comment_performed_via_github_app,
+        comment_author_association=comment_author_association,
     )
 
 

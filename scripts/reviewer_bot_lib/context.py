@@ -55,6 +55,7 @@ class CommentEventRequest:
     comment_sender_type: str
     comment_installation_id: str | None
     comment_performed_via_github_app: bool
+    comment_author_association: str = ""
 
 
 @dataclass(frozen=True)

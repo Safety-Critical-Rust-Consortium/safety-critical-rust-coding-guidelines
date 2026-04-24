@@ -107,6 +107,8 @@ def test_comment_workflows_export_performed_via_app_boolean_truth(workflow_path)
     workflow_text = Path(workflow_path).read_text(encoding="utf-8")
 
     assert "COMMENT_USER_TYPE" in workflow_text
+    if workflow_path.endswith(("reviewer-bot-pr-comment-router.yml", "reviewer-bot-issue-comment-direct.yml")):
+        assert "COMMENT_AUTHOR_ASSOCIATION" in workflow_text
     assert "COMMENT_SENDER_TYPE" in workflow_text
     assert "COMMENT_INSTALLATION_ID" in workflow_text
     assert "COMMENT_PERFORMED_VIA_GITHUB_APP" in workflow_text

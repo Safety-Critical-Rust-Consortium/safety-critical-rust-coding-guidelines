@@ -175,6 +175,34 @@ def test_execute_run_deferred_pr_issue_comment_does_not_call_direct_handler(monk
     assert handler_calls == []
 
 
+def test_execute_run_successful_router_without_artifact_stays_read_only(monkeypatch):
+    harness = AppHarness(monkeypatch)
+    harness.set_workflow_run_name("Reviewer Bot PR Comment Router")
+    harness.set_event(
+        EVENT_NAME="workflow_run",
+        EVENT_ACTION="completed",
+        REVIEWER_BOT_WORKFLOW_KIND="reconcile",
+        WORKFLOW_RUN_TRIGGERING_CONCLUSION="success",
+    )
+    calls = []
+    harness.runtime.load_deferred_payload = lambda: (_ for _ in ()).throw(RuntimeError("missing artifact"))
+    harness.stub_lock(acquire=lambda: calls.append("lock_acquire"), release=lambda: calls.append("lock_release") or True)
+    harness.stub_pass_until(lambda state: calls.append("pass_until") or (state, []))
+    harness.stub_sync_members(lambda state: calls.append("sync_members") or (state, []))
+    monkeypatch.setattr(
+        reconcile,
+        "handle_workflow_run_event_result",
+        lambda bot, state: pytest.fail("missing router artifact must skip reconcile before mutating phases"),
+    )
+
+    result = harness.run_execute()
+
+    assert result.exit_code == 0
+    assert result.state_changed is False
+    assert calls == []
+    assert harness.state_store.save_calls == []
+
+
 def test_execute_run_opened_issue_assignment_failure_does_not_persist_reviewer_state(monkeypatch):
     runtime = reviewer_bot._runtime_bot()
     state = make_state()

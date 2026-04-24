@@ -218,6 +218,23 @@ def _load_deferred_context(bot: ReconcileWorkflowRuntimeContext) -> dict:
     return bot.load_deferred_payload()
 
 
+def _is_missing_optional_router_payload_error(exc: RuntimeError) -> bool:
+    message = str(exc)
+    return "Missing DEFERRED_CONTEXT_PATH" in message or "missing artifact" in message
+
+
+def optional_router_payload_missing(bot: ReconcileWorkflowRuntimeContext, event_context) -> bool:
+    if event_context.workflow_artifact_contract != "artifact_optional_router":
+        return False
+    try:
+        _load_deferred_context(bot)
+    except RuntimeError as exc:
+        if not _is_missing_optional_router_payload_error(exc):
+            raise
+        return True
+    return False
+
+
 def _classify_deferred_comment_payload(payload: DeferredCommentPayload) -> dict:
     normalized_body = "\n".join(line.rstrip() for line in payload.comment_body.replace("\r\n", "\n").split("\n")).strip()
     classified = comment_routing_policy.classify_comment_payload(
@@ -539,8 +556,8 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
 
     try:
         payload = _load_deferred_context(bot)
-    except RuntimeError:
-        if event_context.workflow_artifact_contract == "artifact_optional_router":
+    except RuntimeError as exc:
+        if event_context.workflow_artifact_contract == "artifact_optional_router" and _is_missing_optional_router_payload_error(exc):
             return WorkflowRunHandlerResult(False, [])
         raise
     parsed_payload = parse_deferred_context_payload(payload)

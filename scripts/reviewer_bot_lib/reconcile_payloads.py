@@ -190,6 +190,12 @@ def _validate_deferred_comment_artifact(payload: dict) -> None:
         raise RuntimeError("Deferred comment artifact comment_id and pr_number must be integers")
     if not isinstance(payload.get("comment_body"), str) or not isinstance(payload.get("comment_created_at"), str):
         raise RuntimeError("Deferred comment artifact comment body or timestamp is malformed")
+    if not isinstance(payload.get("comment_sender_type"), str) or not payload["comment_sender_type"].strip():
+        raise RuntimeError("Deferred comment artifact comment_sender_type must be a non-empty string")
+    if payload.get("comment_installation_id") is not None and not isinstance(payload.get("comment_installation_id"), str):
+        raise RuntimeError("Deferred comment artifact comment_installation_id must be a string or null")
+    if not isinstance(payload.get("comment_performed_via_github_app"), bool):
+        raise RuntimeError("Deferred comment artifact comment_performed_via_github_app must be boolean")
 
 
 def _validate_deferred_review_artifact(payload: dict) -> None:
@@ -235,7 +241,7 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
             comment_user_type=str(payload["comment_user_type"]),
             comment_sender_type=str(payload["comment_sender_type"]),
             comment_installation_id=(str(payload["comment_installation_id"]) if payload.get("comment_installation_id") else None),
-            comment_performed_via_github_app=bool(payload["comment_performed_via_github_app"]),
+            comment_performed_via_github_app=payload["comment_performed_via_github_app"],
             issue_author=str(payload["issue_author"]),
             issue_state=str(payload["issue_state"]),
             issue_labels=tuple(str(label) for label in payload["issue_labels"]),

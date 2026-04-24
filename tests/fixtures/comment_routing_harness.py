@@ -58,6 +58,7 @@ class CommentRoutingHarness:
         comment_created_at: str = "2026-03-17T10:00:00Z",
         comment_source_event_key: str = "",
         comment_user_type: str = "User",
+        comment_author_association: str = "MEMBER",
     ) -> CommentEventRequest:
         return build_comment_event_request(
             issue_number=issue_number,
@@ -75,6 +76,7 @@ class CommentRoutingHarness:
             comment_sender_type="User",
             comment_installation_id=None,
             comment_performed_via_github_app=False,
+            comment_author_association=comment_author_association,
         )
 
     def pr_admission(
@@ -90,7 +92,7 @@ class CommentRoutingHarness:
         comment_author_id: int = 200,
         github_run_id: int = 0,
         github_run_attempt: int = 0,
-        comment_author_association: str = "",
+        comment_author_association: str = "MEMBER",
         current_workflow_file: str = "",
         github_ref: str = "",
     ) -> PrCommentAdmission:
@@ -137,14 +139,14 @@ class CommentRoutingHarness:
         comment_body: str,
         comment_created_at: str = "2026-03-17T10:00:00Z",
         comment_user_type: str = "User",
-        comment_author_association: str = "",
+        comment_author_association: str = "MEMBER",
         current_workflow_file: str = "",
         github_repository: str = "",
         github_ref: str = "",
         pr_head_full_name: str = "",
         pr_author: str = "",
     ) -> None:
-        del comment_author_association, current_workflow_file, github_ref
+        del current_workflow_file, github_ref
         values = {
             "EVENT_NAME": "issue_comment",
             "ISSUE_NUMBER": issue_number,
@@ -158,6 +160,7 @@ class CommentRoutingHarness:
             "COMMENT_BODY": comment_body,
             "COMMENT_CREATED_AT": comment_created_at,
             "COMMENT_USER_TYPE": comment_user_type,
+            "COMMENT_AUTHOR_ASSOCIATION": comment_author_association,
             "COMMENT_SENDER_TYPE": "User",
             "COMMENT_PERFORMED_VIA_GITHUB_APP": "false",
             "REVIEWER_BOT_ROUTE_OUTCOME": "trusted_direct",

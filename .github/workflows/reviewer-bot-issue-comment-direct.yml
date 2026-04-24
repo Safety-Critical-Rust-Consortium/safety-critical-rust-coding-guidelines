@@ -63,6 +63,7 @@ jobs:
           COMMENT_ID: ${{ github.event.comment.id }}
           COMMENT_CREATED_AT: ${{ github.event.comment.created_at }}
           COMMENT_USER_TYPE: ${{ github.event.comment.user.type }}
+          COMMENT_AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
           COMMENT_SENDER_TYPE: ${{ github.event.sender.type }}
           COMMENT_INSTALLATION_ID: ${{ github.event.installation.id }}
           COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app.id > 0 && 'true' || 'false' }}

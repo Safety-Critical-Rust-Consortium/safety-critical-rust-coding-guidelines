@@ -80,6 +80,25 @@ def test_parse_deferred_context_payload_returns_typed_comment_payload():
     assert parsed.comment_id == 210
 
 
+def test_parse_deferred_context_payload_rejects_non_boolean_performed_via_app():
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="issue_comment:210",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+    payload["comment_performed_via_github_app"] = "false"
+
+    with pytest.raises(RuntimeError, match="comment_performed_via_github_app must be boolean"):
+        reconcile.parse_deferred_context_payload(payload)
+
+
 def test_build_deferred_comment_replay_context_returns_typed_context():
     payload = reconcile.DeferredCommentPayload(
         identity=reconcile.DeferredArtifactIdentity(
@@ -346,6 +365,79 @@ def test_reconcile_deferred_comment_fail_closes_for_command_ambiguity(monkeypatc
     assert changed is True
     assert review["sidecars"]["deferred_gaps"]["issue_comment:201"]["reason"] == "reconcile_failed_closed"
     assert "no longer resolves to exactly one command" in review["sidecars"]["deferred_gaps"]["issue_comment:201"]["diagnostic_summary"]
+
+
+def test_reconcile_deferred_comment_replays_payload_provenance_to_actor_classification(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    state = make_state(epoch="freshness_v15")
+    review = review_state.ensure_review_entry(state, 42, create=True)
+    assert review is not None
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="issue_comment:210",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="alice",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+    payload.update(
+        {
+            "comment_user_type": "User",
+            "comment_sender_type": "Organization",
+            "comment_installation_id": "12345",
+            "comment_performed_via_github_app": True,
+        }
+    )
+    parsed_payload = reconcile.parse_deferred_context_payload(payload)
+    context = reconcile.build_deferred_comment_replay_context(
+        parsed_payload,
+        expected_event_name="issue_comment",
+        live_comment_endpoint="issues/comments/210",
+    )
+    monkeypatch.setattr(
+        reconcile,
+        "_read_live_pr_replay_context",
+        lambda bot, pr_number: SimpleNamespace(issue_author="dana", issue_labels=("coding guideline",)),
+    )
+    monkeypatch.setattr(
+        reconcile,
+        "_read_reconcile_object",
+        lambda bot, endpoint, *, label: {
+            "body": "@guidelines-bot /queue",
+            "user": {"login": "alice", "type": "User"},
+        },
+    )
+    monkeypatch.setattr(
+        reconcile,
+        "classify_comment_payload",
+        lambda bot, body: {
+            "comment_class": "command_only",
+            "has_non_command_text": False,
+            "command_count": 1,
+            "command": "queue",
+            "args": [],
+            "normalized_body": body,
+        },
+    )
+    captured = {}
+
+    def fake_process_comment_event(bot, current_state, request, **kwargs):
+        captured["request"] = request
+        captured["actor_class"] = kwargs["classify_issue_comment_actor"](request)
+        return True
+
+    monkeypatch.setattr(reconcile, "process_comment_event", fake_process_comment_event)
+
+    assert reconcile._reconcile_deferred_comment(runtime, state, review, context) is True
+
+    assert captured["request"].comment_sender_type == "Organization"
+    assert captured["request"].comment_installation_id == "12345"
+    assert captured["request"].comment_performed_via_github_app is True
+    assert captured["actor_class"] == "github_app_or_other_automation"
 
 
 def test_workflow_run_reconcile_uses_artifact_contract_for_router_no_artifact_success(monkeypatch):

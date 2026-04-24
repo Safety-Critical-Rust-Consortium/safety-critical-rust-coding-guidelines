@@ -2,6 +2,7 @@
   "harness_id": "C3a trust-routing and comment classification equivalence",
   "route_scenarios": [
     "same_repo_trusted_pr_comment",
+    "same_repo_untrusted_author_association",
     "cross_repo_deferred_pr_comment",
     "automation_or_self_noop_pr_comment",
     "issue_comment_direct"

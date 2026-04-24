@@ -73,6 +73,7 @@ def test_comment_routing_equivalence_fixture_exists():
     assert fixture["harness_id"] == "C3a trust-routing and comment classification equivalence"
     assert fixture["route_scenarios"] == [
         "same_repo_trusted_pr_comment",
+        "same_repo_untrusted_author_association",
         "cross_repo_deferred_pr_comment",
         "automation_or_self_noop_pr_comment",
         "issue_comment_direct",
@@ -120,6 +121,24 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
                 comment_author="alice",
                 comment_body="hello",
                 comment_user_type="User",
+            ),
+            "trust_context": harness.trust_context(
+                route_outcome=comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
+                github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+                pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+                pr_author="carol",
+            ),
+        },
+        {
+            "name": "same_repo_untrusted_author_association",
+            "request": harness.request(
+                issue_number=42,
+                is_pull_request=True,
+                issue_author="carol",
+                comment_author="alice",
+                comment_body="hello",
+                comment_user_type="User",
+                comment_author_association="CONTRIBUTOR",
             ),
             "trust_context": harness.trust_context(
                 route_outcome=comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
@@ -191,6 +210,8 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
             )
             if scenario["name"] == "same_repo_trusted_pr_comment":
                 assert new_target == comment_routing_policy.ProcessingTarget.PR_TRUSTED_DIRECT
+            if scenario["name"] == "same_repo_untrusted_author_association":
+                assert new_target == comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE
             if scenario["name"] == "cross_repo_deferred_pr_comment":
                 assert new_target == comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE
             if scenario["name"] == "automation_or_self_noop_pr_comment":
