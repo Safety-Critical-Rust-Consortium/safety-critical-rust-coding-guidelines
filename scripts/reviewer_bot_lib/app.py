@@ -139,25 +139,7 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
     event_action = context.event_action
     event_intent = _classify_event_intent_from_context(bot, context)
     workflow_run_missing_optional_payload = False
-    if (
-        event_name == "workflow_run"
-        and event_action == "completed"
-        and context.workflow_kind == "reconcile"
-        and context.workflow_run_triggering_conclusion == "success"
-        and reconcile.optional_router_payload_missing(bot, context)
-    ):
-        workflow_run_missing_optional_payload = True
-        event_intent = bot.EVENT_INTENT_NON_MUTATING_READONLY
-    lock_required = event_intent == bot.EVENT_INTENT_MUTATING
-    _log(
-        bot,
-        "info",
-        f"Event: {event_name}, Action: {event_action}, Intent: {event_intent}, Lock Required: {lock_required}",
-        event_name=event_name,
-        event_action=event_action,
-        event_intent=event_intent,
-        lock_required=lock_required,
-    )
+    lock_required = False
 
     lock_acquired = False
     release_failed = False
@@ -176,6 +158,26 @@ def execute_run(bot: AppExecutionRuntime, context: EventContext) -> ExecutionRes
     schedule_result: maintenance.ScheduleHandlerResult | None = None
 
     try:
+        if (
+            event_name == "workflow_run"
+            and event_action == "completed"
+            and context.workflow_kind == "reconcile"
+            and context.workflow_run_triggering_conclusion == "success"
+            and reconcile.optional_router_payload_missing(bot, context)
+        ):
+            workflow_run_missing_optional_payload = True
+            event_intent = bot.EVENT_INTENT_NON_MUTATING_READONLY
+        lock_required = event_intent == bot.EVENT_INTENT_MUTATING
+        _log(
+            bot,
+            "info",
+            f"Event: {event_name}, Action: {event_action}, Intent: {event_intent}, Lock Required: {lock_required}",
+            event_name=event_name,
+            event_action=event_action,
+            event_intent=event_intent,
+            lock_required=lock_required,
+        )
+
         if lock_required:
             bot.locks.acquire()
             lock_acquired = True

@@ -53,6 +53,15 @@ jobs:
           comment_user_type = str((comment.get('user') or {}).get('type') or '').strip()
           comment_sender_type = str(sender.get('type') or '').strip()
           comment_author_association = str(comment.get('author_association') or '').strip()
+          def _classify_issue_comment_actor(comment_user_type, comment_author, comment_sender_type, installation_id, performed_via_github_app):
+              if comment_user_type == 'Bot' or comment_author.endswith('[bot]'):
+                  return 'bot_account'
+              if str(installation_id or '').strip() or performed_via_github_app or (comment_sender_type and comment_sender_type not in {'User', 'Bot'}):
+                  return 'github_app_or_other_automation'
+              if comment_user_type == 'User' and comment_author and not comment_author.endswith('[bot]') and not str(installation_id or '').strip() and not performed_via_github_app:
+                  return 'repo_user_principal'
+              return 'unknown_actor'
+
           def _performed_via_github_app_truth(value):
               if isinstance(value, bool):
                   return value
@@ -65,17 +74,18 @@ jobs:
 
           performed_via_github_app = _performed_via_github_app_truth(comment.get('performed_via_github_app'))
           installation_id = installation.get('id')
+          actor_class = _classify_issue_comment_actor(
+              comment_user_type,
+              comment_author,
+              comment_sender_type,
+              installation_id,
+              performed_via_github_app,
+          )
           route_outcome = 'trusted_direct'
           pr_head_full_name = ''
           pr_author = ''
 
-          if (
-              comment_user_type != 'User'
-              or comment_author.endswith('[bot]')
-              or performed_via_github_app
-              or str(installation_id or '').strip()
-              or not comment_author
-          ):
+          if actor_class != 'repo_user_principal':
               route_outcome = 'safe_noop'
           else:
               pr_number = issue['number']

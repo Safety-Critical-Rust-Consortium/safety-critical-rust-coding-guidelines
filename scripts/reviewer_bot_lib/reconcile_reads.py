@@ -114,19 +114,22 @@ def read_live_comment_replay_context(live_comment: dict, payload: dict) -> LiveC
         installation_id = installation.get("id")
         if installation_id is not None and str(installation_id).strip():
             comment_installation_id = str(installation_id).strip()
-    performed_via_app_available = "performed_via_github_app" in live_comment
+    performed_via_app_available = False
     performed_via_app = live_comment.get("performed_via_github_app")
     comment_performed_via_github_app = None
-    if performed_via_app_available:
+    if "performed_via_github_app" in live_comment:
         if isinstance(performed_via_app, bool):
             comment_performed_via_github_app = performed_via_app
+            performed_via_app_available = True
         elif isinstance(performed_via_app, dict):
             try:
                 comment_performed_via_github_app = int(performed_via_app.get("id") or 0) > 0
             except (TypeError, ValueError):
                 comment_performed_via_github_app = False
-        else:
+            performed_via_app_available = True
+        elif performed_via_app is None:
             comment_performed_via_github_app = False
+            performed_via_app_available = True
     return LiveCommentReplayContext(
         comment_author=comment_author,
         comment_user_type=comment_user_type,

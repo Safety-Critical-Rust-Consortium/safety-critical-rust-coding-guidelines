@@ -229,6 +229,25 @@ def test_read_live_comment_replay_context_distinguishes_absent_from_explicit_fal
     assert false_context.comment_performed_via_github_app_available is True
 
 
+def test_replay_comment_request_preserves_payload_app_truth_for_non_exact_live_shape():
+    payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json")
+    payload["comment_performed_via_github_app"] = True
+    parsed_payload = reconcile_payloads.parse_deferred_context_payload(payload)
+    live_context = reconcile_reads.read_live_comment_replay_context(
+        {
+            "user": {"login": "alice", "type": "User"},
+            "performed_via_github_app": "false",
+        },
+        {"actor_login": "alice"},
+    )
+
+    request = event_inputs.build_replay_comment_event_request(parsed_payload, live_comment=live_context)
+
+    assert live_context.comment_performed_via_github_app is None
+    assert live_context.comment_performed_via_github_app_available is False
+    assert request.comment_performed_via_github_app is True
+
+
 def test_replay_comment_request_preserves_payload_provenance_without_exact_live_fields():
     payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_comment_deferred.json")
     payload.update(

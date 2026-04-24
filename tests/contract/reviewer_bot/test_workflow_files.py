@@ -1,12 +1,15 @@
 import json
 import textwrap
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 pytestmark = pytest.mark.contract
 
 import yaml
+
+from scripts.reviewer_bot_core import comment_routing_policy
 
 
 def _load_observer_contract_matrix() -> dict:
@@ -148,6 +151,49 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
     exec(textwrap.dedent(workflow_text[start:end]), namespace)
 
     assert namespace["_performed_via_github_app_truth"](value) is expected
+
+
+@pytest.mark.parametrize(
+    ("comment_user_type", "comment_author", "comment_sender_type", "installation_id", "performed_via_app"),
+    [
+        ("User", "alice", "User", None, False),
+        ("Bot", "github-actions[bot]", "Bot", None, False),
+        ("User", "dependabot[bot]", "User", None, False),
+        ("User", "alice", "Organization", None, False),
+        ("User", "alice", "User", "12345", False),
+        ("User", "alice", "User", None, True),
+        ("User", "", "User", None, False),
+    ],
+)
+def test_pr_comment_router_actor_classifier_matches_core_policy(
+    comment_user_type,
+    comment_author,
+    comment_sender_type,
+    installation_id,
+    performed_via_app,
+):
+    workflow_text = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
+    start = workflow_text.index("def _classify_issue_comment_actor(")
+    end = workflow_text.index("\n          def _performed_via_github_app_truth", start)
+    namespace = {}
+    exec(textwrap.dedent(workflow_text[start:end]), namespace)
+
+    request = SimpleNamespace(
+        comment_user_type=comment_user_type,
+        comment_author=comment_author,
+        comment_sender_type=comment_sender_type,
+        comment_installation_id=installation_id,
+        comment_performed_via_github_app=performed_via_app,
+    )
+
+    assert namespace["_classify_issue_comment_actor"](
+        comment_user_type,
+        comment_author,
+        comment_sender_type,
+        installation_id,
+        performed_via_app,
+    ) == comment_routing_policy.classify_issue_comment_actor(request)
+
 
 def test_pr_comment_router_workflow_builds_payload_inline_without_bot_src_root():
     workflow = Path(".github/workflows/reviewer-bot-pr-comment-router.yml").read_text(encoding="utf-8")
