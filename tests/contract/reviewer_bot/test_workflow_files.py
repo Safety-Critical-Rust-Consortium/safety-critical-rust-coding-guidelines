@@ -457,3 +457,14 @@ def test_observer_workflow_fixtures_match_trigger_event_shape(
     assert payload["source_event_name"] == expected_event_name
     assert payload["source_event_action"] == expected_event_action
     assert expected_event_name in on_block
+
+
+def test_dismissed_review_observer_exports_source_dismissal_time():
+    workflow_text = Path(".github/workflows/reviewer-bot-pr-review-dismissed-observer.yml").read_text(
+        encoding="utf-8"
+    )
+    fixture = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_review_dismissed_deferred.json")
+
+    assert "DISMISSED_AT: ${{ github.event.review.submitted_at }}" in workflow_text
+    assert "'source_dismissed_at': os.environ['DISMISSED_AT'] or None" in workflow_text
+    assert fixture["source_dismissed_at"] == "2026-03-20T21:10:00Z"

@@ -71,7 +71,7 @@ def test_closed_non_pr_command_comment_does_not_create_pending_privileged_comman
     assert state["active_reviews"] == {}
     assert effects.comments == []
 
-def test_closed_non_pr_comment_removes_stale_review_entry(monkeypatch):
+def test_closed_non_pr_comment_preserves_stale_review_entry_for_lifecycle_cleanup(monkeypatch):
     harness = CommentRoutingHarness(monkeypatch)
     state = make_state()
     review = review_state.ensure_review_entry(state, 42, create=True)
@@ -86,8 +86,8 @@ def test_closed_non_pr_comment_removes_stale_review_entry(monkeypatch):
         comment_body="reviewer-bot validation: close comment",
     )
 
-    assert comment_routing.handle_comment_event(harness.runtime, state, request) is True
-    assert "42" not in state["active_reviews"]
+    assert comment_routing.handle_comment_event(harness.runtime, state, request) is False
+    assert "42" in state["active_reviews"]
 
 def test_closed_non_pr_comment_without_entry_returns_false(monkeypatch):
     harness = CommentRoutingHarness(monkeypatch)

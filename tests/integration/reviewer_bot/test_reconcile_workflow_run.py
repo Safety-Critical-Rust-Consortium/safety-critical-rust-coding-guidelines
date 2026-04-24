@@ -5,6 +5,7 @@ from tests.fixtures.reconcile_harness import (
     ReconcileHarness,
     issue_comment_payload,
     review_comment_payload,
+    review_dismissed_payload,
     review_submitted_payload,
 )
 from tests.fixtures.reviewer_bot import (
@@ -70,7 +71,7 @@ def test_handle_workflow_run_event_returns_true_for_submitted_review_bookkeeping
     assert "pull_request_review:11" not in _deferred_gaps(review)
 
 
-def test_late_workflow_run_reconcile_does_not_recreate_removed_review_entry(monkeypatch):
+def test_late_workflow_run_reconcile_missing_row_is_diagnostic_safe_noop(monkeypatch):
     state = make_state()
     harness = ReconcileHarness(
         monkeypatch,
@@ -88,11 +89,103 @@ def test_late_workflow_run_reconcile_does_not_recreate_removed_review_entry(monk
         ),
     )
 
-    with pytest.raises(RuntimeError, match="No active review entry available for PR #42"):
-        reconcile.handle_workflow_run_event_result(harness.runtime, state)
+    result = reconcile.handle_workflow_run_event_result(harness.runtime, state)
 
+    assert result == reconcile.WorkflowRunHandlerResult(False, [])
     assert state["active_reviews"] == {}
     assert harness.runtime.drain_touched_items() == []
+
+
+def test_deferred_review_dismissal_replay_uses_source_dismissal_time(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    _deferred_gaps(review)["pull_request_review_dismissed:12"] = {"reason": "artifact_missing"}
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at="2026-03-17T10:10:00Z",
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    )
+    harness.stub_review_rebuild(changed=False)
+    harness.stub_head_repair(changed=False)
+
+    assert harness.run(state) is True
+    assert review["review_dismissal"]["accepted"]["timestamp"] == "2026-03-17T10:10:00Z"
+    assert "pull_request_review_dismissed:12" in _reconciled_source_events(review)
+    assert "pull_request_review_dismissed:12" not in _deferred_gaps(review)
+
+
+def test_deferred_review_dismissal_replay_uses_exact_live_dismissed_at(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at=None,
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    )
+    live_review = review_payload(
+        12,
+        submitted_at="2026-03-17T10:00:00Z",
+        state="DISMISSED",
+        commit_id="head-1",
+        author="alice",
+    )
+    live_review["dismissed_at"] = "2026-03-17T10:12:00Z"
+    harness.github.add_request("GET", "pulls/42/reviews/12", status_code=200, payload=live_review)
+    harness.stub_review_rebuild(changed=False)
+    harness.stub_head_repair(changed=False)
+
+    assert harness.run(state) is True
+    assert review["review_dismissal"]["accepted"]["timestamp"] == "2026-03-17T10:12:00Z"
+    assert "pull_request_review_dismissed:12" in _reconciled_source_events(review)
+
+
+def test_deferred_review_dismissal_without_source_time_stays_diagnostic_only(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=12,
+            source_event_key="pull_request_review_dismissed:12",
+            source_dismissed_at=None,
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=502,
+            source_run_attempt=1,
+        ),
+    )
+    harness.add_review(
+        pr_number=42,
+        review_id=12,
+        submitted_at="2026-03-17T10:00:00Z",
+        state="DISMISSED",
+        commit_id="head-1",
+        author="alice",
+    )
+
+    assert harness.run(state) is True
+    assert review["review_dismissal"]["accepted"] is None
+    assert _reconciled_source_events(review) == {}
+    gap = _deferred_gaps(review)["pull_request_review_dismissed:12"]
+    assert gap["reason"] == "reconcile_failed_closed"
+    assert "lacks exact source dismissal time" in gap["diagnostic_summary"]
 
 
 def test_handle_workflow_run_event_persists_fail_closed_diagnostic_without_raising(monkeypatch):

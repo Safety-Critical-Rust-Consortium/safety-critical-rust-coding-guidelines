@@ -583,6 +583,7 @@ def test_reconcile_module_delegates_replay_decision_logic_to_core_policy():
                 "source_workflow_name": "Reviewer Bot PR Review Dismissed Observer",
                 "source_workflow_file": ".github/workflows/reviewer-bot-pr-review-dismissed-observer.yml",
                 "source_event_action": "dismissed",
+                "source_dismissed_at": "2026-03-17T10:10:00Z",
             },
             "_handle_review_dismissed_workflow_run",
         ),

@@ -121,7 +121,7 @@ def _diagnose_deferred_event(
     source_event_kind: str,
     workflow_runs: list[dict] | None,
 ) -> None:
-    existing_gap = review_data.get("deferred_gaps", {}).get(source_event_key, {})
+    existing_gap = gap_bookkeeping._deferred_gaps(review_data).get(source_event_key, {})
     run_correlation = deferred_gap_diagnosis.correlate_candidate_observer_runs(
         source_event_key,
         source_event_kind=source_event_kind,
@@ -422,7 +422,7 @@ def _discover_visible_review_dismissal_events(bot, issue_number: int, review_dat
             continue
         review_id = review.get("id")
         state = str(review.get("state", "")).strip().upper()
-        dismissed_at = review.get("dismissed_at") or review.get("updated_at") or review.get("submitted_at")
+        dismissed_at = review.get("dismissed_at")
         if state != "DISMISSED":
             continue
         if not isinstance(review_id, int) or not isinstance(dismissed_at, str):

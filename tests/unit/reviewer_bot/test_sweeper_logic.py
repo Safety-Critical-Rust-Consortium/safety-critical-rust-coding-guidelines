@@ -69,7 +69,7 @@ def test_sweeper_creates_keyed_deferred_gaps_for_visible_comments_reviews_and_di
     runtime.github.stub(routes)
     runtime.github.get_pull_request_reviews = lambda issue_number: [
         pull_request_review_event(202, submitted_at="2026-03-25T11:00:00Z", state="APPROVED"),
-        pull_request_review_event(303, submitted_at="2026-03-25T09:00:00Z", updated_at="2026-03-25T12:00:00Z", state="DISMISSED"),
+        pull_request_review_event(303, submitted_at="2026-03-25T09:00:00Z", dismissed_at="2026-03-25T12:00:00Z", state="DISMISSED"),
     ]
 
     assert sweeper.sweep_deferred_gaps(runtime, state) is True
@@ -202,10 +202,30 @@ def test_sweeper_skips_dismissed_reviews_already_reconciled_by_source_event_key(
         .add_request("GET", "pulls/42/comments?per_page=100&page=1", status_code=200, payload=[])
     )
     runtime.github.stub(routes)
-    runtime.github.get_pull_request_reviews = lambda issue_number: [pull_request_review_event(303, submitted_at="2026-03-17T09:00:00Z", updated_at="2026-03-17T12:00:00Z", state="DISMISSED")]
+    runtime.github.get_pull_request_reviews = lambda issue_number: [pull_request_review_event(303, submitted_at="2026-03-17T09:00:00Z", dismissed_at="2026-03-17T12:00:00Z", state="DISMISSED")]
 
     assert sweeper.sweep_deferred_gaps(runtime, state) is False
     assert state["active_reviews"]["42"]["sidecars"]["deferred_gaps"] == {}
+
+
+def test_discover_visible_review_dismissal_events_requires_exact_dismissed_at(monkeypatch, freeze_sweeper_now):
+    freeze_sweeper_now("2026-03-25T12:30:00Z")
+    runtime = _runtime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    runtime.github.get_pull_request_reviews = lambda issue_number: [
+        pull_request_review_event(
+            303,
+            submitted_at="2026-03-25T09:00:00Z",
+            updated_at="2026-03-25T12:00:00Z",
+            state="DISMISSED",
+        )
+    ]
+
+    discovered, complete = sweeper._discover_visible_review_dismissal_events(runtime, 42, review)
+
+    assert complete is True
+    assert discovered == []
 
 
 def test_sweeper_skips_events_already_reconciled_by_source_event_key(monkeypatch, freeze_sweeper_now):

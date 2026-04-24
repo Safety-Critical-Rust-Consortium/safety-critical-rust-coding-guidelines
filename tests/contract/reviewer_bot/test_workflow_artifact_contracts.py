@@ -87,6 +87,15 @@ def test_deferred_comment_payload_parses_without_artifact_name_field():
     assert parsed.identity.source_event_name == "issue_comment"
 
 
+def test_dismissed_review_payload_carries_source_dismissal_time_contract():
+    payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_review_dismissed_deferred.json")
+    matrix = json.loads(Path("tests/fixtures/workflow_contracts/observer_payload_contract_matrix.json").read_text(encoding="utf-8"))
+    contract = next(item for item in matrix["payload_contracts"] if item["payload_kind"] == "deferred_review_dismissed")
+
+    assert "source_dismissed_at" in contract["carried_edge_fields"]
+    assert payload["source_dismissed_at"] == "2026-03-20T21:10:00Z"
+
+
 @pytest.mark.parametrize(
     ("fixture_path", "workflow_path"),
     [

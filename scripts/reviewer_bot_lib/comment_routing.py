@@ -192,7 +192,6 @@ def handle_comment_event(
         return False
     if route == comment_routing_policy.ProcessingTarget.ISSUE_DIRECT:
         if comment_request.issue_state == "closed":
-            removed = state.get("active_reviews", {}).pop(str(issue_number), None)
             _log(
                 bot,
                 "info",
@@ -200,7 +199,7 @@ def handle_comment_event(
                 issue_number=issue_number,
                 issue_state=comment_request.issue_state,
             )
-            return removed is not None
+            return False
         return _process_comment_event(bot, state, comment_request)
     if route == PrCommentRouterOutcome.TRUSTED_DIRECT:
         if comment_request.issue_state != "open":

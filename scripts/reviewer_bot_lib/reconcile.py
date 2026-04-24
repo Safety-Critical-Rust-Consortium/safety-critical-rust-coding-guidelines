@@ -492,27 +492,65 @@ def _handle_review_dismissed_workflow_run(
         expected_event_action="dismissed",
     )
     source_event_key = context.source_event_key
+    source_dismissed_at = _dismissed_review_source_time(parsed_payload.raw_payload)
+    if source_dismissed_at is None:
+        live_review = _read_optional_reconcile_object(
+            bot,
+            f"pulls/{context.pr_number}/reviews/{context.review_id}",
+            label=f"live dismissed review #{context.review_id}",
+        )
+        source_dismissed_at = _dismissed_review_source_time(live_review)
+    if source_dismissed_at is None:
+        return gap_bookkeeping._update_deferred_gap(
+            bot,
+            review_data,
+            parsed_payload.raw_payload,
+            "reconcile_failed_closed",
+            (
+                f"Deferred review dismissal {context.review_id} lacks exact source dismissal time; "
+                f"dismissal replay suppressed. See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}."
+            ),
+            failure_kind="invalid_payload",
+        )
     decision = reconcile_replay_policy.decide_review_dismissed_replay(
         source_event_key=source_event_key,
-        timestamp=_now_iso(bot),
+        timestamp=source_dismissed_at,
     )
+    state_changed = False
     if decision.accept_review_dismissal:
-        accept_channel_event(
+        state_changed = accept_channel_event(
             review_data,
             "review_dismissal",
             semantic_key=source_event_key,
             timestamp=str(decision.replay_timestamp),
             dismissal_only=True,
+        ) or state_changed
+    state_changed = bot.adapters.review_state.maybe_record_head_observation_repair(context.pr_number, review_data).changed or state_changed
+    state_changed = _record_review_rebuild(bot, state, context.pr_number, review_data) or state_changed
+    reconciled_changed = False
+    if decision.mark_reconciled:
+        reconciled_changed = gap_bookkeeping._mark_reconciled_source_event(
+            review_data,
+            source_event_key,
+            reconciled_at=_now_iso(bot),
         )
-    bot.adapters.review_state.maybe_record_head_observation_repair(context.pr_number, review_data)
-    _record_review_rebuild(bot, state, context.pr_number, review_data)
-    gap_bookkeeping._mark_reconciled_source_event(
-        review_data,
-        source_event_key,
-        reconciled_at=_now_iso(bot),
-    )
-    gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
-    return True
+    gap_cleared_changed = False
+    if decision.clear_gap:
+        gap_cleared_changed = gap_bookkeeping._clear_source_event_key(review_data, source_event_key)
+    return state_changed or reconciled_changed or gap_cleared_changed
+
+
+def _dismissed_review_source_time(payload: dict | None) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    value = payload.get("source_dismissed_at")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    if str(payload.get("state", "")).strip().upper() == "DISMISSED":
+        dismissed_at = payload.get("dismissed_at")
+        if isinstance(dismissed_at, str) and dismissed_at.strip():
+            return dismissed_at.strip()
+    return None
 
 
 _WORKFLOW_RUN_HANDLER_MATRIX: dict[tuple[str, str], tuple[type[DeferredCommentPayload] | type[DeferredReviewPayload], object]] = {
@@ -566,7 +604,14 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
         raise RuntimeError("Deferred context is missing a valid PR number")
     review_data = ensure_review_entry(state, pr_number)
     if review_data is None:
-        raise RuntimeError(f"No active review entry available for PR #{pr_number}")
+        _log(
+            bot,
+            "info",
+            f"Ignoring deferred workflow_run for missing active review entry on PR #{pr_number}",
+            issue_number=pr_number,
+            source_event_key=parsed_payload.identity.source_event_key,
+        )
+        return WorkflowRunHandlerResult(False, [])
     bot.collect_touched_item(pr_number)
     try:
         handler = _workflow_run_handler_for_payload(parsed_payload)

@@ -41,6 +41,37 @@ def review_submitted_payload(
     }
 
 
+def review_dismissed_payload(
+    *,
+    pr_number: int,
+    review_id: int,
+    source_event_key: str,
+    source_dismissed_at: str | None,
+    source_commit_id: str,
+    actor_login: str,
+    source_run_id: int,
+    source_run_attempt: int,
+) -> dict:
+    payload = {
+        "payload_kind": "deferred_review_dismissed",
+        "schema_version": 3,
+        "source_workflow_name": "Reviewer Bot PR Review Dismissed Observer",
+        "source_workflow_file": ".github/workflows/reviewer-bot-pr-review-dismissed-observer.yml",
+        "source_run_id": source_run_id,
+        "source_run_attempt": source_run_attempt,
+        "source_event_name": "pull_request_review",
+        "source_event_action": "dismissed",
+        "source_event_key": source_event_key,
+        "pr_number": pr_number,
+        "review_id": review_id,
+        "source_commit_id": source_commit_id,
+        "actor_login": actor_login,
+    }
+    if source_dismissed_at is not None:
+        payload["source_dismissed_at"] = source_dismissed_at
+    return payload
+
+
 def issue_comment_payload(
     *,
     pr_number: int,

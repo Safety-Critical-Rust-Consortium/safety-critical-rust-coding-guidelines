@@ -18,6 +18,7 @@ jobs:
           PAYLOAD_PATH: ${{ runner.temp }}/deferred-review-dismissed.json
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REVIEW_ID: ${{ github.event.review.id }}
+          DISMISSED_AT: ${{ github.event.review.submitted_at }}
           COMMIT_ID: ${{ github.event.review.commit_id }}
           REVIEW_AUTHOR: ${{ github.event.review.user.login }}
           REVIEW_AUTHOR_ID: ${{ github.event.review.user.id }}
@@ -36,6 +37,7 @@ jobs:
               'source_event_key': f"pull_request_review_dismissed:{os.environ['REVIEW_ID']}",
               'pr_number': int(os.environ['PR_NUMBER']),
               'review_id': int(os.environ['REVIEW_ID']),
+              'source_dismissed_at': os.environ['DISMISSED_AT'] or None,
               'source_commit_id': os.environ['COMMIT_ID'],
               'actor_login': os.environ['REVIEW_AUTHOR'],
               'actor_id': int(os.environ['REVIEW_AUTHOR_ID']),

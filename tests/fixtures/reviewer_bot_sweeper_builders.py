@@ -22,6 +22,7 @@ def pull_request_review_event(
     commit_id: str | None = None,
     login: str = "alice",
     updated_at: str | None = None,
+    dismissed_at: str | None = None,
 ) -> dict:
     payload = {
         "id": review_id,
@@ -33,6 +34,8 @@ def pull_request_review_event(
         payload["commit_id"] = commit_id
     if updated_at is not None:
         payload["updated_at"] = updated_at
+    if dismissed_at is not None:
+        payload["dismissed_at"] = dismissed_at
     return payload
 
 
