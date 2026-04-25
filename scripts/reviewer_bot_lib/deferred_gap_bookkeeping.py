@@ -235,11 +235,49 @@ def _payload_or_existing(payload: dict, existing: dict, key: str):
     return existing.get(key) if value is None else value
 
 
+def _first_present_payload_value(payload: dict, keys: tuple[str, ...]):
+    for key in keys:
+        if key not in payload:
+            continue
+        value = payload.get(key)
+        if isinstance(value, str):
+            value = value.strip()
+        if value is not None and value != "":
+            return value
+    return None
+
+
+def _copy_source_evidence(fields: dict, payload: dict, existing: dict) -> None:
+    evidence_fields = {
+        "source_actor_login": ("source_actor_login", "comment_author", "actor_login"),
+        "source_actor_id": ("source_actor_id", "comment_author_id", "actor_id"),
+        "source_actor_user_type": ("source_actor_user_type", "comment_user_type"),
+        "source_actor_sender_type": ("source_actor_sender_type", "comment_sender_type"),
+        "source_actor_installation_id": ("source_actor_installation_id", "comment_installation_id"),
+        "source_actor_performed_via_github_app": (
+            "source_actor_performed_via_github_app",
+            "comment_performed_via_github_app",
+        ),
+        "source_comment_id": ("source_comment_id", "comment_id"),
+        "source_review_id": ("source_review_id", "review_id", "pull_request_review_id"),
+        "source_commit_id": ("source_commit_id",),
+        "source_review_state": ("source_review_state",),
+    }
+    for target_key, source_keys in evidence_fields.items():
+        value = _first_present_payload_value(payload, source_keys)
+        if value is None:
+            value = existing.get(target_key)
+        if value is not None:
+            fields[target_key] = value
+
+
 def _source_event_created_at(payload: dict, existing: dict):
     return (
         payload.get("source_created_at")
+        or payload.get("comment_created_at")
         or payload.get("source_submitted_at")
         or payload.get("source_dismissed_at")
+        or payload.get("source_event_created_at")
         or existing.get("source_event_created_at")
     )
 
@@ -280,6 +318,7 @@ def record_deferred_gap_diagnostic(
     source_dismissed_at = _payload_or_existing(payload, existing, "source_dismissed_at")
     if source_dismissed_at is not None:
         fields["source_dismissed_at"] = source_dismissed_at
+    _copy_source_evidence(fields, payload, existing)
     existing.update(fields)
     changed = previous != existing
     deferred_gaps[source_event_key] = existing

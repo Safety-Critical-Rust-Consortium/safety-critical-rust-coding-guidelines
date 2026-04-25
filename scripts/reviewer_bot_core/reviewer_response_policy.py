@@ -182,7 +182,10 @@ def _visible_review_commit_id(gap: dict) -> str | None:
     diagnostic = gap.get("visible_review_diagnostic")
     payload = diagnostic.get("payload") if isinstance(diagnostic, dict) else None
     commit_id = payload.get("commit_id") if isinstance(payload, dict) else None
-    return commit_id if isinstance(commit_id, str) and commit_id.strip() else None
+    if isinstance(commit_id, str) and commit_id.strip():
+        return commit_id
+    source_commit_id = gap.get("source_commit_id")
+    return source_commit_id if isinstance(source_commit_id, str) and source_commit_id.strip() else None
 
 
 def _visible_activity_author(gap: dict) -> str | None:
@@ -191,6 +194,9 @@ def _visible_activity_author(gap: dict) -> str | None:
     author = payload.get("author") if isinstance(payload, dict) else None
     if isinstance(author, str) and author.strip():
         return author
+    source_actor = gap.get("source_actor_login")
+    if isinstance(source_actor, str) and source_actor.strip():
+        return source_actor
     actor = gap.get("actor")
     if isinstance(actor, str) and actor.strip():
         return actor

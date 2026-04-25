@@ -82,13 +82,19 @@ def test_sweeper_creates_keyed_deferred_gaps_for_visible_comments_reviews_and_di
     )
     runtime.github.stub(routes)
     runtime.github.get_pull_request_reviews = lambda issue_number: [
-        pull_request_review_event(202, submitted_at="2026-03-25T11:00:00Z", state="APPROVED"),
+        pull_request_review_event(202, submitted_at="2026-03-25T11:00:00Z", state="APPROVED", commit_id="head-1"),
     ]
 
     assert sweeper.sweep_deferred_gaps(runtime, state) is True
     gaps = state["active_reviews"]["42"]["sidecars"]["deferred_gaps"]
     assert "issue_comment:101" in gaps
+    assert gaps["issue_comment:101"]["source_actor_login"] == "alice"
+    assert gaps["issue_comment:101"]["source_actor_user_type"] == "User"
+    assert gaps["issue_comment:101"]["source_comment_id"] == 101
     assert "pull_request_review:202" in gaps
+    assert gaps["pull_request_review:202"]["source_actor_login"] == "alice"
+    assert gaps["pull_request_review:202"]["source_commit_id"] == "head-1"
+    assert gaps["pull_request_review:202"]["source_review_state"] == "APPROVED"
     assert "pull_request_review_dismissed:303" in gaps
     assert gaps["pull_request_review_dismissed:303"]["source_event_kind"] == "pull_request_review:dismissed"
 
@@ -132,6 +138,9 @@ def test_sweeper_creates_keyed_deferred_gap_for_visible_review_comments(monkeypa
     gaps = state["active_reviews"]["42"]["sidecars"]["deferred_gaps"]
     assert "pull_request_review_comment:404" in gaps
     assert gaps["pull_request_review_comment:404"]["source_event_kind"] == "pull_request_review_comment:created"
+    assert gaps["pull_request_review_comment:404"]["source_actor_login"] == "dana"
+    assert gaps["pull_request_review_comment:404"]["source_actor_user_type"] == "User"
+    assert gaps["pull_request_review_comment:404"]["source_comment_id"] == 404
 
 
 def test_discover_visible_review_comment_events_paginates_past_page_one(monkeypatch, freeze_sweeper_now):

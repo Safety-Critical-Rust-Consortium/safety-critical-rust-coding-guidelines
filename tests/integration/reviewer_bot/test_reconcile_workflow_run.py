@@ -516,7 +516,15 @@ def test_deferred_comment_missing_live_object_preserves_source_time_freshness(mo
 
     assert harness.run(state) is True
     assert state["active_reviews"]["42"]["reviewer_comment"]["accepted"]["semantic_key"] == "issue_comment:99"
-    assert state["active_reviews"]["42"]["sidecars"]["deferred_gaps"]["issue_comment:99"]["reason"] == "reconcile_failed_closed"
+    gap = state["active_reviews"]["42"]["sidecars"]["deferred_gaps"]["issue_comment:99"]
+    assert gap["reason"] == "reconcile_failed_closed"
+    assert gap["source_event_created_at"] == "2026-03-17T10:00:00Z"
+    assert gap["source_actor_login"] == "alice"
+    assert gap["source_actor_id"] == 7001
+    assert gap["source_actor_user_type"] == "User"
+    assert gap["source_actor_sender_type"] == "User"
+    assert gap["source_actor_performed_via_github_app"] is False
+    assert gap["source_comment_id"] == 99
 
 
 def test_handle_workflow_run_event_rebuilds_completion_from_live_review_commit_id(monkeypatch):
@@ -745,7 +753,15 @@ def test_deferred_review_comment_missing_live_object_preserves_source_time_fresh
 
     assert harness.run(state) is True
     assert review["reviewer_comment"]["accepted"]["semantic_key"] == "pull_request_review_comment:303"
-    assert _deferred_gaps(review)["pull_request_review_comment:303"]["reason"] == "reconcile_failed_closed"
+    gap = _deferred_gaps(review)["pull_request_review_comment:303"]
+    assert gap["reason"] == "reconcile_failed_closed"
+    assert gap["source_event_created_at"] == "2026-03-17T10:00:00Z"
+    assert gap["source_actor_login"] == "alice"
+    assert gap["source_actor_id"] == 6
+    assert gap["source_actor_user_type"] == "User"
+    assert gap["source_actor_sender_type"] == "User"
+    assert gap["source_actor_performed_via_github_app"] is False
+    assert gap["source_comment_id"] == 303
 
 
 def test_deferred_comment_reconcile_fails_closed_when_command_replay_is_ambiguous(monkeypatch):

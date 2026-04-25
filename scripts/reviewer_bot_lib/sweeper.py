@@ -108,6 +108,7 @@ def _diagnose_deferred_event(
     workflow_file: str,
     source_event_kind: str,
     workflow_runs: list[dict] | None,
+    source_evidence: dict | None = None,
 ) -> None:
     existing_gap = gap_bookkeeping.get_deferred_gap(review_data, source_event_key)
     run_correlation = deferred_gap_diagnosis.correlate_candidate_observer_runs(
@@ -159,6 +160,7 @@ def _diagnose_deferred_event(
         artifact_correlation=artifact_correlation,
         reason=reason,
         diagnostic_reason=diagnostic_reason,
+        source_evidence=source_evidence,
     )
 
 
@@ -220,6 +222,79 @@ def _is_automation_comment(comment: dict) -> bool:
     if comment.get("performed_via_github_app"):
         return True
     return False
+
+
+def _performed_via_github_app_truth(value: object) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, dict):
+        app_id = value.get("id")
+        if app_id is None or not str(app_id).strip():
+            return None
+        try:
+            return int(app_id) > 0
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _source_actor_fields_from_user(user: object) -> dict:
+    if not isinstance(user, dict):
+        return {}
+    fields = {}
+    login = user.get("login")
+    if isinstance(login, str) and login.strip():
+        fields["source_actor_login"] = login.strip()
+    actor_id = user.get("id")
+    if actor_id is not None:
+        fields["source_actor_id"] = actor_id
+    user_type = user.get("type")
+    if isinstance(user_type, str) and user_type.strip():
+        fields["source_actor_user_type"] = user_type.strip()
+    return fields
+
+
+def _comment_source_evidence(comment: object) -> dict:
+    if not isinstance(comment, dict):
+        return {}
+    fields = _source_actor_fields_from_user(comment.get("user"))
+    comment_id = comment.get("id")
+    if comment_id is not None:
+        fields["source_comment_id"] = comment_id
+    review_id = comment.get("pull_request_review_id")
+    if review_id is not None:
+        fields["source_review_id"] = review_id
+    commit_id = comment.get("commit_id") or comment.get("original_commit_id")
+    if isinstance(commit_id, str) and commit_id.strip():
+        fields["source_commit_id"] = commit_id.strip()
+    sender = comment.get("sender")
+    sender_type = sender.get("type") if isinstance(sender, dict) else None
+    if isinstance(sender_type, str) and sender_type.strip():
+        fields["source_actor_sender_type"] = sender_type.strip()
+    installation = comment.get("installation")
+    installation_id = installation.get("id") if isinstance(installation, dict) else None
+    if installation_id is not None and str(installation_id).strip():
+        fields["source_actor_installation_id"] = str(installation_id).strip()
+    performed_via_app = _performed_via_github_app_truth(comment.get("performed_via_github_app"))
+    if performed_via_app is not None:
+        fields["source_actor_performed_via_github_app"] = performed_via_app
+    return fields
+
+
+def _review_source_evidence(review: object) -> dict:
+    if not isinstance(review, dict):
+        return {}
+    fields = _source_actor_fields_from_user(review.get("user"))
+    review_id = review.get("id")
+    if review_id is not None:
+        fields["source_review_id"] = review_id
+    commit_id = review.get("commit_id")
+    if isinstance(commit_id, str) and commit_id.strip():
+        fields["source_commit_id"] = commit_id.strip()
+    state = review.get("state")
+    if isinstance(state, str) and state.strip():
+        fields["source_review_state"] = state.strip()
+    return fields
 
 
 def _fetch_live_issue_comment(bot, comment_id: str) -> dict | None:
@@ -393,20 +468,23 @@ def _record_gap_diagnostics(
     artifact_correlation: dict | None,
     reason: str,
     diagnostic_reason: str,
+    source_evidence: dict | None = None,
 ) -> None:
+    payload = {
+        **(source_evidence or {}),
+        "source_event_key": source_event_key,
+        "source_event_name": source_event_name,
+        "source_event_action": source_event_action,
+        "pr_number": issue_number,
+        "source_created_at": source_created_at,
+        "source_workflow_file": workflow_file,
+        "source_run_id": run_correlation.get("correlated_run"),
+        "source_run_attempt": run_detail.get("run_attempt") if isinstance(run_detail, dict) else None,
+    }
     gap_bookkeeping.record_deferred_gap_diagnostic(
         bot,
         review_data,
-        {
-            "source_event_key": source_event_key,
-            "source_event_name": source_event_name,
-            "source_event_action": source_event_action,
-            "pr_number": issue_number,
-            "source_created_at": source_created_at,
-            "source_workflow_file": workflow_file,
-            "source_run_id": run_correlation.get("correlated_run"),
-            "source_run_attempt": run_detail.get("run_attempt") if isinstance(run_detail, dict) else None,
-        },
+        payload,
         reason,
         f"Trusted sweeper diagnostics for {source_event_key}: {diagnostic_reason}. See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}.",
     )
@@ -483,6 +561,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
                     workflow_file=workflow_file,
                     source_event_kind="issue_comment:created",
                     workflow_runs=workflow_runs,
+                    source_evidence=_comment_source_evidence(discovered.get("comment")),
                 )
                 changed = True
             _complete_surface_scan(bot, review_data, "comments", discovered_comments)
@@ -556,6 +635,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
                     artifact_correlation=artifact_correlation,
                     reason=reason,
                     diagnostic_reason=diagnostic_reason,
+                    source_evidence=_review_source_evidence(review_payload),
                 )
                 if visible_review_diagnostic is not None:
                     gap_bookkeeping.update_deferred_gap_fields(
@@ -588,6 +668,7 @@ def sweep_deferred_gaps(bot, state: dict) -> bool:
                     workflow_file=workflow_file,
                     source_event_kind="pull_request_review_comment:created",
                     workflow_runs=workflow_runs,
+                    source_evidence=_comment_source_evidence(discovered.get("comment")),
                 )
                 changed = True
             _complete_surface_scan(bot, review_data, "review_comments", discovered_review_comments)

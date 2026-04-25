@@ -269,6 +269,62 @@ def test_update_deferred_gap_preserves_existing_workflow_artifact_provenance_whe
     assert gap["source_artifact_name"] == "reviewer-bot-comment-context-700-attempt-1"
 
 
+def test_deferred_gap_diagnostic_retains_normalized_comment_source_evidence(monkeypatch):
+    runtime = FakeReviewerBotRuntime(monkeypatch)
+    review = review_state.ensure_review_entry(make_state(), 42, create=True)
+    assert review is not None
+    runtime.clock.now = lambda: runtime.datetime(2026, 3, 18, tzinfo=runtime.timezone.utc)
+
+    changed = deferred_gap_bookkeeping.record_deferred_gap_diagnostic(
+        runtime,
+        review,
+        {
+            "source_event_key": "issue_comment:210",
+            "source_event_name": "issue_comment",
+            "source_event_action": "created",
+            "pr_number": 42,
+            "comment_created_at": "2026-03-17T10:00:00Z",
+            "comment_id": 210,
+            "comment_author": "alice",
+            "comment_author_id": 7001,
+            "comment_user_type": "User",
+            "comment_sender_type": "User",
+            "comment_installation_id": "12345",
+            "comment_performed_via_github_app": False,
+        },
+        "reconcile_failed_closed",
+        "comment replay failed closed",
+    )
+
+    assert changed is True
+    gap = review["sidecars"]["deferred_gaps"]["issue_comment:210"]
+    assert gap["source_event_created_at"] == "2026-03-17T10:00:00Z"
+    assert gap["source_actor_login"] == "alice"
+    assert gap["source_actor_id"] == 7001
+    assert gap["source_actor_user_type"] == "User"
+    assert gap["source_actor_sender_type"] == "User"
+    assert gap["source_actor_installation_id"] == "12345"
+    assert gap["source_actor_performed_via_github_app"] is False
+    assert gap["source_comment_id"] == 210
+
+    deferred_gap_bookkeeping.record_deferred_gap_diagnostic(
+        runtime,
+        review,
+        {
+            "source_event_key": "issue_comment:210",
+            "source_event_name": "issue_comment",
+            "source_event_action": "created",
+            "pr_number": 42,
+        },
+        "artifact_missing",
+        "later diagnostic omitted actor fields",
+    )
+
+    gap = review["sidecars"]["deferred_gaps"]["issue_comment:210"]
+    assert gap["source_actor_login"] == "alice"
+    assert gap["source_event_created_at"] == "2026-03-17T10:00:00Z"
+
+
 def test_update_deferred_gap_preserves_source_dismissed_at_diagnostics(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     review = review_state.ensure_review_entry(make_state(), 42, create=True)
