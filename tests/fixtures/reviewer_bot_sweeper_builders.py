@@ -1,17 +1,40 @@
-def issue_comment_event(comment_id: int, *, created_at: str, login: str = "alice", user_type: str = "User") -> dict:
+def issue_comment_event(
+    comment_id: int,
+    *,
+    created_at: str,
+    login: str = "alice",
+    user_id: int = 7001,
+    user_type: str = "User",
+) -> dict:
     return {
         "id": comment_id,
         "created_at": created_at,
-        "user": {"login": login, "type": user_type},
+        "user": {"login": login, "id": user_id, "type": user_type},
+        "performed_via_github_app": False,
     }
 
 
-def review_comment_event(comment_id: int, *, created_at: str, login: str = "dana", user_type: str = "User") -> dict:
-    return {
+def review_comment_event(
+    comment_id: int,
+    *,
+    created_at: str,
+    login: str = "dana",
+    user_id: int = 7002,
+    user_type: str = "User",
+    review_id: int | None = None,
+    commit_id: str | None = None,
+) -> dict:
+    payload = {
         "id": comment_id,
         "created_at": created_at,
-        "user": {"login": login, "type": user_type},
+        "user": {"login": login, "id": user_id, "type": user_type},
+        "performed_via_github_app": False,
     }
+    if review_id is not None:
+        payload["pull_request_review_id"] = review_id
+    if commit_id is not None:
+        payload["commit_id"] = commit_id
+    return payload
 
 
 def pull_request_review_event(
@@ -28,7 +51,7 @@ def pull_request_review_event(
         "id": review_id,
         "submitted_at": submitted_at,
         "state": state,
-        "user": {"login": login},
+        "user": {"login": login, "id": 7003, "type": "User"},
     }
     if commit_id is not None:
         payload["commit_id"] = commit_id

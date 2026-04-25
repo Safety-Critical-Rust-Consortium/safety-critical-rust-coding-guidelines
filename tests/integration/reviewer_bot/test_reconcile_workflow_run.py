@@ -740,6 +740,7 @@ def test_deferred_review_comment_missing_live_object_preserves_source_time_fresh
             in_reply_to_id=200,
             source_run_id=703,
             source_run_attempt=1,
+            source_commit_id="head-1",
         ),
     )
     harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
@@ -762,6 +763,7 @@ def test_deferred_review_comment_missing_live_object_preserves_source_time_fresh
     assert gap["source_actor_sender_type"] == "User"
     assert gap["source_actor_performed_via_github_app"] is False
     assert gap["source_comment_id"] == 303
+    assert gap["source_commit_id"] == "head-1"
 
 
 def test_deferred_comment_reconcile_fails_closed_when_command_replay_is_ambiguous(monkeypatch):

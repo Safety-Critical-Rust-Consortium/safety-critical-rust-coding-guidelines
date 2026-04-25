@@ -26,6 +26,7 @@ jobs:
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
           COMMENT_AUTHOR_ID: ${{ github.event.comment.user.id }}
           COMMENT_USER_TYPE: ${{ github.event.comment.user.type }}
+          COMMENT_COMMIT_ID: ${{ github.event.comment.commit_id }}
           COMMENT_SENDER_TYPE: ${{ github.event.sender.type }}
           COMMENT_INSTALLATION_ID: ${{ github.event.installation.id }}
           COMMENT_PERFORMED_VIA_GITHUB_APP: ${{ github.event.comment.performed_via_github_app.id > 0 && 'true' || 'false' }}
@@ -52,6 +53,7 @@ jobs:
               'comment_author': os.environ['COMMENT_AUTHOR'],
               'comment_author_id': int(os.environ['COMMENT_AUTHOR_ID']),
               'comment_user_type': os.environ['COMMENT_USER_TYPE'],
+              'source_commit_id': os.environ.get('COMMENT_COMMIT_ID', '').strip() or None,
               'comment_sender_type': os.environ['COMMENT_SENDER_TYPE'],
               'comment_installation_id': os.environ.get('COMMENT_INSTALLATION_ID', '').strip() or None,
               'comment_performed_via_github_app': os.environ['COMMENT_PERFORMED_VIA_GITHUB_APP'] == 'true',

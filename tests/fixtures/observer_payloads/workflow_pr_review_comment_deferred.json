@@ -22,6 +22,7 @@
     "comment_author": "reviewer2",
     "comment_author_id": 7004,
     "comment_user_type": "User",
+    "source_commit_id": "abc123def456",
     "comment_sender_type": "User",
     "comment_installation_id": null,
     "comment_performed_via_github_app": false,

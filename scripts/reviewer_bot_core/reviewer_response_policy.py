@@ -185,7 +185,13 @@ def _visible_review_commit_id(gap: dict) -> str | None:
     if isinstance(commit_id, str) and commit_id.strip():
         return commit_id
     source_commit_id = gap.get("source_commit_id")
-    return source_commit_id if isinstance(source_commit_id, str) and source_commit_id.strip() else None
+    if isinstance(source_commit_id, str) and source_commit_id.strip():
+        return source_commit_id
+    comment = gap.get("comment")
+    comment_commit_id = None
+    if isinstance(comment, dict):
+        comment_commit_id = comment.get("commit_id") or comment.get("original_commit_id")
+    return comment_commit_id if isinstance(comment_commit_id, str) and comment_commit_id.strip() else None
 
 
 def _visible_activity_author(gap: dict) -> str | None:
@@ -238,7 +244,7 @@ def has_fail_closed_reviewer_activity_for_current_scope(
         author = _visible_activity_author(gap)
         if not isinstance(author, str) or author.lower() != current_reviewer.lower():
             continue
-        if source_kind == "pull_request_review:submitted":
+        if source_kind in {"pull_request_review:submitted", "pull_request_review_comment:created"}:
             if not isinstance(current_head_sha, str) or not current_head_sha.strip():
                 continue
             commit_id = _visible_review_commit_id(gap)

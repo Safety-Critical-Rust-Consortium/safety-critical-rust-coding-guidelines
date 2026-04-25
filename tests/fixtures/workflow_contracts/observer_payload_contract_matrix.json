@@ -126,6 +126,7 @@
         "comment_author",
         "comment_author_id",
         "comment_user_type",
+        "source_commit_id",
         "comment_sender_type",
         "comment_installation_id",
         "comment_performed_via_github_app",

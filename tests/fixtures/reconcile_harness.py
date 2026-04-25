@@ -128,9 +128,10 @@ def review_comment_payload(
     in_reply_to_id: int,
     source_run_id: int,
     source_run_attempt: int,
+    source_commit_id: str | None = None,
 ) -> dict:
     del comment_class, has_non_command_text, actor_class, pull_request_review_id, in_reply_to_id
-    return {
+    payload = {
         "payload_kind": "deferred_review_comment",
         "schema_version": 3,
         "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
@@ -154,6 +155,9 @@ def review_comment_payload(
         "issue_state": "open",
         "issue_labels": ["coding guideline"],
     }
+    if source_commit_id is not None:
+        payload["source_commit_id"] = source_commit_id
+    return payload
 
 
 @dataclass

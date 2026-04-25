@@ -89,10 +89,14 @@ def test_sweeper_creates_keyed_deferred_gaps_for_visible_comments_reviews_and_di
     gaps = state["active_reviews"]["42"]["sidecars"]["deferred_gaps"]
     assert "issue_comment:101" in gaps
     assert gaps["issue_comment:101"]["source_actor_login"] == "alice"
+    assert gaps["issue_comment:101"]["source_actor_id"] == 7001
     assert gaps["issue_comment:101"]["source_actor_user_type"] == "User"
+    assert gaps["issue_comment:101"]["source_actor_performed_via_github_app"] is False
     assert gaps["issue_comment:101"]["source_comment_id"] == 101
     assert "pull_request_review:202" in gaps
     assert gaps["pull_request_review:202"]["source_actor_login"] == "alice"
+    assert gaps["pull_request_review:202"]["source_actor_id"] == 7003
+    assert gaps["pull_request_review:202"]["source_actor_user_type"] == "User"
     assert gaps["pull_request_review:202"]["source_commit_id"] == "head-1"
     assert gaps["pull_request_review:202"]["source_review_state"] == "APPROVED"
     assert "pull_request_review_dismissed:303" in gaps
@@ -121,7 +125,7 @@ def test_sweeper_creates_keyed_deferred_gap_for_visible_review_comments(monkeypa
             "GET",
             "pulls/42/comments?per_page=100&page=1",
             status_code=200,
-            payload=[review_comment_event(404, created_at="2026-03-25T10:30:00Z", login="dana")],
+            payload=[review_comment_event(404, created_at="2026-03-25T10:30:00Z", login="dana", review_id=202, commit_id="head-1")],
         )
         .add_request(
             "GET",
@@ -139,8 +143,12 @@ def test_sweeper_creates_keyed_deferred_gap_for_visible_review_comments(monkeypa
     assert "pull_request_review_comment:404" in gaps
     assert gaps["pull_request_review_comment:404"]["source_event_kind"] == "pull_request_review_comment:created"
     assert gaps["pull_request_review_comment:404"]["source_actor_login"] == "dana"
+    assert gaps["pull_request_review_comment:404"]["source_actor_id"] == 7002
     assert gaps["pull_request_review_comment:404"]["source_actor_user_type"] == "User"
+    assert gaps["pull_request_review_comment:404"]["source_actor_performed_via_github_app"] is False
     assert gaps["pull_request_review_comment:404"]["source_comment_id"] == 404
+    assert gaps["pull_request_review_comment:404"]["source_review_id"] == 202
+    assert gaps["pull_request_review_comment:404"]["source_commit_id"] == "head-1"
 
 
 def test_discover_visible_review_comment_events_paginates_past_page_one(monkeypatch, freeze_sweeper_now):

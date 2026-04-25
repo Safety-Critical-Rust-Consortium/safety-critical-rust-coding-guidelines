@@ -6,7 +6,7 @@ import copy
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from scripts.reviewer_bot_core import reviewer_response_policy
+from scripts.reviewer_bot_core import live_review_support, reviewer_response_policy
 
 from . import deferred_gap_bookkeeping as gap_bookkeeping
 from .config import (
@@ -275,6 +275,14 @@ def _deferred_gap_records(review_data: dict[str, Any]) -> tuple[dict, ...]:
     )
 
 
+def _timestamp_at_or_after_anchor(value: Any, anchor: str | None) -> bool:
+    timestamp = live_review_support.parse_github_timestamp(value)
+    anchor_timestamp = live_review_support.parse_github_timestamp(anchor)
+    if timestamp is None or anchor_timestamp is None:
+        return False
+    return timestamp >= anchor_timestamp
+
+
 def _derive_review_state(
     bot: ProjectBoardProjectionContext,
     issue_number: int,
@@ -383,9 +391,9 @@ def derive_board_projection(input: BoardProjectionInput) -> BoardProjectionValue
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_TRIAGE_APPROVAL_REQUIRED
     elif derivation.state != "awaiting_reviewer_response":
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_NO
-    elif review_data.get("transition_notice_sent_at"):
+    elif _timestamp_at_or_after_anchor(review_data.get("transition_notice_sent_at"), derivation.anchor_timestamp):
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_TRANSITION_NOTICE_SENT
-    elif review_data.get("transition_warning_sent"):
+    elif _timestamp_at_or_after_anchor(review_data.get("transition_warning_sent"), derivation.anchor_timestamp):
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_WARNING_SENT
 
     return BoardProjectionValues(

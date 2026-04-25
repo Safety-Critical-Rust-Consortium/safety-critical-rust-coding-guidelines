@@ -6,6 +6,8 @@ from scripts.reviewer_bot_lib import project_board, reviews
 from scripts.reviewer_bot_lib.config import (
     REVIEWER_BOARD_FIELD_NEEDS_ATTENTION,
     REVIEWER_BOARD_OPTION_ATTENTION_PROJECTION_REPAIR_REQUIRED,
+    REVIEWER_BOARD_OPTION_ATTENTION_TRANSITION_NOTICE_SENT,
+    REVIEWER_BOARD_OPTION_ATTENTION_WARNING_SENT,
     REVIEWER_BOARD_OPTION_AWAITING_CONTRIBUTOR,
     STATUS_AWAITING_CONTRIBUTOR_RESPONSE_LABEL,
 )
@@ -81,9 +83,10 @@ def _fail_closed_comment_gap(
     *,
     author="alice",
     timestamp="2026-03-18T10:00:00Z",
+    source_commit_id: str | None = None,
     operator_action_required=True,
 ):
-    return {
+    gap = {
         "source_event_key": source_event_key,
         "source_event_kind": source_event_kind,
         "source_event_created_at": timestamp,
@@ -91,6 +94,9 @@ def _fail_closed_comment_gap(
         "reason": "reconcile_failed_closed",
         "operator_action_required": operator_action_required,
     }
+    if source_commit_id is not None:
+        gap["source_commit_id"] = source_commit_id
+    return gap
 
 
 def test_reviewer_board_preflight_validates_manifest(monkeypatch):
@@ -364,10 +370,10 @@ def test_preview_board_projection_marks_normalized_review_gap_as_attention(monke
 
 def test_preview_board_projection_marks_fail_closed_comment_gaps_with_source_actor_as_attention(monkeypatch):
     cases = [
-        ("issue_comment:210", "issue_comment:created"),
-        ("pull_request_review_comment:404", "pull_request_review_comment:created"),
+        ("issue_comment:210", "issue_comment:created", None),
+        ("pull_request_review_comment:404", "pull_request_review_comment:created", "head-1"),
     ]
-    for source_event_key, source_event_kind in cases:
+    for source_event_key, source_event_kind, source_commit_id in cases:
         state = make_state()
         review = make_tracked_review_state(
             state,
@@ -379,6 +385,7 @@ def test_preview_board_projection_marks_fail_closed_comment_gaps_with_source_act
         review["sidecars"]["deferred_gaps"][source_event_key] = _fail_closed_comment_gap(
             source_event_key,
             source_event_kind,
+            source_commit_id=source_commit_id,
         )
         runtime = _runtime(monkeypatch)
         runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
@@ -422,6 +429,40 @@ def test_preview_board_projection_ignores_comment_gap_for_wrong_source_actor(mon
 
     assert preview.desired is not None
     assert preview.desired.needs_attention == "No"
+
+
+def test_preview_board_projection_ignores_review_comment_gap_without_current_head_evidence(monkeypatch):
+    cases = [
+        ("missing head evidence", None),
+        ("wrong head", "head-2"),
+    ]
+    for _name, source_commit_id in cases:
+        state = make_state()
+        review = make_tracked_review_state(
+            state,
+            42,
+            reviewer="alice",
+            assigned_at="2026-03-17T09:00:00Z",
+            active_cycle_started_at="2026-03-17T09:00:00Z",
+        )
+        review["sidecars"]["deferred_gaps"]["pull_request_review_comment:404"] = _fail_closed_comment_gap(
+            "pull_request_review_comment:404",
+            "pull_request_review_comment:created",
+            source_commit_id=source_commit_id,
+        )
+        runtime = _runtime(monkeypatch)
+        runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
+        runtime.adapters.review_state.compute_reviewer_response_state = lambda issue_number, review_data, **kwargs: {
+            "state": "awaiting_reviewer_response",
+            "anchor_timestamp": "2026-03-17T09:00:00Z",
+            "reason": "no_reviewer_activity",
+            "current_head_sha": "head-1",
+        }
+
+        preview = project_board.preview_board_projection_for_item(runtime, state, 42)
+
+        assert preview.desired is not None
+        assert preview.desired.needs_attention == "No", _name
 
 
 def test_preview_board_projection_ignores_fail_closed_gaps_outside_current_scope(monkeypatch):
@@ -481,6 +522,62 @@ def test_preview_board_projection_ignores_raw_reminders_outside_reviewer_wait(mo
 
     assert preview.desired is not None
     assert preview.desired.needs_attention == "No"
+
+
+def test_preview_board_projection_ignores_raw_reminders_before_reviewer_wait_anchor(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["transition_warning_sent"] = "2026-03-18T00:00:00Z"
+    review["transition_notice_sent_at"] = "2026-03-18T01:00:00Z"
+    runtime = _runtime(monkeypatch)
+    runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
+    runtime.adapters.review_state.compute_reviewer_response_state = lambda issue_number, review_data, **kwargs: {
+        "state": "awaiting_reviewer_response",
+        "anchor_timestamp": "2026-03-18T10:00:00Z",
+        "reason": "contributor_comment_newer",
+        "current_head_sha": "head-1",
+    }
+
+    preview = project_board.preview_board_projection_for_item(runtime, state, 42)
+
+    assert preview.desired is not None
+    assert preview.desired.needs_attention == "No"
+
+
+def test_preview_board_projection_maps_raw_reminders_at_or_after_reviewer_wait_anchor(monkeypatch):
+    cases = [
+        ("transition_notice_sent_at", REVIEWER_BOARD_OPTION_ATTENTION_TRANSITION_NOTICE_SENT),
+        ("transition_warning_sent", REVIEWER_BOARD_OPTION_ATTENTION_WARNING_SENT),
+    ]
+    for field_name, expected_attention in cases:
+        state = make_state()
+        review = make_tracked_review_state(
+            state,
+            42,
+            reviewer="alice",
+            assigned_at="2026-03-17T09:00:00Z",
+            active_cycle_started_at="2026-03-17T09:00:00Z",
+        )
+        review[field_name] = "2026-03-18T10:00:00Z"
+        runtime = _runtime(monkeypatch)
+        runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
+        runtime.adapters.review_state.compute_reviewer_response_state = lambda issue_number, review_data, **kwargs: {
+            "state": "awaiting_reviewer_response",
+            "anchor_timestamp": "2026-03-18T10:00:00Z",
+            "reason": "contributor_comment_newer",
+            "current_head_sha": "head-1",
+        }
+
+        preview = project_board.preview_board_projection_for_item(runtime, state, 42)
+
+        assert preview.desired is not None
+        assert preview.desired.needs_attention == expected_attention
 
 
 def test_preview_board_projection_marks_projection_repair_as_attention(monkeypatch):
