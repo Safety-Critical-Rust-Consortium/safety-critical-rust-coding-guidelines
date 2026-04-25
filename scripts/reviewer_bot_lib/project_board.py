@@ -8,6 +8,7 @@ from typing import Any
 
 from scripts.reviewer_bot_core import reviewer_response_policy
 
+from . import deferred_gap_bookkeeping as gap_bookkeeping
 from .config import (
     REVIEWER_BOARD_ENABLED_ENV,
     REVIEWER_BOARD_FIELD_ASSIGNED_AT,
@@ -267,6 +268,13 @@ def _format_date(value: Any) -> str | None:
     return value[:10]
 
 
+def _deferred_gap_records(review_data: dict[str, Any]) -> tuple[dict, ...]:
+    return tuple(
+        gap_bookkeeping.get_deferred_gap(review_data, source_event_key)
+        for source_event_key in gap_bookkeeping.list_deferred_gap_keys(review_data)
+    )
+
+
 def _derive_review_state(
     bot: ProjectBoardProjectionContext,
     issue_number: int,
@@ -365,6 +373,7 @@ def derive_board_projection(input: BoardProjectionInput) -> BoardProjectionValue
     repair_needed = load_repair_marker(review_data, "status_label_projection")
     fail_closed_reviewer_activity = reviewer_response_policy.has_fail_closed_reviewer_activity_for_current_scope(
         review_data,
+        _deferred_gap_records(review_data),
         anchor_timestamp=derivation.anchor_timestamp,
         current_head_sha=derivation.current_head_sha,
     )
@@ -372,7 +381,7 @@ def derive_board_projection(input: BoardProjectionInput) -> BoardProjectionValue
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_PROJECTION_REPAIR_REQUIRED
     elif review_data.get("mandatory_approver_required"):
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_TRIAGE_APPROVAL_REQUIRED
-    elif derivation.state == "awaiting_contributor_response" and derivation.reason == "current_head_alternate_approval_present":
+    elif derivation.state != "awaiting_reviewer_response":
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_NO
     elif review_data.get("transition_notice_sent_at"):
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_TRANSITION_NOTICE_SENT

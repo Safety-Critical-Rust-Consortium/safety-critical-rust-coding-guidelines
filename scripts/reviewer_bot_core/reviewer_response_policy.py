@@ -158,14 +158,6 @@ def _build_current_scope_key(
     )
 
 
-def _deferred_gaps(review_data: dict) -> dict:
-    sidecars = review_data.get("sidecars")
-    if not isinstance(sidecars, dict):
-        return {}
-    deferred_gaps = sidecars.get("deferred_gaps")
-    return deferred_gaps if isinstance(deferred_gaps, dict) else {}
-
-
 def _gap_source_kind(gap: dict) -> str | None:
     source_event_kind = gap.get("source_event_kind")
     if isinstance(source_event_kind, str) and source_event_kind.strip():
@@ -193,20 +185,39 @@ def _visible_review_commit_id(gap: dict) -> str | None:
     return commit_id if isinstance(commit_id, str) and commit_id.strip() else None
 
 
+def _visible_activity_author(gap: dict) -> str | None:
+    diagnostic = gap.get("visible_review_diagnostic")
+    payload = diagnostic.get("payload") if isinstance(diagnostic, dict) else None
+    author = payload.get("author") if isinstance(payload, dict) else None
+    if isinstance(author, str) and author.strip():
+        return author
+    actor = gap.get("actor")
+    if isinstance(actor, str) and actor.strip():
+        return actor
+    comment = gap.get("comment")
+    user = comment.get("user") if isinstance(comment, dict) else None
+    login = user.get("login") if isinstance(user, dict) else None
+    return login if isinstance(login, str) and login.strip() else None
+
+
 def has_fail_closed_reviewer_activity_for_current_scope(
     review_data: dict,
+    fail_closed_gaps,
     *,
     anchor_timestamp: str | None = None,
     current_head_sha: str | None = None,
 ) -> bool:
+    current_reviewer = review_data.get("current_reviewer")
+    if not isinstance(current_reviewer, str) or not current_reviewer.strip():
+        return False
     floor = live_review_support.parse_github_timestamp(anchor_timestamp)
     if floor is None:
         _, cycle_boundary = _initial_cycle_boundary(review_data)
         floor = live_review_support.parse_github_timestamp(cycle_boundary)
-    for gap in _deferred_gaps(review_data).values():
+    for gap in fail_closed_gaps:
         if not isinstance(gap, dict):
             continue
-        if gap.get("operator_action_required") is False:
+        if gap.get("operator_action_required") is not True:
             continue
         if gap.get("reason") not in _FAIL_CLOSED_REVIEWER_ACTIVITY_GAP_REASONS:
             continue
@@ -214,11 +225,18 @@ def has_fail_closed_reviewer_activity_for_current_scope(
         if source_kind not in _REVIEWER_ACTIVITY_GAP_KINDS:
             continue
         event_timestamp = _gap_event_timestamp(gap)
-        if floor is not None and event_timestamp is not None and event_timestamp < floor:
+        if event_timestamp is None:
             continue
-        if source_kind == "pull_request_review:submitted" and isinstance(current_head_sha, str) and current_head_sha:
+        if floor is not None and event_timestamp < floor:
+            continue
+        author = _visible_activity_author(gap)
+        if not isinstance(author, str) or author.lower() != current_reviewer.lower():
+            continue
+        if source_kind == "pull_request_review:submitted":
+            if not isinstance(current_head_sha, str) or not current_head_sha.strip():
+                continue
             commit_id = _visible_review_commit_id(gap)
-            if commit_id is not None and commit_id != current_head_sha:
+            if commit_id != current_head_sha:
                 continue
         return True
     return False
@@ -563,6 +581,7 @@ def derive_reviewer_response_state(
                 reason="no_reviewer_activity",
                 scope_fields=_current_scope_fields(review_data, current_reviewer, current_head, None),
                 anchor_timestamp=_initial_reviewer_anchor(review_data),
+                current_head_sha=current_head,
                 reviewer_comment=reviewer_comment,
                 reviewer_review=reviewer_review,
                 current_cycle_reviewer_handoff=reviewer_handoff,
