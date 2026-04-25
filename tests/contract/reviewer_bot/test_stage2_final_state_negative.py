@@ -16,26 +16,29 @@ def test_legacy_reconcile_compatibility_surfaces_are_removed():
     assert not hasattr(reconcile_replay_policy, "decide_observer_noop")
 
 
-def test_parse_deferred_context_payload_rejects_legacy_schema_versions_and_observer_noop():
-    with pytest.raises(RuntimeError, match="schema_version is not accepted"):
-        reconcile_payloads.parse_deferred_context_payload(
-            {
-                "schema_version": 2,
-                "source_event_name": "issue_comment",
-                "source_event_action": "created",
-                "source_event_key": "issue_comment:210",
-                "pr_number": 42,
-                "comment_id": 210,
-                "comment_class": "command_only",
-                "has_non_command_text": False,
-                "source_body_digest": "digest",
-                "source_created_at": "2026-03-17T10:00:00Z",
-                "actor_login": "alice",
-                "source_run_id": 1,
-                "source_run_attempt": 1,
-            }
-        )
-    with pytest.raises(RuntimeError, match="schema_version is not accepted"):
+def test_parse_deferred_context_payload_accepts_legacy_comment_but_rejects_observer_noop():
+    parsed = reconcile_payloads.parse_deferred_context_payload(
+        {
+            "schema_version": 2,
+            "source_event_name": "issue_comment",
+            "source_event_action": "created",
+            "source_event_key": "issue_comment:210",
+            "pr_number": 42,
+            "comment_id": 210,
+            "comment_class": "command_only",
+            "has_non_command_text": False,
+            "source_body_digest": "digest",
+            "source_created_at": "2026-03-17T10:00:00Z",
+            "actor_login": "alice",
+            "source_run_id": 1,
+            "source_run_attempt": 1,
+        }
+    )
+
+    assert isinstance(parsed, reconcile_payloads.DeferredCommentPayload)
+    assert parsed.source_body_digest == "digest"
+
+    with pytest.raises(RuntimeError, match="Unsupported deferred workflow_run payload"):
         reconcile_payloads.parse_deferred_context_payload(
             {
                 "schema_version": 1,

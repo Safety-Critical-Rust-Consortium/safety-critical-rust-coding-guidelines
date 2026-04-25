@@ -251,12 +251,42 @@ def test_reconcile_active_review_entry_uses_explicit_head_repair_changed_field(m
 
 
 def test_parse_deferred_context_payload_rejects_unsupported_payload():
-    with pytest.raises(RuntimeError, match="schema_version is not accepted"):
+    with pytest.raises(RuntimeError, match="Unsupported deferred workflow_run payload"):
         reconcile.parse_deferred_context_payload({"schema_version": 2})
 
 
+def test_parse_deferred_context_payload_accepts_legacy_comment_payload():
+    payload = {
+        "schema_version": 2,
+        "source_event_name": "issue_comment",
+        "source_event_action": "created",
+        "source_event_key": "issue_comment:210",
+        "pr_number": 42,
+        "comment_id": 210,
+        "comment_class": "plain_text",
+        "has_non_command_text": True,
+        "source_body_digest": "digest",
+        "source_created_at": "2026-03-17T10:00:00Z",
+        "actor_login": "alice",
+        "actor_id": 7001,
+        "source_run_id": 1,
+        "source_run_attempt": 1,
+    }
+
+    parsed = reconcile.parse_deferred_context_payload(payload)
+
+    assert isinstance(parsed, reconcile.DeferredCommentPayload)
+    assert parsed.identity.payload_kind == reconcile_payloads.DeferredPayloadKind.DEFERRED_COMMENT
+    assert parsed.comment_created_at == "2026-03-17T10:00:00Z"
+    assert parsed.comment_author == "alice"
+    assert parsed.comment_author_id == 7001
+    assert parsed.source_body_digest == "digest"
+    assert parsed.source_comment_class == "plain_text"
+    assert parsed.source_has_non_command_text is True
+
+
 def test_parse_deferred_context_payload_rejects_observer_noop_payload():
-    with pytest.raises(RuntimeError, match="schema_version is not accepted"):
+    with pytest.raises(RuntimeError, match="Unsupported deferred workflow_run payload"):
         reconcile.parse_deferred_context_payload(
             {
                 "schema_version": 1,

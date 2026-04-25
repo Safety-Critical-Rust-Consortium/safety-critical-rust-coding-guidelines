@@ -27,6 +27,14 @@ def _payload_and_upload_steps(job: dict) -> tuple[dict, dict]:
     return build_step, upload_step
 
 
+def _extract_python_heredoc(run_script: str) -> str:
+    start = "python - <<'PY'\n"
+    if start not in run_script:
+        raise AssertionError("workflow step does not contain a single-quoted Python heredoc")
+    body = run_script.split(start, 1)[1]
+    return body.rsplit("\nPY", 1)[0]
+
+
 @pytest.mark.parametrize(
     ("workflow_path",),
     [
@@ -85,6 +93,42 @@ def test_deferred_comment_payload_parses_without_artifact_name_field():
     parsed = reconcile_payloads.parse_deferred_context_payload(payload)
 
     assert parsed.identity.source_event_name == "issue_comment"
+
+
+def test_review_comment_workflow_payload_builder_emits_parseable_contract(monkeypatch, tmp_path):
+    workflow_path = ".github/workflows/reviewer-bot-pr-review-comment-observer.yml"
+    build_step, _ = _payload_and_upload_steps(_load_workflow_job(workflow_path))
+    payload_path = tmp_path / "deferred-review-comment.json"
+    env_values = {
+        "PAYLOAD_PATH": str(payload_path),
+        "GITHUB_RUN_ID": "404",
+        "GITHUB_RUN_ATTEMPT": "6",
+        "COMMENT_BODY": "@guidelines-bot /queue",
+        "PR_NUMBER": "42",
+        "ISSUE_AUTHOR": "dana",
+        "ISSUE_STATE": "open",
+        "ISSUE_LABELS": '["coding guideline"]',
+        "COMMENT_ID": "701",
+        "COMMENT_CREATED_AT": "2026-03-20T21:00:00Z",
+        "COMMENT_AUTHOR": "reviewer2",
+        "COMMENT_AUTHOR_ID": "7004",
+        "COMMENT_USER_TYPE": "User",
+        "COMMENT_COMMIT_ID": "abc123def456",
+        "COMMENT_SENDER_TYPE": "User",
+        "COMMENT_INSTALLATION_ID": "",
+        "COMMENT_PERFORMED_VIA_GITHUB_APP": "false",
+    }
+    for name, value in env_values.items():
+        monkeypatch.setenv(name, value)
+
+    exec(compile(_extract_python_heredoc(build_step["run"]), workflow_path, "exec"), {})
+
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    parsed = reconcile_payloads.parse_deferred_context_payload(payload)
+    fixture_payload = _load_fixture_payload("tests/fixtures/observer_payloads/workflow_pr_review_comment_deferred.json")
+
+    assert payload == fixture_payload
+    assert parsed.source_commit_id == "abc123def456"
 
 
 def test_dismissed_review_payload_does_not_fabricate_source_dismissal_time_contract():

@@ -114,6 +114,8 @@ def test_deferred_payload_parsing_does_not_require_artifact_name_helpers(fixture
     assert parsed.identity.source_run_id == payload["source_run_id"]
     assert parsed.identity.source_run_attempt == payload["source_run_attempt"]
     assert parsed.identity.source_event_key == payload["source_event_key"]
+    if payload["payload_kind"] == "deferred_review_comment":
+        assert parsed.source_commit_id == payload["source_commit_id"]
 
 
 def test_read_reconcile_object_fails_closed_for_unavailable(monkeypatch):

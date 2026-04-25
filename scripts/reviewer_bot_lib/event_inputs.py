@@ -447,8 +447,8 @@ def build_pull_request_sync_request(bot: EventInputsContext) -> PullRequestSyncR
 
 
 def build_replay_comment_event_request(payload, *, live_comment=None, comment_body: str | None = None) -> CommentEventRequest:
-    if getattr(getattr(payload, "identity", None), "schema_version", None) != 3:
-        raise InvalidEventInput("build_replay_comment_event_request", ("schema-v3 comment-like payload required",))
+    if not hasattr(payload, "identity") or not hasattr(payload, "comment_id"):
+        raise InvalidEventInput("build_replay_comment_event_request", ("typed deferred comment payload required",))
     if not hasattr(payload, "issue_state") or not hasattr(payload, "issue_author") or not hasattr(payload, "issue_labels"):
         raise InvalidEventInput("build_replay_comment_event_request", ("typed deferred comment payload required",))
     resolved_body = payload.comment_body if comment_body is None else comment_body

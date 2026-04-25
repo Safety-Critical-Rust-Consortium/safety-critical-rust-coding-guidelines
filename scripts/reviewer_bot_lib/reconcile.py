@@ -247,6 +247,12 @@ def optional_router_payload_missing(bot: ReconcileWorkflowRuntimeContext, event_
 
 
 def _classify_deferred_comment_payload(payload: DeferredCommentPayload) -> dict:
+    if payload.source_comment_class is not None and payload.source_has_non_command_text is not None:
+        return {
+            "comment_class": payload.source_comment_class,
+            "has_non_command_text": payload.source_has_non_command_text,
+            "command_count": 1 if payload.source_comment_class in {"command_only", "command_plus_text"} else 0,
+        }
     normalized_body = "\n".join(line.rstrip() for line in payload.comment_body.replace("\r\n", "\n").split("\n")).strip()
     classified = comment_routing_policy.classify_comment_payload(
         "@guidelines-bot",
@@ -258,6 +264,12 @@ def _classify_deferred_comment_payload(payload: DeferredCommentPayload) -> dict:
         "has_non_command_text": bool(classified.get("has_non_command_text")),
         "command_count": int(classified.get("command_count", 0)),
     }
+
+
+def _deferred_comment_body_digest_matches(payload: DeferredCommentPayload, live_body: str) -> bool:
+    if payload.source_body_digest is not None:
+        return digest_comment_body(live_body) == payload.source_body_digest
+    return digest_comment_body(live_body) == digest_comment_body(payload.comment_body)
 
 
 def _reconcile_deferred_comment(
@@ -323,7 +335,7 @@ def _reconcile_deferred_comment(
     if not isinstance(live_body, str):
         raise RuntimeError("Live deferred comment body is unavailable")
     live_classified = classify_comment_payload(bot, live_body)
-    if digest_comment_body(live_body) != digest_comment_body(context.payload.comment_body):
+    if not _deferred_comment_body_digest_matches(context.payload, live_body):
         decision = reconcile_replay_policy.decide_comment_replay(
             comment_id=comment_id,
             source_comment_class=str(source_classified.get("comment_class", ObserverCommentClassification.PLAIN_TEXT)),
