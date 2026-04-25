@@ -198,6 +198,8 @@ def test_execute_run_preview_reviewer_board_keeps_pr264_alternate_approval_proje
         actor="iglesias",
         reviewed_head_sha="head-old",
     )
+    review["transition_warning_sent"] = "2026-03-18T00:00:00Z"
+    review["transition_notice_sent_at"] = "2026-04-01T00:00:00Z"
 
     routes = RouteGitHubApi().add_request(
         "GET",

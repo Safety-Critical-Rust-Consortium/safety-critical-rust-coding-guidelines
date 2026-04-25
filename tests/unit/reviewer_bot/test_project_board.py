@@ -233,6 +233,8 @@ def test_preview_board_projection_keeps_pr264_alternate_approval_boundary(monkey
         reviewed_head_sha="head-old",
         source_precedence=1,
     )
+    review["transition_warning_sent"] = "2026-03-18T00:00:00Z"
+    review["transition_notice_sent_at"] = "2026-04-01T00:00:00Z"
     routes = RouteGitHubApi().add_pull_request_snapshot(264, pull_request_payload(264, head_sha="head-live", author="manhatsu")).add_pull_request_reviews(
         264,
         [review_payload(501, state="APPROVED", submitted_at="2026-03-18T12:10:42Z", commit_id="head-live", author="plaindocs")],
@@ -248,6 +250,45 @@ def test_preview_board_projection_keeps_pr264_alternate_approval_boundary(monkey
     assert preview.desired.review_state == REVIEWER_BOARD_OPTION_AWAITING_CONTRIBUTOR
     assert preview.desired.waiting_since is None
     assert preview.desired.needs_attention == "No"
+
+
+def test_preview_board_projection_marks_fail_closed_current_scope_gap_as_attention(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(
+        state,
+        42,
+        reviewer="alice",
+        assigned_at="2026-03-17T09:00:00Z",
+        active_cycle_started_at="2026-03-17T09:00:00Z",
+    )
+    review["sidecars"]["deferred_gaps"]["pull_request_review:501"] = {
+        "source_event_key": "pull_request_review:501",
+        "source_event_kind": "pull_request_review:submitted",
+        "source_event_created_at": "2026-03-18T10:00:00Z",
+        "reason": "reconcile_failed_closed",
+        "operator_action_required": True,
+        "visible_review_diagnostic": {
+            "category": "visible_review_without_replay_artifact",
+            "payload": {
+                "author": "alice",
+                "submitted_at": "2026-03-18T10:00:00Z",
+                "commit_id": "head-1",
+            },
+        },
+    }
+    runtime = _runtime(monkeypatch)
+    runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
+    runtime.adapters.review_state.compute_reviewer_response_state = lambda issue_number, review_data, **kwargs: {
+        "state": "awaiting_reviewer_response",
+        "anchor_timestamp": "2026-03-17T09:00:00Z",
+        "reason": "no_reviewer_activity",
+        "current_head_sha": "head-1",
+    }
+
+    preview = project_board.preview_board_projection_for_item(runtime, state, 42)
+
+    assert preview.desired is not None
+    assert preview.desired.needs_attention == REVIEWER_BOARD_OPTION_ATTENTION_PROJECTION_REPAIR_REQUIRED
 
 
 def test_preview_board_projection_marks_projection_repair_as_attention(monkeypatch):

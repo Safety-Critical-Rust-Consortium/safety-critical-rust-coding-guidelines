@@ -6,6 +6,8 @@ import copy
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from scripts.reviewer_bot_core import reviewer_response_policy
+
 from .config import (
     REVIEWER_BOARD_ENABLED_ENV,
     REVIEWER_BOARD_FIELD_ASSIGNED_AT,
@@ -92,6 +94,9 @@ class ReviewStateDerivation:
     state: str
     anchor_timestamp: str | None
     reason: str | None
+    current_scope_key: str | None
+    current_scope_basis: str | None
+    current_head_sha: str | None
 
 
 @dataclass(frozen=True)
@@ -279,6 +284,9 @@ def _derive_review_state(
         state=state,
         anchor_timestamp=derived.get("anchor_timestamp") if isinstance(derived.get("anchor_timestamp"), str) else None,
         reason=derived.get("reason") if isinstance(derived.get("reason"), str) else None,
+        current_scope_key=derived.get("current_scope_key") if isinstance(derived.get("current_scope_key"), str) else None,
+        current_scope_basis=derived.get("current_scope_basis") if isinstance(derived.get("current_scope_basis"), str) else None,
+        current_head_sha=derived.get("current_head_sha") if isinstance(derived.get("current_head_sha"), str) else None,
     )
 
 
@@ -355,10 +363,17 @@ def derive_board_projection(input: BoardProjectionInput) -> BoardProjectionValue
 
     needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_NO
     repair_needed = load_repair_marker(review_data, "status_label_projection")
-    if isinstance(repair_needed, dict) and repair_needed.get("kind") == "projection_failure":
+    fail_closed_reviewer_activity = reviewer_response_policy.has_fail_closed_reviewer_activity_for_current_scope(
+        review_data,
+        anchor_timestamp=derivation.anchor_timestamp,
+        current_head_sha=derivation.current_head_sha,
+    )
+    if (isinstance(repair_needed, dict) and repair_needed.get("kind") == "projection_failure") or fail_closed_reviewer_activity:
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_PROJECTION_REPAIR_REQUIRED
     elif review_data.get("mandatory_approver_required"):
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_TRIAGE_APPROVAL_REQUIRED
+    elif derivation.state == "awaiting_contributor_response" and derivation.reason == "current_head_alternate_approval_present":
+        needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_NO
     elif review_data.get("transition_notice_sent_at"):
         needs_attention = REVIEWER_BOARD_OPTION_ATTENTION_TRANSITION_NOTICE_SENT
     elif review_data.get("transition_warning_sent"):
