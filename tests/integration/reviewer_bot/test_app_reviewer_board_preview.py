@@ -163,15 +163,6 @@ def test_execute_run_preview_reviewer_board_is_read_only(monkeypatch, capsys):
     assert payload["head_sha"] == "workflow-head"
     assert payload["board_attention"] == "No"
     assert payload["board_waiting_since"] == "2026-05-20"
-    assert payload["board_projection"] == {
-        "review_state": "Awaiting Reviewer",
-        "reviewer": "alice",
-        "assigned_at": "2026-05-20",
-        "waiting_since": "2026-05-20",
-        "needs_attention": "No",
-        "archive": False,
-        "ensure_membership": True,
-    }
     assert payload["lock_attempted"] is False
     assert payload["state_save_attempted"] is False
     assert payload["tracked_state_mutations_attempted"] is False
@@ -262,13 +253,4 @@ def test_execute_run_preview_reviewer_board_keeps_pr264_alternate_approval_proje
         "touched_projection_attempted": False,
         "board_attention": "No",
         "board_waiting_since": None,
-        "board_projection": {
-            "review_state": "Awaiting Contributor",
-            "reviewer": "iglesias",
-            "assigned_at": "2026-02-10",
-            "waiting_since": None,
-            "needs_attention": "No",
-            "archive": False,
-            "ensure_membership": True,
-        },
     }

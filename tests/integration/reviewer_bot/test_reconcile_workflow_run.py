@@ -767,6 +767,123 @@ def test_deferred_review_comment_missing_live_object_preserves_source_time_fresh
     assert gap["source_commit_id"] == "head-1"
 
 
+def test_deferred_review_comment_parse_failure_records_artifact_invalid_gap(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_comment_payload(
+            pr_number=42,
+            comment_id=304,
+            source_event_key="pull_request_review_comment:304",
+            body="review comment without head evidence",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=704,
+            source_run_attempt=1,
+            source_commit_id=None,
+        ),
+    )
+
+    assert harness.run(state) is True
+    assert review["reviewer_comment"]["accepted"] is None
+    gap = _deferred_gaps(review)["pull_request_review_comment:304"]
+    assert gap["reason"] == "artifact_invalid"
+    assert gap["failure_kind"] == "invalid_payload"
+    assert "source_commit_id must be a non-empty string" in gap["diagnostic_summary"]
+    assert "source_commit_id" not in gap
+
+
+def test_deferred_legacy_review_comment_hydrates_source_commit_id_from_live_comment(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    original_body = "legacy review comment original body"
+    live_body = "legacy review comment edited body"
+    harness = ReconcileHarness(
+        monkeypatch,
+        {
+            "schema_version": 2,
+            "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
+            "source_run_id": 705,
+            "source_run_attempt": 1,
+            "source_event_name": "pull_request_review_comment",
+            "source_event_action": "created",
+            "source_event_key": "pull_request_review_comment:305",
+            "pr_number": 42,
+            "comment_id": 305,
+            "comment_class": "plain_text",
+            "has_non_command_text": True,
+            "source_body_digest": digest_comment_body(original_body),
+            "source_created_at": "2026-03-17T10:00:00Z",
+            "actor_login": "alice",
+            "actor_id": 6,
+        },
+    )
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
+    harness.add_review_comment(
+        comment_id=305,
+        body=live_body,
+        author="alice",
+        author_type="User",
+        author_association="MEMBER",
+        commit_id="head-1",
+    )
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="push": "granted"
+
+    assert harness.run(state) is True
+    gap = _deferred_gaps(review)["pull_request_review_comment:305"]
+    assert gap["reason"] == "reconcile_failed_closed"
+    assert gap["source_commit_id"] == "head-1"
+
+
+def test_deferred_legacy_review_comment_without_live_commit_id_records_artifact_invalid(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    live_body = "legacy review comment body"
+    harness = ReconcileHarness(
+        monkeypatch,
+        {
+            "schema_version": 2,
+            "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
+            "source_run_id": 706,
+            "source_run_attempt": 1,
+            "source_event_name": "pull_request_review_comment",
+            "source_event_action": "created",
+            "source_event_key": "pull_request_review_comment:306",
+            "pr_number": 42,
+            "comment_id": 306,
+            "comment_class": "plain_text",
+            "has_non_command_text": True,
+            "source_body_digest": digest_comment_body(live_body),
+            "source_created_at": "2026-03-17T10:00:00Z",
+            "actor_login": "alice",
+            "actor_id": 6,
+        },
+    )
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
+    harness.add_review_comment(
+        comment_id=306,
+        body=live_body,
+        author="alice",
+        author_type="User",
+        author_association="MEMBER",
+    )
+
+    assert harness.run(state) is True
+    assert review["reviewer_comment"]["accepted"] is None
+    gap = _deferred_gaps(review)["pull_request_review_comment:306"]
+    assert gap["reason"] == "artifact_invalid"
+    assert gap["failure_kind"] == "invalid_payload"
+    assert "source_commit_id could not be recovered" in gap["diagnostic_summary"]
+    assert "source_commit_id" not in gap
+
+
 def test_deferred_comment_reconcile_fails_closed_when_command_replay_is_ambiguous(monkeypatch):
     state = make_state()
     make_tracked_review_state(state, 42, reviewer="alice")

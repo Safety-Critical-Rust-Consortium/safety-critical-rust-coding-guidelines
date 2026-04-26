@@ -283,19 +283,23 @@ class ReconcileHarness:
         author: str,
         author_type: str,
         author_association: str,
+        commit_id: str | None = None,
         performed_via_github_app=None,
         status_code: int = 200,
     ) -> None:
+        payload = {
+            "body": body,
+            "user": {"login": author, "type": author_type},
+            "author_association": author_association,
+            "performed_via_github_app": performed_via_github_app,
+        }
+        if commit_id is not None:
+            payload["commit_id"] = commit_id
         self.github.add_request(
             "GET",
             f"pulls/comments/{comment_id}",
             status_code=status_code,
-            payload={
-                "body": body,
-                "user": {"login": author, "type": author_type},
-                "author_association": author_association,
-                "performed_via_github_app": performed_via_github_app,
-            },
+            payload=payload,
         )
 
     def add_request_failure(
