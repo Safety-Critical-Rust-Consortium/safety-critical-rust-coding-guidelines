@@ -1044,6 +1044,72 @@ def test_deferred_review_comment_parse_failure_rejects_invalid_recoverable_times
     assert _deferred_gaps(review) == {}
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        issue_comment_payload(
+            pr_number=42,
+            comment_id=214,
+            source_event_key="issue_comment:999",
+            body="@guidelines-bot /queue",
+            comment_class="command_only",
+            has_non_command_text=False,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="bob",
+            source_run_id=718,
+            source_run_attempt=1,
+        ),
+        review_comment_payload(
+            pr_number=42,
+            comment_id=314,
+            source_event_key="pull_request_review_comment:999",
+            body="review comment with mismatched key",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=719,
+            source_run_attempt=1,
+            source_commit_id="head-1",
+        ),
+        review_submitted_payload(
+            pr_number=42,
+            review_id=15,
+            source_event_key="pull_request_review:999",
+            source_submitted_at="2026-03-17T10:00:00Z",
+            source_review_state="COMMENTED",
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=720,
+            source_run_attempt=1,
+        ),
+        review_dismissed_payload(
+            pr_number=42,
+            review_id=16,
+            source_event_key="pull_request_review_dismissed:999",
+            source_dismissed_at="2026-03-17T10:10:00Z",
+            source_commit_id="head-1",
+            actor_login="alice",
+            source_run_id=721,
+            source_run_attempt=1,
+        ),
+    ],
+)
+def test_strict_parse_rejects_source_object_key_mismatch_before_diagnostic(monkeypatch, payload):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(monkeypatch, payload)
+
+    with pytest.raises(RuntimeError, match="source_event_key does not match recoverable object id"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
 def test_deferred_issue_comment_parse_failure_records_artifact_invalid_gap(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")

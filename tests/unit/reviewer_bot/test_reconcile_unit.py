@@ -159,6 +159,24 @@ def test_parse_deferred_context_payload_rejects_source_event_key_prefix_mismatch
         reconcile.parse_deferred_context_payload(payload)
 
 
+def test_parse_deferred_context_payload_rejects_source_event_key_object_mismatch():
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="issue_comment:999",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+
+    with pytest.raises(RuntimeError, match="source_event_key object mismatch"):
+        reconcile.parse_deferred_context_payload(payload)
+
+
 def test_build_deferred_comment_replay_context_returns_typed_context():
     payload = reconcile.DeferredCommentPayload(
         identity=reconcile.DeferredArtifactIdentity(

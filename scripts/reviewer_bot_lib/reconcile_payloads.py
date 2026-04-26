@@ -306,6 +306,16 @@ def _validate_identity_contract(identity: DeferredArtifactIdentity) -> None:
         raise RuntimeError("Deferred workflow_run payload source_event_key prefix mismatch")
 
 
+def _canonical_source_event_key(contract: DeferredIdentityContract, source_object_id: int) -> str:
+    return f"{contract.source_event_key_prefix}{source_object_id}"
+
+
+def _validate_identity_object_key(identity: DeferredArtifactIdentity, source_object_id: int) -> None:
+    contract = _DEFERRED_IDENTITY_CONTRACTS[identity.payload_kind]
+    if identity.source_event_key != _canonical_source_event_key(contract, source_object_id):
+        raise RuntimeError("Deferred workflow_run payload source_event_key object mismatch")
+
+
 def recover_deferred_payload_identity(payload: object) -> RecoveredDeferredPayloadIdentity:
     if not isinstance(payload, dict):
         raise RuntimeError("Deferred context payload lacks a recoverable diagnostic target")
@@ -319,8 +329,7 @@ def recover_deferred_payload_identity(payload: object) -> RecoveredDeferredPaylo
         raise RuntimeError("Deferred context payload lacks a supported recoverable event kind")
     source_object_id = _positive_int(payload, contract.object_id_field)
     source_event_key = _nonempty_string(payload, "source_event_key")
-    expected_source_event_key = f"{contract.source_event_key_prefix}{source_object_id}"
-    if source_event_key != expected_source_event_key:
+    if source_event_key != _canonical_source_event_key(contract, source_object_id):
         raise RuntimeError("Deferred context payload source_event_key does not match recoverable object id")
     actor_login = _first_string(payload, contract.actor_fields, "source actor login")
     source_event_created_at = _recoverable_timestamp(payload, contract.timestamp_fields)
@@ -358,7 +367,7 @@ def build_deferred_comment_replay_context(
     contract = _contract_for_event(expected_event_name, "created")
     if contract is None or contract.object_id_field != "comment_id":
         raise RuntimeError("Deferred comment artifact event type is not accepted")
-    if payload.identity.source_event_key != f"{contract.source_event_key_prefix}{payload.comment_id}":
+    if payload.identity.source_event_key != _canonical_source_event_key(contract, payload.comment_id):
         raise RuntimeError("Deferred comment artifact source_event_key mismatch")
     return DeferredCommentReplayContext(
         payload=payload,
@@ -377,7 +386,7 @@ def build_deferred_review_replay_context(
         raise RuntimeError("Deferred review artifact event type is not accepted")
     if payload.identity.source_event_action != expected_event_action:
         raise RuntimeError("Deferred review artifact action mismatch")
-    if payload.identity.source_event_key != f"{contract.source_event_key_prefix}{payload.review_id}":
+    if payload.identity.source_event_key != _canonical_source_event_key(contract, payload.review_id):
         raise RuntimeError(f"Deferred review-{expected_event_action} artifact source_event_key mismatch")
     return DeferredReviewReplayContext(payload=payload)
 
@@ -512,6 +521,8 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
     _validate_identity_contract(identity)
     if identity.payload_kind == DeferredPayloadKind.DEFERRED_COMMENT or identity.payload_kind == DeferredPayloadKind.DEFERRED_REVIEW_COMMENT:
         _validate_deferred_review_comment_artifact(payload)
+        comment_id = int(payload["comment_id"])
+        _validate_identity_object_key(identity, comment_id)
         if identity.schema_version == 2:
             actor_id = payload.get("actor_id")
             try:
@@ -520,7 +531,7 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
                 comment_author_id = 0
             return DeferredCommentPayload(
                 identity=identity,
-                comment_id=int(payload["comment_id"]),
+                comment_id=comment_id,
                 comment_body="",
                 comment_created_at=str(payload["source_created_at"]),
                 comment_author=str(payload["actor_login"]),
@@ -542,7 +553,7 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
             raise RuntimeError("Deferred workflow_run payload schema_version is not accepted")
         return DeferredCommentPayload(
             identity=identity,
-            comment_id=int(payload["comment_id"]),
+            comment_id=comment_id,
             comment_body=str(payload["comment_body"]),
             comment_created_at=str(payload["comment_created_at"]),
             comment_author=str(payload["comment_author"]),
@@ -559,9 +570,11 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
         )
     if identity.payload_kind == DeferredPayloadKind.DEFERRED_REVIEW_SUBMITTED or identity.payload_kind == DeferredPayloadKind.DEFERRED_REVIEW_DISMISSED:
         _validate_deferred_review_artifact(payload)
+        review_id = int(payload["review_id"])
+        _validate_identity_object_key(identity, review_id)
         return DeferredReviewPayload(
             identity=identity,
-            review_id=int(payload["review_id"]),
+            review_id=review_id,
             source_submitted_at=(str(payload["source_submitted_at"]) if payload.get("source_submitted_at") is not None else None),
             source_review_state=(str(payload["source_review_state"]) if payload.get("source_review_state") is not None else None),
             source_commit_id=(str(payload["source_commit_id"]) if payload.get("source_commit_id") is not None else None),
