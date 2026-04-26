@@ -377,6 +377,48 @@ def test_legacy_review_comment_commit_hydration_updates_typed_payload():
     assert parsed.raw_payload["source_commit_id"] == "head-1"
 
 
+def test_recover_deferred_payload_identity_builds_sanitized_payload_without_mutating_source():
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="issue_comment:210",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+    before = dict(payload)
+
+    recovered = reconcile_payloads.recover_deferred_payload_identity(payload)
+
+    assert payload == before
+    assert recovered.source_event_key == "issue_comment:210"
+    assert recovered.source_object_id == 210
+    assert recovered.diagnostic_payload["source_comment_id"] == 210
+    assert recovered.diagnostic_payload["source_event_created_at"] == "2026-03-17T10:00:00Z"
+
+
+def test_recover_deferred_payload_identity_rejects_invalid_timestamp():
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="issue_comment:210",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="not-a-timestamp",
+        actor_login="bob",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+
+    with pytest.raises(RuntimeError, match="timestamp is not parseable"):
+        reconcile_payloads.recover_deferred_payload_identity(payload)
+
+
 def test_parse_deferred_context_payload_normalizes_legacy_app_flag_strings():
     payload = {
         "schema_version": 2,

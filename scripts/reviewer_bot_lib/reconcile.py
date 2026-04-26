@@ -78,18 +78,6 @@ class WorkflowRunHandlerResult:
     touched_items: list[int]
 
 
-@dataclass(frozen=True)
-class RecoverableDeferredPayloadIdentity:
-    source_run_id: int
-    source_run_attempt: int
-    source_event_name: str
-    source_event_action: str
-    source_event_key: str
-    pr_number: int
-    actor_login: str
-    source_event_created_at: str
-
-
 def _log(bot: ReconcileWorkflowRuntimeContext, level: str, message: str, **fields) -> None:
     bot.logger.event(level, message, **fields)
 
@@ -259,87 +247,6 @@ def optional_router_payload_missing(bot: ReconcileWorkflowRuntimeContext, event_
 
 
 _DEFERRED_PARSE_ERRORS = (RuntimeError, KeyError, TypeError, ValueError)
-_RECOVERABLE_DEFERRED_EVENT_KEY_PREFIXES = {
-    ("issue_comment", "created"): "issue_comment:",
-    ("pull_request_review_comment", "created"): "pull_request_review_comment:",
-    ("pull_request_review", "submitted"): "pull_request_review:",
-    ("pull_request_review", "dismissed"): "pull_request_review_dismissed:",
-}
-
-
-def _recover_positive_int(payload: dict, field_name: str) -> int:
-    try:
-        value = int(payload.get(field_name))
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError(f"Deferred context payload lacks a recoverable {field_name}") from exc
-    if value <= 0:
-        raise RuntimeError(f"Deferred context payload lacks a recoverable {field_name}")
-    return value
-
-
-def _recover_nonempty_string(payload: dict, field_name: str) -> str:
-    value = payload.get(field_name)
-    if not isinstance(value, str) or not value.strip():
-        raise RuntimeError(f"Deferred context payload lacks a recoverable {field_name}")
-    return value.strip()
-
-
-def _first_recoverable_string(payload: dict, field_names: tuple[str, ...], diagnostic_name: str) -> str:
-    for field_name in field_names:
-        value = payload.get(field_name)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    raise RuntimeError(f"Deferred context payload lacks a recoverable {diagnostic_name}")
-
-
-def _recover_deferred_payload_identity(payload: object) -> RecoverableDeferredPayloadIdentity:
-    if not isinstance(payload, dict):
-        raise RuntimeError("Deferred context payload lacks a recoverable diagnostic target")
-    pr_number = _recover_positive_int(payload, "pr_number")
-    source_run_id = _recover_positive_int(payload, "source_run_id")
-    source_run_attempt = _recover_positive_int(payload, "source_run_attempt")
-    source_event_name = _recover_nonempty_string(payload, "source_event_name")
-    source_event_action = _recover_nonempty_string(payload, "source_event_action")
-    source_event_key = _recover_nonempty_string(payload, "source_event_key")
-    expected_key_prefix = _RECOVERABLE_DEFERRED_EVENT_KEY_PREFIXES.get((source_event_name, source_event_action))
-    if expected_key_prefix is None:
-        raise RuntimeError("Deferred context payload lacks a supported recoverable event kind")
-    if not source_event_key.startswith(expected_key_prefix):
-        raise RuntimeError("Deferred context payload source_event_key does not match recoverable event kind")
-    actor_login = _first_recoverable_string(
-        payload,
-        ("source_actor_login", "comment_author", "actor_login", "review_author"),
-        "source actor login",
-    )
-    source_event_created_at = _first_recoverable_string(
-        payload,
-        (
-            "source_created_at",
-            "comment_created_at",
-            "source_submitted_at",
-            "source_dismissed_at",
-            "source_event_created_at",
-        ),
-        "source event timestamp",
-    )
-    payload["pr_number"] = pr_number
-    payload["source_run_id"] = source_run_id
-    payload["source_run_attempt"] = source_run_attempt
-    payload["source_event_name"] = source_event_name
-    payload["source_event_action"] = source_event_action
-    payload["source_event_key"] = source_event_key
-    payload.setdefault("source_actor_login", actor_login)
-    payload.setdefault("source_event_created_at", source_event_created_at)
-    return RecoverableDeferredPayloadIdentity(
-        source_run_id=source_run_id,
-        source_run_attempt=source_run_attempt,
-        source_event_name=source_event_name,
-        source_event_action=source_event_action,
-        source_event_key=source_event_key,
-        pr_number=pr_number,
-        actor_login=actor_login,
-        source_event_created_at=source_event_created_at,
-    )
 
 
 def _payload_source_commit_id(payload: dict) -> str | None:
@@ -767,10 +674,11 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
         parsed_payload = parse_deferred_context_payload(payload)
     except _DEFERRED_PARSE_ERRORS as exc:
         try:
-            recovered_identity = _recover_deferred_payload_identity(payload)
+            recovered_identity = _reconcile_payloads.recover_deferred_payload_identity(payload)
         except RuntimeError as recover_exc:
             raise RuntimeError(f"{recover_exc}; original parse error: {exc}") from exc
-        _reconcile_payloads.validate_triggering_run_identity(bot, payload)
+        diagnostic_payload = recovered_identity.diagnostic_payload
+        _reconcile_payloads.validate_triggering_run_identity(bot, diagnostic_payload)
         pr_number = recovered_identity.pr_number
         review_data = ensure_review_entry(state, pr_number)
         if review_data is None:
@@ -804,7 +712,7 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
             gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
                 bot,
                 review_data,
-                payload,
+                diagnostic_payload,
                 "reconcile_failed_closed",
                 f"{live_pr_exc} See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}.",
                 failure_kind=failure_kind,
@@ -816,7 +724,7 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
         gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,
             review_data,
-            payload,
+            diagnostic_payload,
             "artifact_invalid",
             f"{exc} See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}.",
             failure_kind="invalid_payload",

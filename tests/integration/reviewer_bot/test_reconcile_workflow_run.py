@@ -984,6 +984,165 @@ def test_deferred_review_comment_parse_failure_rejects_unsupported_event_kind(mo
     assert _deferred_gaps(review) == {}
 
 
+def test_deferred_review_comment_parse_failure_rejects_mismatched_source_object_key(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_comment_payload(
+            pr_number=42,
+            comment_id=312,
+            source_event_key="pull_request_review_comment:999",
+            body="review comment without head evidence",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=712,
+            source_run_attempt=1,
+            source_commit_id=None,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="source_event_key does not match recoverable object id"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_review_comment_parse_failure_rejects_invalid_recoverable_timestamp(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_comment_payload(
+            pr_number=42,
+            comment_id=313,
+            source_event_key="pull_request_review_comment:313",
+            body="review comment without head evidence",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="not-a-timestamp",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=713,
+            source_run_attempt=1,
+            source_commit_id=None,
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="timestamp is not parseable"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_issue_comment_parse_failure_records_artifact_invalid_gap(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=212,
+        source_event_key="issue_comment:212",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=714,
+        source_run_attempt=1,
+    )
+    payload["comment_sender_type"] = ""
+    harness = ReconcileHarness(monkeypatch, payload)
+    harness.add_pull_request(pr_number=42, author="dana")
+
+    assert harness.run(state) is True
+    gap = _deferred_gaps(review)["issue_comment:212"]
+    assert gap["reason"] == "artifact_invalid"
+    assert gap["source_comment_id"] == 212
+    assert gap["source_event_created_at"] == "2026-03-17T10:00:00Z"
+
+
+def test_deferred_issue_comment_parse_failure_rejects_mismatched_source_object_key(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=213,
+        source_event_key="issue_comment:999",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=715,
+        source_run_attempt=1,
+    )
+    payload["comment_sender_type"] = ""
+    harness = ReconcileHarness(monkeypatch, payload)
+
+    with pytest.raises(RuntimeError, match="source_event_key does not match recoverable object id"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_review_submitted_parse_failure_records_artifact_invalid_gap(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    payload = review_submitted_payload(
+        pr_number=42,
+        review_id=13,
+        source_event_key="pull_request_review:13",
+        source_submitted_at="2026-03-17T10:00:00Z",
+        source_review_state="COMMENTED",
+        source_commit_id="head-1",
+        actor_login="alice",
+        source_run_id=716,
+        source_run_attempt=1,
+    )
+    payload["schema_version"] = 4
+    harness = ReconcileHarness(monkeypatch, payload)
+    harness.add_pull_request(pr_number=42, author="dana")
+
+    assert harness.run(state) is True
+    gap = _deferred_gaps(review)["pull_request_review:13"]
+    assert gap["reason"] == "artifact_invalid"
+    assert gap["source_review_id"] == 13
+    assert gap["source_event_created_at"] == "2026-03-17T10:00:00Z"
+
+
+def test_deferred_review_dismissed_parse_failure_records_artifact_invalid_gap(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    payload = review_dismissed_payload(
+        pr_number=42,
+        review_id=14,
+        source_event_key="pull_request_review_dismissed:14",
+        source_dismissed_at="2026-03-17T10:10:00Z",
+        source_commit_id="head-1",
+        actor_login="alice",
+        source_run_id=717,
+        source_run_attempt=1,
+    )
+    payload["schema_version"] = 4
+    harness = ReconcileHarness(monkeypatch, payload)
+    harness.add_pull_request(pr_number=42, author="dana")
+
+    assert harness.run(state) is True
+    gap = _deferred_gaps(review)["pull_request_review_dismissed:14"]
+    assert gap["reason"] == "artifact_invalid"
+    assert gap["source_review_id"] == 14
+    assert gap["source_event_created_at"] == "2026-03-17T10:10:00Z"
+
+
 def test_deferred_legacy_review_comment_hydrates_source_commit_id_from_live_comment(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")
