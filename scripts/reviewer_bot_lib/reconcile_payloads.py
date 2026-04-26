@@ -245,6 +245,25 @@ def _validate_deferred_comment_artifact(payload: dict) -> None:
         raise RuntimeError("Deferred comment artifact comment_installation_id must be a string or null")
     if not isinstance(payload.get("comment_performed_via_github_app"), bool):
         raise RuntimeError("Deferred comment artifact comment_performed_via_github_app must be boolean")
+    if payload.get("payload_kind") == DeferredPayloadKind.DEFERRED_REVIEW_COMMENT.value:
+        source_commit_id = payload.get("source_commit_id")
+        if not isinstance(source_commit_id, str) or not source_commit_id.strip():
+            raise RuntimeError("Deferred review comment artifact source_commit_id must be a non-empty string")
+
+
+def _legacy_optional_bool(payload: dict, field_name: str, *, default: bool = False) -> bool:
+    if field_name not in payload or payload.get(field_name) is None:
+        return default
+    value = payload[field_name]
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+    raise RuntimeError(f"Deferred legacy comment artifact {field_name} must be boolean")
 
 
 def _validate_legacy_deferred_comment_artifact(payload: dict) -> None:
@@ -281,6 +300,7 @@ def _validate_legacy_deferred_comment_artifact(payload: dict) -> None:
         raise RuntimeError("Deferred legacy comment artifact classification is malformed")
     if not isinstance(payload.get("actor_login"), str) or not payload["actor_login"].strip():
         raise RuntimeError("Deferred legacy comment artifact actor login is unavailable")
+    _legacy_optional_bool(payload, "comment_performed_via_github_app")
 
 
 def _validate_deferred_review_artifact(payload: dict) -> None:
@@ -331,7 +351,7 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
                 comment_user_type=str(payload.get("actor_user_type") or "User"),
                 comment_sender_type=str(payload.get("actor_sender_type") or "User"),
                 comment_installation_id=(str(payload["comment_installation_id"]) if payload.get("comment_installation_id") else None),
-                comment_performed_via_github_app=bool(payload.get("comment_performed_via_github_app", False)),
+                comment_performed_via_github_app=_legacy_optional_bool(payload, "comment_performed_via_github_app"),
                 issue_author=str(payload.get("issue_author") or ""),
                 issue_state=str(payload.get("issue_state") or "open"),
                 issue_labels=tuple(str(label) for label in payload.get("issue_labels", ())),

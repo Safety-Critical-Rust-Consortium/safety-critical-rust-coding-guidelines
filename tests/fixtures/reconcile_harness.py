@@ -128,7 +128,7 @@ def review_comment_payload(
     in_reply_to_id: int,
     source_run_id: int,
     source_run_attempt: int,
-    source_commit_id: str | None = None,
+    source_commit_id: str | None = "head-1",
 ) -> dict:
     del comment_class, has_non_command_text, actor_class, pull_request_review_id, in_reply_to_id
     payload = {

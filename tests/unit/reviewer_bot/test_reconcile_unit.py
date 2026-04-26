@@ -99,6 +99,29 @@ def test_parse_deferred_context_payload_rejects_non_boolean_performed_via_app():
         reconcile.parse_deferred_context_payload(payload)
 
 
+def test_parse_deferred_context_payload_rejects_review_comment_without_source_commit_id():
+    payload = review_comment_payload(
+        pr_number=42,
+        comment_id=310,
+        source_event_key="pull_request_review_comment:310",
+        body="plain text review comment",
+        comment_class="plain_text",
+        has_non_command_text=True,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="alice",
+        actor_id=11,
+        actor_class="repo_user_principal",
+        pull_request_review_id=77,
+        in_reply_to_id=0,
+        source_run_id=711,
+        source_run_attempt=1,
+        source_commit_id=None,
+    )
+
+    with pytest.raises(RuntimeError, match="source_commit_id must be a non-empty string"):
+        reconcile.parse_deferred_context_payload(payload)
+
+
 def test_parse_deferred_context_payload_rejects_kind_event_mismatch():
     payload = issue_comment_payload(
         pr_number=42,
@@ -320,6 +343,52 @@ def test_parse_deferred_context_payload_accepts_legacy_comment_payload():
     assert parsed.source_body_digest == "digest"
     assert parsed.source_comment_class == "plain_text"
     assert parsed.source_has_non_command_text is True
+
+
+def test_parse_deferred_context_payload_normalizes_legacy_app_flag_strings():
+    payload = {
+        "schema_version": 2,
+        "source_event_name": "issue_comment",
+        "source_event_action": "created",
+        "source_event_key": "issue_comment:210",
+        "pr_number": 42,
+        "comment_id": 210,
+        "comment_class": "plain_text",
+        "has_non_command_text": True,
+        "source_body_digest": "digest",
+        "source_created_at": "2026-03-17T10:00:00Z",
+        "actor_login": "alice",
+        "source_run_id": 1,
+        "source_run_attempt": 1,
+        "comment_performed_via_github_app": "false",
+    }
+
+    parsed = reconcile.parse_deferred_context_payload(payload)
+
+    assert isinstance(parsed, reconcile.DeferredCommentPayload)
+    assert parsed.comment_performed_via_github_app is False
+
+
+def test_parse_deferred_context_payload_rejects_invalid_legacy_app_flag():
+    payload = {
+        "schema_version": 2,
+        "source_event_name": "issue_comment",
+        "source_event_action": "created",
+        "source_event_key": "issue_comment:210",
+        "pr_number": 42,
+        "comment_id": 210,
+        "comment_class": "plain_text",
+        "has_non_command_text": True,
+        "source_body_digest": "digest",
+        "source_created_at": "2026-03-17T10:00:00Z",
+        "actor_login": "alice",
+        "source_run_id": 1,
+        "source_run_attempt": 1,
+        "comment_performed_via_github_app": "not-a-bool",
+    }
+
+    with pytest.raises(RuntimeError, match="comment_performed_via_github_app must be boolean"):
+        reconcile.parse_deferred_context_payload(payload)
 
 
 def test_parse_deferred_context_payload_rejects_observer_noop_payload():

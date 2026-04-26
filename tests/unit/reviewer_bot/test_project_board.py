@@ -368,6 +368,32 @@ def test_preview_board_projection_marks_normalized_review_gap_as_attention(monke
     assert preview.desired.needs_attention == REVIEWER_BOARD_OPTION_ATTENTION_PROJECTION_REPAIR_REQUIRED
 
 
+def test_preview_board_projection_marks_fail_closed_gap_as_attention_outside_reviewer_wait(monkeypatch):
+    for state_name in ["done", "awaiting_contributor_response", "awaiting_write_approval"]:
+        state = make_state()
+        review = make_tracked_review_state(
+            state,
+            42,
+            reviewer="alice",
+            assigned_at="2026-03-17T09:00:00Z",
+            active_cycle_started_at="2026-03-17T09:00:00Z",
+        )
+        review["sidecars"]["deferred_gaps"]["pull_request_review:501"] = _fail_closed_normalized_review_gap()
+        runtime = _runtime(monkeypatch)
+        runtime.github.get_issue_or_pr_snapshot = lambda issue_number: issue_snapshot(issue_number, state="open", is_pull_request=True)
+        runtime.adapters.review_state.compute_reviewer_response_state = lambda issue_number, review_data, **kwargs: {
+            "state": state_name,
+            "anchor_timestamp": "2026-03-17T09:00:00Z",
+            "reason": "current_scope_repair_required",
+            "current_head_sha": "head-1",
+        }
+
+        preview = project_board.preview_board_projection_for_item(runtime, state, 42)
+
+        assert preview.desired is not None
+        assert preview.desired.needs_attention == REVIEWER_BOARD_OPTION_ATTENTION_PROJECTION_REPAIR_REQUIRED, state_name
+
+
 def test_preview_board_projection_marks_fail_closed_comment_gaps_with_source_actor_as_attention(monkeypatch):
     cases = [
         ("issue_comment:210", "issue_comment:created", None),
