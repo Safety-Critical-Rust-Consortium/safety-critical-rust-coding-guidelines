@@ -446,7 +446,13 @@ def build_pull_request_sync_request(bot: EventInputsContext) -> PullRequestSyncR
     )
 
 
-def build_replay_comment_event_request(payload, *, live_comment=None, comment_body: str | None = None) -> CommentEventRequest:
+def build_replay_comment_event_request(
+    payload,
+    *,
+    live_comment=None,
+    live_pr=None,
+    comment_body: str | None = None,
+) -> CommentEventRequest:
     if not hasattr(payload, "identity") or not hasattr(payload, "comment_id"):
         raise InvalidEventInput("build_replay_comment_event_request", ("typed deferred comment payload required",))
     if not hasattr(payload, "issue_state") or not hasattr(payload, "issue_author") or not hasattr(payload, "issue_labels"):
@@ -467,12 +473,18 @@ def build_replay_comment_event_request(payload, *, live_comment=None, comment_bo
         if live_comment is not None and live_comment.comment_performed_via_github_app_available
         else payload.comment_performed_via_github_app
     )
+    issue_author = payload.issue_author
+    if live_pr is not None and not issue_author.strip():
+        issue_author = live_pr.issue_author
+    issue_labels = payload.issue_labels
+    if live_pr is not None and not issue_labels:
+        issue_labels = live_pr.issue_labels
     return CommentEventRequest(
         issue_number=payload.identity.pr_number,
         is_pull_request=True,
         issue_state=payload.issue_state,
-        issue_author=payload.issue_author,
-        issue_labels=payload.issue_labels,
+        issue_author=issue_author,
+        issue_labels=issue_labels,
         comment_id=payload.comment_id,
         comment_author=(live_comment.comment_author if live_comment is not None else payload.comment_author),
         comment_author_id=payload.comment_author_id,

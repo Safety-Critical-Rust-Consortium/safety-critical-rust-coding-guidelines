@@ -17,17 +17,11 @@ def test_sweeper_repair_workflow_removes_reviewer_board_preview_dispatch():
     assert issue_number_input["required"] is False
     assert issue_number_input["type"] == "string"
 
-def test_sweeper_repair_workflow_retains_reviewer_board_env_wiring_without_dispatch_option():
+def test_sweeper_repair_workflow_removes_reviewer_board_preview_env_wiring():
     workflow_text = Path(".github/workflows/reviewer-bot-sweeper-repair.yml").read_text(encoding="utf-8")
     assert "ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}" in workflow_text
-    assert (
-        "REVIEWER_BOARD_ENABLED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && 'true' || 'false' }}"
-        in workflow_text
-    )
-    assert (
-        "REVIEWER_BOARD_TOKEN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && secrets.REVIEWER_BOARD_TOKEN || '' }}"
-        in workflow_text
-    )
+    assert "REVIEWER_BOARD_ENABLED" not in workflow_text
+    assert "REVIEWER_BOARD_TOKEN" not in workflow_text
 
 
 def test_sweeper_repair_workflow_exports_retained_manual_dispatch_env_contract():

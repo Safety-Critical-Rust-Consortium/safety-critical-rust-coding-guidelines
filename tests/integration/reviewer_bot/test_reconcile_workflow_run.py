@@ -3,6 +3,7 @@ from copy import deepcopy
 import pytest
 
 from scripts.reviewer_bot_lib import reconcile
+from scripts.reviewer_bot_lib.comment_application import digest_comment_body
 from tests.fixtures.reconcile_harness import (
     ReconcileHarness,
     issue_comment_payload,
@@ -848,6 +849,44 @@ def test_deferred_comment_reconcile_hydrates_pr_author_context_for_contributor_f
 
     assert harness.run(state) is True
     assert state["active_reviews"]["42"]["contributor_comment"]["accepted"]["semantic_key"] == "issue_comment:199"
+    assert state["active_reviews"]["42"]["reviewer_comment"]["accepted"] is None
+
+
+def test_deferred_legacy_comment_reconcile_hydrates_live_pr_context_for_contributor_freshness(monkeypatch):
+    state = make_state()
+    make_tracked_review_state(state, 42, reviewer="alice")
+    live_body = "reviewer-bot validation: legacy contributor plain text comment"
+    harness = ReconcileHarness(
+        monkeypatch,
+        {
+            "schema_version": 2,
+            "source_workflow_name": "Reviewer Bot PR Comment Router",
+            "source_run_id": 621,
+            "source_run_attempt": 1,
+            "source_event_name": "issue_comment",
+            "source_event_action": "created",
+            "source_event_key": "issue_comment:211",
+            "pr_number": 42,
+            "comment_id": 211,
+            "comment_class": "plain_text",
+            "has_non_command_text": True,
+            "source_body_digest": digest_comment_body(live_body),
+            "source_created_at": "2026-03-17T10:00:00Z",
+            "actor_login": "dana",
+        },
+    )
+    harness.add_pull_request(pr_number=42, author="dana", labels=["coding guideline"])
+    harness.add_issue_comment(
+        comment_id=211,
+        body=live_body,
+        author="dana",
+        author_type="User",
+        author_association="CONTRIBUTOR",
+    )
+    harness.runtime.github.get_user_permission_status = lambda username, required_permission="push": "granted"
+
+    assert harness.run(state) is True
+    assert state["active_reviews"]["42"]["contributor_comment"]["accepted"]["semantic_key"] == "issue_comment:211"
     assert state["active_reviews"]["42"]["reviewer_comment"]["accepted"] is None
 
 

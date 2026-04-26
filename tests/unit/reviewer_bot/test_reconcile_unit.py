@@ -99,6 +99,43 @@ def test_parse_deferred_context_payload_rejects_non_boolean_performed_via_app():
         reconcile.parse_deferred_context_payload(payload)
 
 
+def test_parse_deferred_context_payload_rejects_kind_event_mismatch():
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="issue_comment:210",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+    payload["payload_kind"] = "deferred_review_submitted"
+
+    with pytest.raises(RuntimeError, match="kind/event mismatch"):
+        reconcile.parse_deferred_context_payload(payload)
+
+
+def test_parse_deferred_context_payload_rejects_source_event_key_prefix_mismatch():
+    payload = issue_comment_payload(
+        pr_number=42,
+        comment_id=210,
+        source_event_key="pull_request_review_comment:210",
+        body="@guidelines-bot /queue",
+        comment_class="command_only",
+        has_non_command_text=False,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="bob",
+        source_run_id=610,
+        source_run_attempt=1,
+    )
+
+    with pytest.raises(RuntimeError, match="source_event_key prefix mismatch"):
+        reconcile.parse_deferred_context_payload(payload)
+
+
 def test_build_deferred_comment_replay_context_returns_typed_context():
     payload = reconcile.DeferredCommentPayload(
         identity=reconcile.DeferredArtifactIdentity(

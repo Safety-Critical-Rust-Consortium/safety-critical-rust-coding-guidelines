@@ -281,7 +281,7 @@ def _reconcile_deferred_comment(
     payload = context.payload.raw_payload
     comment_id = context.comment_id
     pr_number = context.pr_number
-    _read_live_pr_replay_context(bot, pr_number)
+    live_pr_context = _read_live_pr_replay_context(bot, pr_number)
     source_freshness_eligible = context.source_freshness_eligible
     source_classified = _classify_deferred_comment_payload(context.payload)
 
@@ -289,6 +289,7 @@ def _reconcile_deferred_comment(
         return build_replay_comment_event_request(
             context.payload,
             live_comment=comment_context,
+            live_pr=live_pr_context,
             comment_body=comment_body,
         )
 

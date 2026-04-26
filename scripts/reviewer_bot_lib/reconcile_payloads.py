@@ -119,6 +119,26 @@ class DeferredReviewReplayContext:
         return self.payload.actor_login or ""
 
 
+_EXPECTED_IDENTITY_CONTRACTS: dict[DeferredPayloadKind, tuple[str, str, str]] = {
+    DeferredPayloadKind.DEFERRED_COMMENT: ("issue_comment", "created", "issue_comment:"),
+    DeferredPayloadKind.DEFERRED_REVIEW_COMMENT: (
+        "pull_request_review_comment",
+        "created",
+        "pull_request_review_comment:",
+    ),
+    DeferredPayloadKind.DEFERRED_REVIEW_SUBMITTED: (
+        "pull_request_review",
+        "submitted",
+        "pull_request_review:",
+    ),
+    DeferredPayloadKind.DEFERRED_REVIEW_DISMISSED: (
+        "pull_request_review",
+        "dismissed",
+        "pull_request_review_dismissed:",
+    ),
+}
+
+
 def _build_deferred_identity(payload: dict) -> DeferredArtifactIdentity:
     payload_kind = payload.get("payload_kind")
     if payload_kind is None and payload.get("schema_version") == 2:
@@ -142,6 +162,19 @@ def _build_deferred_identity(payload: dict) -> DeferredArtifactIdentity:
         source_event_key=str(payload["source_event_key"]),
         pr_number=int(payload["pr_number"]),
     )
+
+
+def _validate_identity_contract(identity: DeferredArtifactIdentity) -> None:
+    expected_event_name, expected_event_action, expected_key_prefix = _EXPECTED_IDENTITY_CONTRACTS[
+        identity.payload_kind
+    ]
+    if (
+        identity.source_event_name != expected_event_name
+        or identity.source_event_action != expected_event_action
+    ):
+        raise RuntimeError("Deferred workflow_run payload kind/event mismatch")
+    if not identity.source_event_key.startswith(expected_key_prefix):
+        raise RuntimeError("Deferred workflow_run payload source_event_key prefix mismatch")
 
 
 def build_deferred_comment_replay_context(
@@ -279,6 +312,7 @@ def parse_deferred_context_payload(payload: dict) -> DeferredReviewPayload | Def
     if not isinstance(payload, dict):
         raise RuntimeError("Deferred context payload must be a JSON object")
     identity = _build_deferred_identity(payload)
+    _validate_identity_contract(identity)
     if identity.payload_kind == DeferredPayloadKind.DEFERRED_COMMENT or identity.payload_kind == DeferredPayloadKind.DEFERRED_REVIEW_COMMENT:
         _validate_deferred_review_comment_artifact(payload)
         if identity.schema_version == 2:

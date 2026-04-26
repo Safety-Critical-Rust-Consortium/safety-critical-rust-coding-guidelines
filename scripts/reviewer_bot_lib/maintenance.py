@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 
 import yaml
 
@@ -105,6 +106,7 @@ def _handle_manual_dispatch_request(bot, state: dict, request) -> bool:
         desired = preview.desired
         payload["board_attention"] = desired.needs_attention if desired is not None else None
         payload["board_waiting_since"] = desired.waiting_since if desired is not None else None
+        payload["board_projection"] = asdict(desired) if desired is not None else None
         _emit_preview_json(payload)
         return False
     bot.assert_lock_held("handle_manual_dispatch")
