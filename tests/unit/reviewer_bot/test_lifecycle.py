@@ -88,7 +88,7 @@ def test_check_overdue_reviews_skips_transition_after_transition_notice_sent(mon
     assert maintenance.check_overdue_reviews(runtime, state) == []
 
 
-def test_handle_transition_notice_records_transition_notice_sent_at_once(monkeypatch):
+def test_handle_transition_notice_records_transition_notice_sent_at_once_without_external_config(monkeypatch):
     runtime = FakeReviewerBotRuntime(monkeypatch)
     state = make_state()
     review = review_state.ensure_review_entry(state, 42, create=True)
@@ -119,33 +119,6 @@ def test_handle_transition_notice_message_does_not_claim_reassignment(monkeypatc
     assert lifecycle.handle_transition_notice(runtime, state, 42, "alice") is True
     assert "reassigned to the next person in the queue" not in posted[0]
     assert "/pass" in posted[0]
-
-
-@pytest.mark.parametrize("config_value", [None, ""])
-def test_handle_transition_notice_skips_cutover_artifact_write_when_opencode_config_dir_is_blank_or_unset(
-    monkeypatch, tmp_path, config_value
-):
-    monkeypatch.chdir(tmp_path)
-    runtime = FakeReviewerBotRuntime(monkeypatch)
-    state = make_state()
-    review_state.ensure_review_entry(state, 42, create=True)
-    runtime.github.post_comment_result = lambda issue_number, body: runtime.GitHubApiResult(
-        201,
-        {},
-        {},
-        "created",
-        True,
-        None,
-        0,
-        None,
-    )
-    if config_value is not None:
-        runtime.set_config_value("OPENCODE_CONFIG_DIR", config_value)
-
-    assert lifecycle.handle_transition_notice(runtime, state, 42, "alice") is True
-    assert not (
-        tmp_path / "reviewer-bot" / "maintainability-remediation" / "transition-notice-marker-cutover.json"
-    ).exists()
 
 
 def test_l1_fake_runtime_and_bootstrap_keep_override_wiring_explicit_without_canonical_introspection():

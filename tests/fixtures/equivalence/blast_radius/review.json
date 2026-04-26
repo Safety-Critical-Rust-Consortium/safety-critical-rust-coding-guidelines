@@ -280,7 +280,7 @@
         "scripts/reviewer_bot_lib/deferred_gap_bookkeeping.py` owns `DeferredGapRecord` and `ReconciledSourceEventRecord",
         "scripts/reviewer_bot_lib/sweeper_observer_correlation.py` owns `ObserverDiscoveryWatermark",
         "scripts/reviewer_bot_core/review_state_machine.py` does not default, clear, or reshape the retained sidecar subtree",
-        "$OPENCODE_CONFIG_DIR/reviewer-bot/maintainability-remediation/g0f-persisted-record-inventory.json` names one schema owner, one constructor owner, one retained sidecar subtree path, exact record fields, and exact closed status or result families for the changed field"
+        "tests/contract/reviewer_bot/test_review_state_contract.py` and `scripts/reviewer_bot_core/state_adapters.py` together name the retained review-entry schema owner, sidecar subtree path, exact record fields, and closed compatibility shapes for the changed field"
       ]
     },
     {

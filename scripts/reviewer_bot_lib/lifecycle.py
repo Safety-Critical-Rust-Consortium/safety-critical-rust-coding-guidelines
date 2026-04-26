@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 
 from . import assignment_flow
 from .config import CODING_GUIDELINE_LABEL, TRANSITION_NOTICE_MARKER_PREFIX
@@ -50,26 +48,6 @@ def _normalize_comment_body(body: str) -> str:
 
 def _semantic_digest(value: str) -> str:
     return hashlib.sha256(_normalize_comment_body(value).encode("utf-8")).hexdigest()
-
-
-def _write_transition_notice_marker_cutover(bot) -> None:
-    config_dir_value = bot.get_config_value("OPENCODE_CONFIG_DIR").strip()
-    if not config_dir_value:
-        return
-    config_dir = Path(config_dir_value)
-    artifact_path = config_dir / "reviewer-bot" / "issue-428-reminder-remediation" / "transition-notice-marker-cutover.json"
-    artifact_path.parent.mkdir(parents=True, exist_ok=True)
-    artifact_path.write_text(
-        json.dumps(
-            {
-                "artifact_id": "transition-notice-marker-cutover",
-                "completed_at": bot.clock.now().isoformat(),
-                "state_issue_number": bot.state_issue_number(),
-            },
-            indent=2,
-        ) + "\n",
-        encoding="utf-8",
-    )
 
 
 def handle_transition_notice(bot, state: dict, issue_number: int, reviewer: str) -> bool:
@@ -152,7 +130,6 @@ _If you believe this is in error or have extenuating circumstances, please reach
                 return True
         return _record_transport_failure(bot, review_data, issue_number, phase="transition_post", result=post_result)
     changed = _clear_transport_failure(bot, review_data, issue_number, phase="transition_post") or changed
-    _write_transition_notice_marker_cutover(bot)
     record_transition_notice_sent(
         review_data,
         bot.datetime.now(bot.timezone.utc).isoformat(),
