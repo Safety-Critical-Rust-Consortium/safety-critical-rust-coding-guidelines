@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from scripts.reviewer_bot_core import comment_routing_policy, reconcile_replay_policy
 from scripts.reviewer_bot_core.comment_routing_policy import (
@@ -76,6 +76,18 @@ ParsedWorkflowRunPayload = DeferredReviewPayload | DeferredCommentPayload
 class WorkflowRunHandlerResult:
     state_changed: bool
     touched_items: list[int]
+
+
+@dataclass(frozen=True)
+class RecoverableDeferredPayloadIdentity:
+    source_run_id: int
+    source_run_attempt: int
+    source_event_name: str
+    source_event_action: str
+    source_event_key: str
+    pr_number: int
+    actor_login: str
+    source_event_created_at: str
 
 
 def _log(bot: ReconcileWorkflowRuntimeContext, level: str, message: str, **fields) -> None:
@@ -247,21 +259,87 @@ def optional_router_payload_missing(bot: ReconcileWorkflowRuntimeContext, event_
 
 
 _DEFERRED_PARSE_ERRORS = (RuntimeError, KeyError, TypeError, ValueError)
+_RECOVERABLE_DEFERRED_EVENT_KEY_PREFIXES = {
+    ("issue_comment", "created"): "issue_comment:",
+    ("pull_request_review_comment", "created"): "pull_request_review_comment:",
+    ("pull_request_review", "submitted"): "pull_request_review:",
+    ("pull_request_review", "dismissed"): "pull_request_review_dismissed:",
+}
 
 
-def _recover_deferred_payload_target(payload: object) -> tuple[int, str]:
+def _recover_positive_int(payload: dict, field_name: str) -> int:
+    try:
+        value = int(payload.get(field_name))
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"Deferred context payload lacks a recoverable {field_name}") from exc
+    if value <= 0:
+        raise RuntimeError(f"Deferred context payload lacks a recoverable {field_name}")
+    return value
+
+
+def _recover_nonempty_string(payload: dict, field_name: str) -> str:
+    value = payload.get(field_name)
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"Deferred context payload lacks a recoverable {field_name}")
+    return value.strip()
+
+
+def _first_recoverable_string(payload: dict, field_names: tuple[str, ...], diagnostic_name: str) -> str:
+    for field_name in field_names:
+        value = payload.get(field_name)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    raise RuntimeError(f"Deferred context payload lacks a recoverable {diagnostic_name}")
+
+
+def _recover_deferred_payload_identity(payload: object) -> RecoverableDeferredPayloadIdentity:
     if not isinstance(payload, dict):
         raise RuntimeError("Deferred context payload lacks a recoverable diagnostic target")
-    try:
-        pr_number = int(payload.get("pr_number"))
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError("Deferred context payload lacks a recoverable PR number") from exc
-    source_event_key = payload.get("source_event_key")
-    if pr_number <= 0:
-        raise RuntimeError("Deferred context payload lacks a recoverable PR number")
-    if not isinstance(source_event_key, str) or not source_event_key.strip():
-        raise RuntimeError("Deferred context payload lacks a recoverable source_event_key")
-    return pr_number, source_event_key.strip()
+    pr_number = _recover_positive_int(payload, "pr_number")
+    source_run_id = _recover_positive_int(payload, "source_run_id")
+    source_run_attempt = _recover_positive_int(payload, "source_run_attempt")
+    source_event_name = _recover_nonempty_string(payload, "source_event_name")
+    source_event_action = _recover_nonempty_string(payload, "source_event_action")
+    source_event_key = _recover_nonempty_string(payload, "source_event_key")
+    expected_key_prefix = _RECOVERABLE_DEFERRED_EVENT_KEY_PREFIXES.get((source_event_name, source_event_action))
+    if expected_key_prefix is None:
+        raise RuntimeError("Deferred context payload lacks a supported recoverable event kind")
+    if not source_event_key.startswith(expected_key_prefix):
+        raise RuntimeError("Deferred context payload source_event_key does not match recoverable event kind")
+    actor_login = _first_recoverable_string(
+        payload,
+        ("source_actor_login", "comment_author", "actor_login", "review_author"),
+        "source actor login",
+    )
+    source_event_created_at = _first_recoverable_string(
+        payload,
+        (
+            "source_created_at",
+            "comment_created_at",
+            "source_submitted_at",
+            "source_dismissed_at",
+            "source_event_created_at",
+        ),
+        "source event timestamp",
+    )
+    payload["pr_number"] = pr_number
+    payload["source_run_id"] = source_run_id
+    payload["source_run_attempt"] = source_run_attempt
+    payload["source_event_name"] = source_event_name
+    payload["source_event_action"] = source_event_action
+    payload["source_event_key"] = source_event_key
+    payload.setdefault("source_actor_login", actor_login)
+    payload.setdefault("source_event_created_at", source_event_created_at)
+    return RecoverableDeferredPayloadIdentity(
+        source_run_id=source_run_id,
+        source_run_attempt=source_run_attempt,
+        source_event_name=source_event_name,
+        source_event_action=source_event_action,
+        source_event_key=source_event_key,
+        pr_number=pr_number,
+        actor_login=actor_login,
+        source_event_created_at=source_event_created_at,
+    )
 
 
 def _payload_source_commit_id(payload: dict) -> str | None:
@@ -271,18 +349,25 @@ def _payload_source_commit_id(payload: dict) -> str | None:
     return source_commit_id.strip()
 
 
-def _hydrate_live_review_comment_commit_id(context: DeferredCommentReplayContext, payload: dict, live_comment: dict) -> bool:
+def _hydrate_live_review_comment_commit_id(
+    context: DeferredCommentReplayContext,
+    live_comment: dict,
+) -> DeferredCommentReplayContext | None:
     if context.expected_event_name != "pull_request_review_comment":
-        return True
-    source_commit_id = _payload_source_commit_id(payload)
+        return context
+    payload = context.payload.raw_payload
+    source_commit_id = context.payload.source_commit_id or _payload_source_commit_id(payload)
     if source_commit_id is not None:
         payload["source_commit_id"] = source_commit_id
-        return True
+        if context.payload.source_commit_id == source_commit_id:
+            return context
+        return replace(context, payload=replace(context.payload, source_commit_id=source_commit_id))
     live_commit_id = live_comment.get("commit_id")
     if isinstance(live_commit_id, str) and live_commit_id.strip():
-        payload["source_commit_id"] = live_commit_id.strip()
-        return True
-    return False
+        source_commit_id = live_commit_id.strip()
+        payload["source_commit_id"] = source_commit_id
+        return replace(context, payload=replace(context.payload, source_commit_id=source_commit_id))
+    return None
 
 
 def _record_missing_review_comment_commit_id(
@@ -397,8 +482,10 @@ def _reconcile_deferred_comment(
             failure_kind=decision.failure_kind,
         )
         return changed or gap_changed
-    if not _hydrate_live_review_comment_commit_id(context, payload, live_comment):
+    hydrated_context = _hydrate_live_review_comment_commit_id(context, live_comment)
+    if hydrated_context is None:
         return _record_missing_review_comment_commit_id(bot, review_data, payload)
+    context = hydrated_context
     comment_context = _read_live_comment_replay_context(live_comment, payload)
     live_body = live_comment.get("body")
     if not isinstance(live_body, str):
@@ -680,9 +767,11 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
         parsed_payload = parse_deferred_context_payload(payload)
     except _DEFERRED_PARSE_ERRORS as exc:
         try:
-            pr_number, source_event_key = _recover_deferred_payload_target(payload)
+            recovered_identity = _recover_deferred_payload_identity(payload)
         except RuntimeError as recover_exc:
             raise RuntimeError(f"{recover_exc}; original parse error: {exc}") from exc
+        _reconcile_payloads.validate_triggering_run_identity(bot, payload)
+        pr_number = recovered_identity.pr_number
         review_data = ensure_review_entry(state, pr_number)
         if review_data is None:
             _log(
@@ -690,9 +779,39 @@ def handle_workflow_run_event_result(bot: ReconcileWorkflowRuntimeContext, state
                 "info",
                 f"Ignoring invalid deferred workflow_run for missing active review entry on PR #{pr_number}",
                 issue_number=pr_number,
-                source_event_key=source_event_key,
+                source_event_key=recovered_identity.source_event_key,
             )
             return WorkflowRunHandlerResult(False, [])
+        try:
+            live_pr_state = _read_live_pr_state_for_reconcile(bot, pr_number)
+            if live_pr_state == "closed":
+                _log(
+                    bot,
+                    "info",
+                    f"Ignoring invalid deferred workflow_run for closed PR #{pr_number}",
+                    issue_number=pr_number,
+                    source_event_key=recovered_identity.source_event_key,
+                )
+                return WorkflowRunHandlerResult(False, [])
+            if live_pr_state != "open":
+                raise ReconcileReadError(
+                    f"live PR #{pr_number} state is unsupported for replay: {live_pr_state}",
+                    failure_kind="invalid_payload",
+                )
+        except RuntimeError as live_pr_exc:
+            bot.collect_touched_item(pr_number)
+            failure_kind = live_pr_exc.failure_kind if isinstance(live_pr_exc, ReconcileReadError) else None
+            gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
+                bot,
+                review_data,
+                payload,
+                "reconcile_failed_closed",
+                f"{live_pr_exc} See {bot.REVIEW_FRESHNESS_RUNBOOK_PATH}.",
+                failure_kind=failure_kind,
+            )
+            if gap_changed:
+                return _build_result(True, pr_number)
+            raise
         bot.collect_touched_item(pr_number)
         gap_changed = gap_bookkeeping.record_deferred_gap_diagnostic(
             bot,

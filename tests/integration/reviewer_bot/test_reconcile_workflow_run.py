@@ -29,6 +29,37 @@ def _reconciled_source_events(review: dict) -> dict:
     return review["sidecars"]["reconciled_source_events"]
 
 
+def _legacy_review_comment_payload(
+    *,
+    pr_number: int = 42,
+    comment_id: int,
+    source_event_key: str,
+    source_body_digest: str,
+    source_created_at: str = "2026-03-17T10:00:00Z",
+    actor_login: str = "alice",
+    actor_id: int = 6,
+    source_run_id: int,
+    source_run_attempt: int = 1,
+) -> dict:
+    return {
+        "schema_version": 2,
+        "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
+        "source_run_id": source_run_id,
+        "source_run_attempt": source_run_attempt,
+        "source_event_name": "pull_request_review_comment",
+        "source_event_action": "created",
+        "source_event_key": source_event_key,
+        "pr_number": pr_number,
+        "comment_id": comment_id,
+        "comment_class": "plain_text",
+        "has_non_command_text": True,
+        "source_body_digest": source_body_digest,
+        "source_created_at": source_created_at,
+        "actor_login": actor_login,
+        "actor_id": actor_id,
+    }
+
+
 C4C_DELETION_MANIFEST = [
     "inline comment classification drift decision text in reconcile.py",
     "inline non-command text drift decision text in reconcile.py",
@@ -790,6 +821,7 @@ def test_deferred_review_comment_parse_failure_records_artifact_invalid_gap(monk
             source_commit_id=None,
         ),
     )
+    harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
 
     assert harness.run(state) is True
     assert review["reviewer_comment"]["accepted"] is None
@@ -800,6 +832,158 @@ def test_deferred_review_comment_parse_failure_records_artifact_invalid_gap(monk
     assert "source_commit_id" not in gap
 
 
+def test_deferred_review_comment_parse_failure_validates_triggering_run_before_diagnostic(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_comment_payload(
+            pr_number=42,
+            comment_id=307,
+            source_event_key="pull_request_review_comment:307",
+            body="review comment without head evidence",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=707,
+            source_run_attempt=1,
+            source_commit_id=None,
+        ),
+    )
+    harness.runtime.set_config_value("WORKFLOW_RUN_TRIGGERING_ID", "999")
+
+    with pytest.raises(RuntimeError, match="run_id mismatch"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_review_comment_parse_failure_validates_triggering_attempt_before_diagnostic(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_comment_payload(
+            pr_number=42,
+            comment_id=308,
+            source_event_key="pull_request_review_comment:308",
+            body="review comment without head evidence",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=708,
+            source_run_attempt=1,
+            source_commit_id=None,
+        ),
+    )
+    harness.runtime.set_config_value("WORKFLOW_RUN_TRIGGERING_ATTEMPT", "2")
+
+    with pytest.raises(RuntimeError, match="run_attempt mismatch"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_review_comment_parse_failure_closed_live_pr_is_safe_noop(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    harness = ReconcileHarness(
+        monkeypatch,
+        review_comment_payload(
+            pr_number=42,
+            comment_id=309,
+            source_event_key="pull_request_review_comment:309",
+            body="review comment without head evidence",
+            comment_class="plain_text",
+            has_non_command_text=True,
+            source_created_at="2026-03-17T10:00:00Z",
+            actor_login="alice",
+            actor_id=6,
+            actor_class="repo_user_principal",
+            pull_request_review_id=10,
+            in_reply_to_id=200,
+            source_run_id=709,
+            source_run_attempt=1,
+            source_commit_id=None,
+        ),
+    )
+    harness.add_pull_request(pr_number=42, author="dana", state="closed")
+
+    result = harness.handle_workflow_run_event_result(state)
+
+    assert result == reconcile.WorkflowRunHandlerResult(False, [])
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_review_comment_parse_failure_requires_recoverable_event_kind(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    payload = review_comment_payload(
+        pr_number=42,
+        comment_id=310,
+        source_event_key="pull_request_review_comment:310",
+        body="review comment without head evidence",
+        comment_class="plain_text",
+        has_non_command_text=True,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="alice",
+        actor_id=6,
+        actor_class="repo_user_principal",
+        pull_request_review_id=10,
+        in_reply_to_id=200,
+        source_run_id=710,
+        source_run_attempt=1,
+        source_commit_id=None,
+    )
+    payload.pop("source_event_name")
+    harness = ReconcileHarness(monkeypatch, payload)
+
+    with pytest.raises(RuntimeError, match="source_event_name"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
+def test_deferred_review_comment_parse_failure_rejects_unsupported_event_kind(monkeypatch):
+    state = make_state()
+    review = make_tracked_review_state(state, 42, reviewer="alice")
+    payload = review_comment_payload(
+        pr_number=42,
+        comment_id=311,
+        source_event_key="pull_request:42",
+        body="review comment without head evidence",
+        comment_class="plain_text",
+        has_non_command_text=True,
+        source_created_at="2026-03-17T10:00:00Z",
+        actor_login="alice",
+        actor_id=6,
+        actor_class="repo_user_principal",
+        pull_request_review_id=10,
+        in_reply_to_id=200,
+        source_run_id=711,
+        source_run_attempt=1,
+        source_commit_id=None,
+    )
+    payload["source_event_name"] = "pull_request"
+    payload["source_event_action"] = "closed"
+    harness = ReconcileHarness(monkeypatch, payload)
+
+    with pytest.raises(RuntimeError, match="supported recoverable event kind"):
+        harness.run(state)
+
+    assert _deferred_gaps(review) == {}
+
+
 def test_deferred_legacy_review_comment_hydrates_source_commit_id_from_live_comment(monkeypatch):
     state = make_state()
     review = make_tracked_review_state(state, 42, reviewer="alice")
@@ -807,23 +991,12 @@ def test_deferred_legacy_review_comment_hydrates_source_commit_id_from_live_comm
     live_body = "legacy review comment edited body"
     harness = ReconcileHarness(
         monkeypatch,
-        {
-            "schema_version": 2,
-            "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
-            "source_run_id": 705,
-            "source_run_attempt": 1,
-            "source_event_name": "pull_request_review_comment",
-            "source_event_action": "created",
-            "source_event_key": "pull_request_review_comment:305",
-            "pr_number": 42,
-            "comment_id": 305,
-            "comment_class": "plain_text",
-            "has_non_command_text": True,
-            "source_body_digest": digest_comment_body(original_body),
-            "source_created_at": "2026-03-17T10:00:00Z",
-            "actor_login": "alice",
-            "actor_id": 6,
-        },
+        _legacy_review_comment_payload(
+            comment_id=305,
+            source_event_key="pull_request_review_comment:305",
+            source_body_digest=digest_comment_body(original_body),
+            source_run_id=705,
+        ),
     )
     harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
     harness.add_review_comment(
@@ -848,23 +1021,12 @@ def test_deferred_legacy_review_comment_without_live_commit_id_records_artifact_
     live_body = "legacy review comment body"
     harness = ReconcileHarness(
         monkeypatch,
-        {
-            "schema_version": 2,
-            "source_workflow_name": "Reviewer Bot PR Review Comment Observer",
-            "source_run_id": 706,
-            "source_run_attempt": 1,
-            "source_event_name": "pull_request_review_comment",
-            "source_event_action": "created",
-            "source_event_key": "pull_request_review_comment:306",
-            "pr_number": 42,
-            "comment_id": 306,
-            "comment_class": "plain_text",
-            "has_non_command_text": True,
-            "source_body_digest": digest_comment_body(live_body),
-            "source_created_at": "2026-03-17T10:00:00Z",
-            "actor_login": "alice",
-            "actor_id": 6,
-        },
+        _legacy_review_comment_payload(
+            comment_id=306,
+            source_event_key="pull_request_review_comment:306",
+            source_body_digest=digest_comment_body(live_body),
+            source_run_id=706,
+        ),
     )
     harness.add_pull_request(pr_number=42, author="dana", requested_reviewers=["alice"])
     harness.add_review_comment(

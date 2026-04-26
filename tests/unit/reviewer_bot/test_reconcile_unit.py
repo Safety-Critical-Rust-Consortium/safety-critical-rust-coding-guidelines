@@ -345,6 +345,38 @@ def test_parse_deferred_context_payload_accepts_legacy_comment_payload():
     assert parsed.source_has_non_command_text is True
 
 
+def test_legacy_review_comment_commit_hydration_updates_typed_payload():
+    payload = {
+        "schema_version": 2,
+        "source_event_name": "pull_request_review_comment",
+        "source_event_action": "created",
+        "source_event_key": "pull_request_review_comment:310",
+        "pr_number": 42,
+        "comment_id": 310,
+        "comment_class": "plain_text",
+        "has_non_command_text": True,
+        "source_body_digest": "digest",
+        "source_created_at": "2026-03-17T10:00:00Z",
+        "actor_login": "alice",
+        "actor_id": 7001,
+        "source_run_id": 1,
+        "source_run_attempt": 1,
+    }
+    parsed = reconcile.parse_deferred_context_payload(payload)
+    assert isinstance(parsed, reconcile.DeferredCommentPayload)
+    context = reconcile.build_deferred_comment_replay_context(
+        parsed,
+        expected_event_name="pull_request_review_comment",
+        live_comment_endpoint="pulls/comments/310",
+    )
+
+    hydrated = reconcile._hydrate_live_review_comment_commit_id(context, {"commit_id": " head-1 "})
+
+    assert hydrated is not None
+    assert hydrated.payload.source_commit_id == "head-1"
+    assert parsed.raw_payload["source_commit_id"] == "head-1"
+
+
 def test_parse_deferred_context_payload_normalizes_legacy_app_flag_strings():
     payload = {
         "schema_version": 2,
