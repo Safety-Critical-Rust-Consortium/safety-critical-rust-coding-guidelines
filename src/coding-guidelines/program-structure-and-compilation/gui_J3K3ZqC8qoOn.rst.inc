@@ -37,9 +37,10 @@
             use std::io;
 
             fn files(dir: &str) -> io::Result<Output> {
+                let lsdir_cmd = if cfg!(unix) { "ls" } else { "dir"};
                 return Command::new("sh")
                     .arg("-c")
-                    .arg(format!("ls {dir}"))
+                    .arg(format!("{lsdir_cmd} {dir}"))
                     .output();
             }
 
@@ -48,7 +49,6 @@
                     let _ = files("dummy | echo BOO");  // Program prints "BOO"
                 }
             }
-
 
     .. compliant_example::
         :id: compl_ex_rJeLKhdopITN
@@ -62,17 +62,18 @@
             use std::io;
 
             fn files(dir: &str) -> io::Result<Output> {
-                return Command::new("ls")
-                    .arg(dir)
+                let lsdir_cmd = if cfg!(unix) { "ls" } else { "dir"};
+                return Command::new("sh")
+                    .arg("-c")
+                    .arg(format!("{lsdir_cmd} {dir}"))
                     .output();
             }
 
             fn main() {
                 if cfg!(unix) {
-                    let _ = files("dummy | echo BOO");  // Command is invalid, but does not print BOO
+                    let _ = files("dummy | echo BOO");  // Program prints "BOO"
                 }
             }
-
 
     .. compliant_example::
         :id: compl_ex_BSjAFOLfL4Rk
