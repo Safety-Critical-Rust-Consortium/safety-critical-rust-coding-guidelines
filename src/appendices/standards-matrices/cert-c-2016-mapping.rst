@@ -15,7 +15,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
    :header-rows: 1
 
    * - Guideline
-     - Cert C Rule
+     - Title
      - Category
      - Safety Critical rust Rule
      - Comment
@@ -291,7 +291,7 @@ Table 2 – Guidelines applicable to Rust in the presence of unsafe code
    :header-rows: 1
 
    * - Guideline
-     - Cert C Rule
+     - Title
      - Category
      - Safety Critical rust Rule
      - Comment
@@ -388,7 +388,7 @@ Table 3 – Guideline rules that are not applicable to Rust
    :header-rows: 1
 
    * - Guideline
-     - Cert C Rule
+     - Title
      - Category
      - Safety Critical rust Rule
      - Comment
