@@ -5,3 +5,8 @@
 
 Standards Matrices
 ==================
+
+.. toctree::
+   :maxdepth: 1
+
+   cert-c-2016-mapping
