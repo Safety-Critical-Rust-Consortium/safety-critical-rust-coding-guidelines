@@ -1,0 +1,1411 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rust Cross Reference with MISRA C 2025 &mdash; Safety-Critical Rust Coding Guidelines 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../_static/rust_playground.css?v=a15f506b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/citation.css?v=569c3786" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-data-viewer/jsonview.bundle.css?v=f6ef2277" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/libs/html/datatables.min.css?v=4b4fd840" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_core.css?v=f5b60a78" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_style.css?v=92936fa5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_links.css?v=2150a916" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/needstable.css?v=5e1b6797" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/modern.css?v=803738c0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=558c75d0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/rust_playground.js?v=acd109cb"></script>
+      <script src="../../_static/citation.js?v=1e6d5203"></script>
+      <script src="../../_static/sphinx-data-viewer/jsonview.bundle.js?v=18cd53c5"></script>
+      <script src="../../_static/sphinx-data-viewer/jsonview_loader.js?v=f7ff7e7d"></script>
+      <script src="../../_static/sphinx-needs/libs/html/datatables.min.js?v=8a4aee21"></script>
+      <script src="../../_static/sphinx-needs/libs/html/datatables_loader.js?v=a2cae175"></script>
+      <script src="../../_static/sphinx-needs/libs/html/sphinx_needs_collapse.js?v=dca66431"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Retired Guidelines" href="../../retired-guidelines/index.html" />
+    <link rel="prev" title="Standards Matrices" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Safety-Critical Rust Coding Guidelines
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../coding-guidelines/index.html">Coding Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compliance/index.html">Compliance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process/index.html">Process</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Appendices</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../licenses.html">Licenses</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Standards Matrices</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Rust Cross Reference with MISRA C 2025</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present">Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-2-guidelines-applicable-to-rust-in-the-presence-of-unsafe-code">Table 2 – Guidelines applicable to Rust in the presence of unsafe code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-3-guideline-rules-that-are-not-applicable-to-rust">Table 3 – Guideline rules that are not applicable to Rust</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#glossary">Glossary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../retired-guidelines/index.html">Retired Guidelines</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Safety-Critical Rust Coding Guidelines</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Appendices</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Standards Matrices</a></li>
+      <li class="breadcrumb-item active">Rust Cross Reference with MISRA C 2025</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/appendices/standards-matrices/misra-c-2025-mapping.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rust-cross-reference-with-misra-c-2025">
+<h1>Rust Cross Reference with MISRA C 2025<a class="headerlink" href="#rust-cross-reference-with-misra-c-2025" title="Link to this heading"></a></h1>
+<p>The following tables provide a cross reference between the MISRA C 2025 guidelines and their applicability to Rust. The
+first table covers guidelines that are applicable to Rust in general, while the second table covers additional
+guidelines that are applicable in the presence of unsafe code. The third table lists guidelines that are not applicable
+to Rust.</p>
+<p>The origin of this assessment can be found at <a class="reference external" href="https://misra.org.uk/app/uploads/2025/03/MISRA-C-2025-ADD6.pdf">MISRA C:2025 Addendum 6</a>.</p>
+<section id="table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present">
+<h2>Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)<a class="headerlink" href="#table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Safety critical Rust rule</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Directives</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.1.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.1.2</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>intended to apply to experimental and unstable features, forcing full documentation</p></td>
+</tr>
+<tr class="row-odd"><td><p>D.2.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.3.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>often in the form of panics</p></td>
+</tr>
+<tr class="row-even"><td><p>D.4.4</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>conditional compilation is provided by the cfg attribute</p></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>“ambiguity” is determined by the project</p></td>
+</tr>
+<tr class="row-even"><td><p>D.4.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>prefer Option, Result, etc. over in-band error values</p></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.9</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.4.11</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.12</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.4.13</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>many Rust APIs use the type system to enforce ordering</p></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.14</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.4.15</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>Rust implements IEEE-754</p></td>
+</tr>
+<tr class="row-odd"><td><p>D.5.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.5.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Rules</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.1.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.1.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>this applies to deprecated APIs</p></td>
+</tr>
+<tr class="row-even"><td><p>R.2.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.2.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.2.3</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.2.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.2.6</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.2.7</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.2.8</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.3.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>nested comments are fully supported</p></td>
+</tr>
+<tr class="row-even"><td><p>R.5.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>no character limit, but one can be applied; has name spaces</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.5.3</p></td>
+<td><p>Required</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/macros/gui_SJMrWDYZ0dN4.html#gui_SJMrWDYZ0dN4" title="gui_SJMrWDYZ0dN4"><em class="xref need">Names in a macro definition... (gui_SJMrWDYZ0dN4)</em></a></p></td>
+<td><p>Required</p></td>
+<td><p>this also applies to macro names</p></td>
+</tr>
+<tr class="row-even"><td><p>R.5.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>the proper module system makes surprise name conflicts much less likely</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.5.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>the proper module system makes surprise name conflicts much less likely</p></td>
+</tr>
+<tr class="row-even"><td><p>R.5.9</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.7.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>Rust octals have a distinct prefix from decimals</p></td>
+</tr>
+<tr class="row-even"><td><p>R.7.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>this is an error by default but can be enabled. Note that suffixes also make the size explicit</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.7</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>items should not be declared pub if referenced in only one module</p></td>
+</tr>
+<tr class="row-even"><td><p>R.8.9</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.13</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mut</span></code> should be avoided unless necessary</p></td>
+</tr>
+<tr class="row-even"><td><p>R.9.1</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>enforced by rustc but can be bypassed by unsafe</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.9.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>enforced by rustc</p></td>
+</tr>
+<tr class="row-even"><td><p>R.11.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.11.4</p></td>
+<td><p>Advisory</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_PM8Vpf7lZ51U.html#gui_PM8Vpf7lZ51U" title="gui_PM8Vpf7lZ51U"><em class="xref need">An integer shall not be con... (gui_PM8Vpf7lZ51U)</em></a></p></td>
+<td><p>&lt;TODO&gt;</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.11.11</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>enforced by rustc</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.12.1</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.13.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>order of evaluation is strict in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.13.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.14.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.14.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>enforced by rustc</p></td>
+</tr>
+<tr class="row-even"><td><p>R.15.4</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.15.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.15.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.2</p></td>
+<td><p>Required</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/associated-items/gui_ot2Zt3dd6of1.html#gui_ot2Zt3dd6of1" title="gui_ot2Zt3dd6of1"><em class="xref need">Recursive function are not ... (gui_ot2Zt3dd6of1)</em></a></p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.17.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">must_use</span></code> can help indicate where this is important, but does not affect applicability</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.8</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>this cannot be done accidentally without declaring parameters <code class="docutils literal notranslate"><span class="pre">mut</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>R.17.11</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>a non-returning function can be declared to return a value type</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.18.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.18.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.19.2</p></td>
+<td><p>Advisory</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#gui_0cuTYG8RVYjg" title="gui_0cuTYG8RVYjg"><em class="xref need">Ensure reads of union field... (gui_0cuTYG8RVYjg)</em></a></p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.19.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.25</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.22.13</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.18</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.22.19</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="table-2-guidelines-applicable-to-rust-in-the-presence-of-unsafe-code">
+<h2>Table 2 – Guidelines applicable to Rust in the presence of unsafe code<a class="headerlink" href="#table-2-guidelines-applicable-to-rust-in-the-presence-of-unsafe-code" title="Link to this heading"></a></h2>
+<p>In addition to the rules from Table 1, these are the additional guidelines that need to be covered:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Safety critical Rust rule</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Directives</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.2</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>D.4.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.5.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>not all safe Rust types are race-free</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Rules</strong></p></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.1.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.5.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>no character limit, except in extern “C”, but one can be set by project</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.5.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>macros and functions use different syntax</p></td>
+</tr>
+<tr class="row-even"><td><p>R.5.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only possible in some cases. Previously Rule 21.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>an extern declaration shall have a type compatible with the C declaration</p></td>
+</tr>
+<tr class="row-even"><td><p>R.8.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>may affect extern “C” declarations</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>may affect extern “C” declarations</p></td>
+</tr>
+<tr class="row-even"><td><p>R.8.15</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>may affect extern “C” declarations</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.17</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>alignment applies to types, not objects</p></td>
+</tr>
+<tr class="row-even"><td><p>R.9.7</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.10.5</p></td>
+<td><p>Advisory</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_ADHABsmK9FXz.html#gui_ADHABsmK9FXz" title="gui_ADHABsmK9FXz"><em class="xref need">The 'as' operator should no... (gui_ADHABsmK9FXz)</em></a></p></td>
+<td><p>Advisory</p></td>
+<td><p>includes both safe <code class="docutils literal notranslate"><span class="pre">as</span></code> and unsafe <code class="docutils literal notranslate"><span class="pre">transmute</span></code> operations</p></td>
+</tr>
+<tr class="row-even"><td><p>R.10.8</p></td>
+<td><p>Required</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_HDnAZ7EZ4z6G.html#gui_HDnAZ7EZ4z6G" title="gui_HDnAZ7EZ4z6G"><em class="xref need">Avoid as underscore pointer... (gui_HDnAZ7EZ4z6G)</em></a></p></td>
+<td><p>Required</p></td>
+<td><p>includes both safe <code class="docutils literal notranslate"><span class="pre">as</span></code> and unsafe <code class="docutils literal notranslate"><span class="pre">transmute</span></code> operations</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.11.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>includes both safe <code class="docutils literal notranslate"><span class="pre">as</span></code> and unsafe <code class="docutils literal notranslate"><span class="pre">transmute</span></code> operations</p></td>
+</tr>
+<tr class="row-even"><td><p>R.11.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.11.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.11.6</p></td>
+<td><p>Required</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_PM8Vpf7lZ51U.html#gui_PM8Vpf7lZ51U" title="gui_PM8Vpf7lZ51U"><em class="xref need">An integer shall not be con... (gui_PM8Vpf7lZ51U)</em></a></p></td>
+<td><p>&lt;TODO&gt;</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.11.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.12.2</p></td>
+<td><p>Required</p></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_LvmzGKdsAgI5.html#gui_LvmzGKdsAgI5" title="gui_LvmzGKdsAgI5"><em class="xref need">Avoid out-or-range shifts (gui_LvmzGKdsAgI5)</em></a>, <a class="reference internal" href="../../coding-guidelines/expressions/gui_RHvQj8BHlz9b.html#gui_RHvQj8BHlz9b" title="gui_RHvQj8BHlz9b"><em class="xref need">Do not shift an expression ... (gui_RHvQj8BHlz9b)</em></a></p></td>
+<td><p>Mandatory, Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.12.4</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>this is either well-defined or will not occur</p></td>
+</tr>
+<tr class="row-even"><td><p>R.14.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>applies to while loops only</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.9</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>this is expressed with the <code class="docutils literal notranslate"><span class="pre">!</span></code> (Never) type, and enforced by rustc</p></td>
+</tr>
+<tr class="row-even"><td><p>R.18.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>by unsafe API</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.18.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>by unsafe API</p></td>
+</tr>
+<tr class="row-even"><td><p>R.18.4</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+<td></td>
+<td><p>applies to use of the unsafe API</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.18.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.19.1</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>possible with raw identifiers but the compiler prevents visual conflicts</p></td>
+</tr>
+<tr class="row-even"><td><p>R.20.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>possible to express with procedural macros only, not <code class="docutils literal notranslate"><span class="pre">macro_rules</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.9</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.12</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.13</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.14</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.15</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.16</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.17</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.18</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.19</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.20</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.21</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.24</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.26</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>applies to resources acquired through FFI only</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.2</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.4</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.5</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.6</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.9</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.11</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.22.12</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.14</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td><p>applies to creating synchronization objects before threads that use them</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.15</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>applies to releasing synchronization objects after threads that use them</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.16</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-even"><td><p>R.22.17</p></td>
+<td><p>Required</p></td>
+<td></td>
+<td></td>
+<td><p>only accessible through unsafe extern “C”</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.22.20</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="table-3-guideline-rules-that-are-not-applicable-to-rust">
+<h2>Table 3 – Guideline rules that are not applicable to Rust<a class="headerlink" href="#table-3-guideline-rules-that-are-not-applicable-to-rust" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Directives</strong></p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.6</p></td>
+<td><p>Advisory</p></td>
+<td><p>all primitive types already fulfil this</p></td>
+</tr>
+<tr class="row-even"><td><p>D.4.8</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>D.4.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>Rules</strong></p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.1.4</p></td>
+<td><p>Required</p></td>
+<td><p>this is specific to C versioning</p></td>
+</tr>
+<tr class="row-even"><td><p>R.2.4</p></td>
+<td><p>Advisory</p></td>
+<td><p>no separate tag name space in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.3.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.4.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.4.2</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.5.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.5.7</p></td>
+<td><p>Required</p></td>
+<td><p>no separate tag name space in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p>R.6.1</p></td>
+<td><p>Required</p></td>
+<td><p>only provided as a library feature</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.6.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.6.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.7.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.7.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.7.5</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.7.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.8.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.8.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.8.11</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.12</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.8.14</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.16</p></td>
+<td><p>Advisory</p></td>
+<td><p>cannot be explicitly specified. Only ZSTs have this alignment</p></td>
+</tr>
+<tr class="row-even"><td><p>R.8.18</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.8.19</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.9.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.9.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.9.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.9.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.10.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.10.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.10.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.10.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.10.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.10.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.11.9</p></td>
+<td><p>Required</p></td>
+<td><p>Rust does not have a null pointer constant (specific concept to C)</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.11.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.12.3</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.12.5</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.12.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.13.2</p></td>
+<td><p>Required</p></td>
+<td><p>order of evaluation is strict in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p>R.13.3</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.13.4</p></td>
+<td><p>Advisory</p></td>
+<td><p>result has unit type and order of evaluation is strict in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p>R.13.6</p></td>
+<td><p>Required</p></td>
+<td><p>this is not an expression operator in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.14.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.15.1</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.15.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.15.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.15.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.16.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.16.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.16.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.16.4</p></td>
+<td><p>Required</p></td>
+<td><p>a corresponding match expression must be complete</p></td>
+</tr>
+<tr class="row-even"><td><p>R.16.5</p></td>
+<td><p>Required</p></td>
+<td><p>irrefutable pattern causes a subsequent refutable one to be unreachable</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.16.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.16.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.1</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.17.3</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.4</p></td>
+<td><p>Mandatory</p></td>
+<td><p>the return keyword is not needed to return a value in Rust, only to exit</p></td>
+</tr>
+<tr class="row-even"><td><p>R.17.5</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.10</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.17.12</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.17.13</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.18.7</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.18.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.18.9</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.18.10</p></td>
+<td><p>Mandatory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.1</p></td>
+<td><p>Advisory</p></td>
+<td><p>rules specific to the C preprocessor do not apply to Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.3</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.9</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.10</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.11</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.12</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.13</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.20.14</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.20.15</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.11</p></td>
+<td><p>Advisory</p></td>
+<td><p>no external interface</p></td>
+</tr>
+<tr class="row-even"><td><p>R.21.22</p></td>
+<td><p>Mandatory</p></td>
+<td><p>no external interface</p></td>
+</tr>
+<tr class="row-odd"><td><p>R.21.23</p></td>
+<td><p>Required</p></td>
+<td><p>no external interface</p></td>
+</tr>
+<tr class="row-even"><td><p>R.23.1</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.23.2</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.23.3</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.23.4</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.23.5</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.23.6</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>R.23.7</p></td>
+<td><p>Advisory</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>R.23.8</p></td>
+<td><p>Required</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="glossary">
+<h2>Glossary<a class="headerlink" href="#glossary" title="Link to this heading"></a></h2>
+<section id="category">
+<h3>Category<a class="headerlink" href="#category" title="Link to this heading"></a></h3>
+<p>Each MISRA C guideline is assigned a category, as follows:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Category</p></th>
+<th class="head"><p>Interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Mandatory</p></td>
+<td><p>Code shall always comply with this guideline. Formal deviation is not permitted</p></td>
+</tr>
+<tr class="row-odd"><td><p>Required</p></td>
+<td><p>Code shall comply with this guideline, with a formal deviation required where this is not the case</p></td>
+</tr>
+<tr class="row-even"><td><p>Advisory</p></td>
+<td><p>These are recommendations which should be followed as far as is reasonably practical. Formal deviation is not necessary for advisory guidelines but, if the formal deviation process is not followed, alternative arrangements should be made for documenting non-compliances</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="footnotes">
+<h3>Footnotes<a class="headerlink" href="#footnotes" title="Link to this heading"></a></h3>
+<p class="rubric">Footnotes</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Standards Matrices" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../retired-guidelines/index.html" class="btn btn-neutral float-right" title="Retired Guidelines" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Contributors to Coding Guidelines Subcommittee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+        This site is powered through <a href="https://www.netlify.com">Netlify</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
