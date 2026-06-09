@@ -10,3 +10,4 @@ Standards Matrices
    :maxdepth: 1
 
    cert-c-2016-mapping
+   misra-c-2025-mapping
