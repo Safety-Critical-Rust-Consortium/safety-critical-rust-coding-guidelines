@@ -19,6 +19,8 @@ extensions = [
     "coding_guidelines",
 ]
 
+autosectionlabel_maxdepth = 1
+
 # Show hidden lines in all examples (default: False)
 rust_examples_show_hidden = False
 
