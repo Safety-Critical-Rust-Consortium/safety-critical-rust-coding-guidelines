@@ -1,0 +1,1194 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rust Cross Reference with CERT-C 2016 &mdash; Safety-Critical Rust Coding Guidelines 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../_static/rust_playground.css?v=a15f506b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/citation.css?v=569c3786" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-data-viewer/jsonview.bundle.css?v=f6ef2277" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/libs/html/datatables.min.css?v=4b4fd840" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_core.css?v=f5b60a78" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_style.css?v=92936fa5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_links.css?v=2150a916" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/needstable.css?v=5e1b6797" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/modern.css?v=803738c0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=558c75d0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/rust_playground.js?v=acd109cb"></script>
+      <script src="../../_static/citation.js?v=1e6d5203"></script>
+      <script src="../../_static/sphinx-data-viewer/jsonview.bundle.js?v=18cd53c5"></script>
+      <script src="../../_static/sphinx-data-viewer/jsonview_loader.js?v=f7ff7e7d"></script>
+      <script src="../../_static/sphinx-needs/libs/html/datatables.min.js?v=8a4aee21"></script>
+      <script src="../../_static/sphinx-needs/libs/html/datatables_loader.js?v=a2cae175"></script>
+      <script src="../../_static/sphinx-needs/libs/html/sphinx_needs_collapse.js?v=dca66431"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Rust Cross Reference with MISRA C 2025" href="misra-c-2025-mapping.html" />
+    <link rel="prev" title="Standards Matrices" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Safety-Critical Rust Coding Guidelines
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../coding-guidelines/index.html">Coding Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compliance/index.html">Compliance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process/index.html">Process</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Appendices</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../licenses.html">Licenses</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Standards Matrices</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Rust Cross Reference with CERT-C 2016</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present">Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-2-guidelines-applicable-to-rust-in-the-presence-of-unsafe-code">Table 2 – Guidelines applicable to Rust in the presence of unsafe code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-3-guideline-rules-that-are-not-applicable-to-rust">Table 3 – Guideline rules that are not applicable to Rust</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="misra-c-2025-mapping.html">Rust Cross Reference with MISRA C 2025</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../retired-guidelines/index.html">Retired Guidelines</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Safety-Critical Rust Coding Guidelines</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Appendices</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Standards Matrices</a></li>
+      <li class="breadcrumb-item active">Rust Cross Reference with CERT-C 2016</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/appendices/standards-matrices/cert-c-2016-mapping.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rust-cross-reference-with-cert-c-2016">
+<h1>Rust Cross Reference with CERT-C 2016<a class="headerlink" href="#rust-cross-reference-with-cert-c-2016" title="Link to this heading"></a></h1>
+<p>The following tables provide a cross reference between the CERT-C 2025 guidelines and their applicability to Rust. The
+first table covers guidelines that are applicable to Rust in general, while the second table covers additional
+guidelines that are applicable in the presence of unsafe code. The third table lists guidelines that are not applicable
+to Rust.</p>
+<section id="table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present">
+<h2>Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)<a class="headerlink" href="#table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Title</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Safety Critical rust Rule</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FLP37-C.+Do+not+use+object+representations+to+compare+floating-point+values">FLP37</a></p></td>
+<td><p>Do not use object representations to compare floating-point
+values</p></td>
+<td></td>
+<td></td>
+<td><p>It might not be immediately obvious where this might be done on
+purpose. It is certainly not something one would imagine
+happening in a self-contained system that’s using floating point
+numbers. However, <strong>when receiving raw floating point data</strong>, it
+can be extremely tempting to “just compare the bits”. What’s
+worse is that <strong>this approach would work for some values</strong>, which
+might mask its lack of correctness. For completeness, it would be
+good to mention examples of FP values with different encodings
+that however compare equal under the standard. The simplest one
+here is, I think, <code class="docutils literal notranslate"><span class="pre">0</span></code> v/s <code class="docutils literal notranslate"><span class="pre">-0</span></code>, which would bitwise compare
+different and yet are considered equal under the IEEE FP
+standard. <strong>Bonus idea:</strong> we might want to have a float-equality
+guideline with regards to <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, since <code class="docutils literal notranslate"><span class="pre">NaN</span> <span class="pre">!=</span> <span class="pre">NaN</span></code> even when
+the encoding is the same. For answering the question of “is this
+value <code class="docutils literal notranslate"><span class="pre">NaN</span></code>?”, we have the
+<code class="docutils literal notranslate"><span class="pre">`is_nan</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/primitive.f32.html?search=is_nan">https://doc.rust-lang.org/std/primitive.f32.html?search=is_nan</a>&gt;`__
+method.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL39-C.+Avoid+information+leakage+when+passing+a+structure+across+a+trust+boundary">DCL39</a></p></td>
+<td><p>Avoid information leakage when passing a structure across a trust
+boundary</p></td>
+<td></td>
+<td></td>
+<td><p>It seems to be technically possible to achieve, using Unsafe.
+Zulip thread of this discussion: <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/136281-t-opsem/topic/How.20should.20padding.20bits.20be.20erased.20for.20sending.3F/with/564800067">How should padding bits be
+erased for
+sending?</a>The
+important issue seems to be that of copying into the untrusted
+buffer without copying sensitive data that may lie in the
+uninitialized bits of the copied struct.For structs and enums,
+this seems to be solvable by making a type which copies
+everything except for the padding bits inside of it.For unions,
+one might want to be REALLY SURE, and hopefully prove, that
+you’re not copying your padding. Might be impossible to safely
+send unions.<em>One might want also to zero-out sensitive memory
+in their own processes, such that nothing sensitive is left
+behind after they end.</em> <strong>That’s outside the scope of our work.</strong>
+<em>Zulip thread on this:</em> <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/122651-general/topic/Are.20bits.20erased.20on.20drop.3F.20If.20not.2C.20how.20can.20I.20ensure.20they.20are.3F/with/564800542">Are bits erased on drop? If not, how can
+I ensure they
+are?</a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT36-C.+Converting+a+pointer+to+integer+or+integer+to+pointer">INT36</a></p></td>
+<td><p>Converting a pointer to integer or integer to pointer</p></td>
+<td></td>
+<td></td>
+<td><p>With modifications:- ptr2int: considered to be relatively
+unimportant- int2ptr: cautioned against<strong>Pointer Provenance</strong>
+plays a role in this.<em>Also, see:</em> <a class="reference external" href="http://github.com/rust-lang/rust/pull/122379">transmute: caution against
+int2ptr
+transmutation</a>May
+deserve scrutiny for possible unsafe-heavy treatment</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON40-C.+Do+not+refer+to+an+atomic+variable+twice+in+an+expression">CON40</a></p></td>
+<td><p>Do not refer to an atomic variable twice in an expression</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON36-C.+Wrap+functions+that+can+spuriously+wake+up+in+a+loop">CON36</a></p></td>
+<td><p>Wrap functions that can spuriously wake up in a loop</p></td>
+<td></td>
+<td></td>
+<td><p>This directly maps to the usage of
+<code class="docutils literal notranslate"><span class="pre">`std::sync::Condvar</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Condvar.html">https://doc.rust-lang.org/std/sync/struct.Condvar.html</a>&gt;`__,
+in particular while using its
+<code class="docutils literal notranslate"><span class="pre">`wait</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait">https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait</a>&gt;`__
+and
+<code class="docutils literal notranslate"><span class="pre">`wait_timeout</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_timeout">https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_timeout</a>&gt;`__
+methods.To correctly wrap these spurious wake-ups in a loop, the
+methods
+<code class="docutils literal notranslate"><span class="pre">`wait_while</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_while">https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_while</a>&gt;`__
+and
+<code class="docutils literal notranslate"><span class="pre">`wait_timeout_while</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_timeout_while">https://doc.rust-lang.org/std/sync/struct.Condvar.html#method.wait_timeout_while</a>&gt;`__
+are respectively provided, and should probably be recommended in
+their place.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP40-C.+Do+not+modify+constant+objects">EXP40</a></p></td>
+<td><p>Do not modify constant objects</p></td>
+<td></td>
+<td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">const</span></code> items can’t be modified - they are actually inlined at
+every point of usage, so modifying them wouldn’t do a thing
+anyways. So this is not about <code class="docutils literal notranslate"><span class="pre">const</span></code> in the case of Rust.On
+the other hand, <code class="docutils literal notranslate"><span class="pre">static</span></code> items can be modified, but only in
+<code class="docutils literal notranslate"><span class="pre">unsafe</span></code> code. And this is by design - some things are meant to
+be “global items with special case mutability”A difference must
+be made, however, with regards to <code class="docutils literal notranslate"><span class="pre">static</span></code> and <code class="docutils literal notranslate"><span class="pre">static</span> <span class="pre">mut</span></code>
+variables, because as expressed
+<a class="reference external" href="https://github.com/rust-lang/unsafe-code-guidelines/issues/269">here</a>,
+the latter is incredibly prone to UB. <code class="docutils literal notranslate"><span class="pre">static</span></code> variables can be
+used with a lot more ease (still with plenty of caution!), using
+<a class="reference external" href="https://doc.rust-lang.org/book/ch15-05-interior-mutability.html">the interior mutability
+pattern</a>,
+covering the vast majority of use-cases for global mutable
+state.<em>My current line of thought is that ``static mut`` should
+be forbidden as either a Mandatory rule (i.e. with no exceptions)
+or a Required rule with well-documented reasoning about its
+safety. Remember:</em> <cite>usage of ``static mut`</cite> very easily results
+in
+UB. &lt;<a class="reference external" href="https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html#safe-references">https://doc.rust-lang.org/nightly/edition-guide/rust-2024/static-mut-references.html#safe-references</a>&gt;`__<em>As
+for ``static``, I think I would like us to have an Advisory rule
+recommending against them. Hopefully, such a rule would show
+examples of how to use ``static`` safely.</em> <strong>Paired with
+STR30</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/STR30-C.+Do+not+attempt+to+modify+string+literals">STR30</a></p></td>
+<td><p>Do not attempt to modify string literals</p></td>
+<td></td>
+<td></td>
+<td><p>Treat as <strong>merged with EXP40</strong> for Rust mapping purposes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT30-C.+Ensure+that+unsigned+integer+operations+do+not+wrap">INT30</a></p></td>
+<td><p>Ensure that integer operations do not wrap</p></td>
+<td></td>
+<td></td>
+<td><p>Already implemented; still review mapping/category</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT33-C.+Ensure+that+division+and+remainder+operations+do+not+result+in+divide-by-zero+errors">INT33</a></p></td>
+<td><p>Ensure that division and remainder operations do not result in
+divide-by-zero errors</p></td>
+<td></td>
+<td></td>
+<td><p>Already implemented; still review mapping/category</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ARR30-C.+Do+not+form+or+use+out-of-bounds+pointers+or+array+subscripts">ARR30</a></p></td>
+<td><p>Do not form or use out-of-bounds pointers or array subscripts</p></td>
+<td></td>
+<td></td>
+<td><p>In Safe Rust:- Direct addressing will panic if OOB-
+arr.get(index) will return None if OOBIn Unsafe Rust:-
+arr.get_unchecked(index) is UB if OOB.So, I’d say out-of-bound
+indexing should be either prevented or handled properly.If using
+Unsafe indexing, it should be formally validated.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO45-C.+Avoid+TOCTOU+race+conditions+while+accessing+files">FIO45</a></p></td>
+<td><p>Avoid TOCTOU race conditions while accessing files</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale:</em>
+<code class="docutils literal notranslate"><span class="pre">`std::fs</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/fs/index.html#time-of-check-to-time-of-use-toctou">https://doc.rust-lang.org/std/fs/index.html#time-of-check-to-time-of-use-toctou</a>&gt;`__
+<a class="reference external" href="https://doc.rust-lang.org/std/fs/index.html#time-of-check-to-time-of-use-toctou">explicitly talks about
+TOCTOU</a>
+<em>and how to avoid it.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FLP30-C.+Do+not+use+floating-point+variables+as+loop+counters">FLP30</a></p></td>
+<td><p>Do not use floating-point variables as loop counters</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT31-C.+Ensure+that+integer+conversions+do+not+result+in+lost+or+misinterpreted+data">INT31</a></p></td>
+<td><p>Ensure that integer conversions do not result in lost or
+misinterpreted data</p></td>
+<td></td>
+<td></td>
+<td><p>Already being worked in #185; still review mapping/category</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FLP32-C.+Prevent+or+detect+domain+and+range+errors+in+math+functions">FLP32</a></p></td>
+<td><p>Prevent or detect domain and range errors in math functions</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ENV33-C.+Do+not+call+system%28%29">ENV33</a></p></td>
+<td><p>Do not call system()</p></td>
+<td></td>
+<td></td>
+<td><p>The mapping is not exact (it doesn’t involve system()):If running
+commands, their input must always be sanitized, and their
+behavior should be made portable.There is <a class="reference external" href="https://rust-lang.github.io/rust-clippy/master/index.html?search=command#suspicious_command_arg_space">a Clippy
+lint</a>
+that touches on this topic. We probably want a set of rules to
+address how system commands may be called.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC41-C.+Never+hard+code+sensitive+information">MSC41</a></p></td>
+<td><p>Never hard code sensitive information</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MEM31-C.+Free+dynamically+allocated+memory+when+no+longer+needed">MEM31</a></p></td>
+<td><p>Free dynamically allocated memory when no longer needed</p></td>
+<td></td>
+<td></td>
+<td><p>The Rust compiler mostly enforces this automatically.Important
+exceptions in Safe Rust are
+<code class="docutils literal notranslate"><span class="pre">`std::rc::Rc</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/rc/struct.Rc.html">https://doc.rust-lang.org/std/rc/struct.Rc.html</a>&gt;`__/<code class="docutils literal notranslate"><span class="pre">`std::sync::Arc</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Arc.html">https://doc.rust-lang.org/std/sync/struct.Arc.html</a>&gt;`__
+cycles, which the user should avoid using the corresponding
+<code class="docutils literal notranslate"><span class="pre">`std::rc::Weak</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/rc/struct.Weak.html">https://doc.rust-lang.org/std/rc/struct.Weak.html</a>&gt;`__
+and
+<code class="docutils literal notranslate"><span class="pre">`std::sync::Weak</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/sync/struct.Weak.html">https://doc.rust-lang.org/std/sync/struct.Weak.html</a>&gt;`__.Memory
+leaks in Rust are relatively easy to avoid (compared to manual
+<code class="docutils literal notranslate"><span class="pre">malloc</span></code> and <code class="docutils literal notranslate"><span class="pre">free</span></code> in C), but they are nonetheless still
+possible. Furthermore, memory leaks are considered safe in
+Rust.Much like the original rule, our mapping would describe a
+defect of low severity, as their worst possible consequence is a
+Denial of Service due to memory exhaustion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow">INT32</a></p></td>
+<td><p>Ensure that operations on signed integers do not result in
+overflow</p></td>
+<td></td>
+<td></td>
+<td><p>Already implemented; still review mapping/category</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT34-C.+Do+not+shift+an+expression+by+a+negative+number+of+bits+or+by+greater+than+or+equal+to+the+number+of+bits+that+exist+in+the+operand">INT34</a></p></td>
+<td><p>Do not shift an expression by a negative number of bits or by
+greater than or equal to the number of bits that exist in the
+operand</p></td>
+<td></td>
+<td></td>
+<td><p>Already implemented; still review mapping/category</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON33-C.+Avoid+race+conditions+when+using+library+functions">CON33</a></p></td>
+<td><p>Avoid race conditions when using library functions</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON41-C.+Wrap+functions+that+can+fail+spuriously+in+a+loop">CON41</a></p></td>
+<td><p>Wrap functions that can spuriously fail in a loop</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ARR37-C.+Do+not+add+or+subtract+an+integer+to+a+pointer+to+a+non-array+object">ARR37</a></p></td>
+<td><p>Do not add or subtract an integer to a pointer to a non-array
+object</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FLP34-C.+Ensure+that+floating-point+conversions+are+within+range+of+the+new+type">FLP34</a></p></td>
+<td><p>Ensure that floating-point conversions are within range of the
+new type</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FLP36-C.+Preserve+precision+when+converting+integral+values+to+floating-point+type">FLP36</a></p></td>
+<td><p>Preserve precision when converting integral values to
+floating-point type</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO42-C.+Close+files+when+they+are+no+longer+needed">FIO42</a></p></td>
+<td><p>Close files when they are no longer needed</p></td>
+<td></td>
+<td></td>
+<td><p>This is a good precept for life, I guess.In Rust, handling of
+such resources is a lot easier since their Drop implementation
+should close them automatically.It’s still good to keep in mind,
+and not make a file e.g. have the <code class="docutils literal notranslate"><span class="pre">'static</span></code> lifetime if that’s
+not necessary.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON38-C.+Preserve+thread+safety+and+liveness+when+using+condition+variables">CON38</a></p></td>
+<td><p>Preserve thread safety and liveness when using condition
+variables</p></td>
+<td></td>
+<td></td>
+<td><p>So far, the consensus is to make the following recommendations:-
+<em>Consider not using ``Condvar`` if at all possible.</em>- <em>If using
+``Condvar`` and liveness is critical, consider using
+``notify_all`` instead of ``notify_one``.</em>Zulip discussion:
+<cite>Recommending ``Condvar::notify_all`</cite> instead of
+<code class="docutils literal notranslate"><span class="pre">notify_one</span></code>? &lt;<a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/122651-general/topic/Recommending.20.60Condvar.3A.3Anotify_all.60.20instead.20of.20.60notify_one.60.3F/with/572488048">https://rust-lang.zulipchat.com/#narrow/channel/122651-general/topic/Recommending.20.60Condvar.3A.3Anotify_all.60.20instead.20of.20.60notify_one.60.3F/with/572488048</a>&gt;`__Higher-policy
+discussion expected</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC32-C.+Properly+seed+pseudorandom+number+generators">MSC32</a></p></td>
+<td><p>Properly seed pseudorandom number generators</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MEM34-C.+Only+free+memory+allocated+dynamically">MEM34</a></p></td>
+<td><p>Only free memory allocated dynamically</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON35-C.+Avoid+deadlock+by+locking+in+a+predefined+order">CON35</a></p></td>
+<td><p>Avoid deadlock by locking in a predefined order</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="table-2-guidelines-applicable-to-rust-in-the-presence-of-unsafe-code">
+<h2>Table 2 – Guidelines applicable to Rust in the presence of unsafe code<a class="headerlink" href="#table-2-guidelines-applicable-to-rust-in-the-presence-of-unsafe-code" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Title</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Safety Critical rust Rule</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP39-C.+Do+not+access+a+variable+through+a+pointer+of+an+incompatible+type">EXP39</a></p></td>
+<td><p>Do not access a variable through a pointer of an incompatible
+type</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON32-C.+Prevent+data+races+when+accessing+bit-fields+from+multiple+threads">CON32</a></p></td>
+<td><p>Prevent data races when accessing bit-fields from multiple
+threads</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON43-C.+Do+not+allow+data+races+in+multithreaded+code">CON43</a></p></td>
+<td><p>Do not allow data races in multithreaded code</p></td>
+<td></td>
+<td></td>
+<td><p>Treat as <strong>paired with CON32</strong> in Rust, as their requirements are
+the same</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ARR36-C.+Do+not+subtract+or+compare+two+pointers+that+do+not+refer+to+the+same+array">ARR36</a></p></td>
+<td><p>Do not subtract or compare two pointers that do not refer to the
+same array</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MEM30-C.+Do+not+access+freed+memory">MEM30</a></p></td>
+<td><p>Do not access freed memory</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP34-C.+Do+not+dereference+null+pointers">EXP34</a></p></td>
+<td><p>Do not dereference null pointers</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL30-C.+Declare+objects+with+appropriate+storage+durations">DCL30</a></p></td>
+<td><p>Declare objects with appropriate storage durations</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP42-C.+Do+not+compare+padding+data">EXP42</a></p></td>
+<td><p>Do not compare padding data</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ENV31-C.+Do+not+rely+on+an+environment+pointer+following+an+operation+that+may+invalidate+it">ENV31</a></p></td>
+<td><p>Do not rely on an environment pointer following an operation that
+may invalidate it</p></td>
+<td></td>
+<td></td>
+<td><p>Recently moved into the unsafe bucket This interaction maps to
+Rust through the
+<code class="docutils literal notranslate"><span class="pre">`std::env::set_var</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/env/fn.set_var.html">https://doc.rust-lang.org/std/env/fn.set_var.html</a>&gt;`__
+and
+<code class="docutils literal notranslate"><span class="pre">`std::env::remove_var</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/env/fn.remove_var.html">https://doc.rust-lang.org/std/env/fn.remove_var.html</a>&gt;`__
+APIs.In Unix, they are <strong>only safe to use in single-threaded
+programs</strong>. Such is the reality of those system APIs at the
+moment of writing (28-Feb-2026).The rule would forbid both APIs
+in multithreaded code running on Unix systems.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP33-C.+Do+not+read+uninitialized+memory">EXP33</a></p></td>
+<td><p>Do not read uninitialized memory</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: it’s UB in Rust</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MEM36-C.+Do+not+modify+the+alignment+of+objects+by+calling+realloc%28%29">MEM36</a></p></td>
+<td><p>Do not modify the alignment of objects by calling realloc()</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON34-C.+Declare+objects+shared+between+threads+with+appropriate+storage+durations">CON34</a></p></td>
+<td><p>Declare objects shared between threads with appropriate storage
+durations</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP36-C.+Do+not+cast+pointers+into+more+strictly+aligned+pointer+types">EXP36</a></p></td>
+<td><p>Do not cast pointers into more strictly aligned pointer types</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MEM35-C.+Allocate+sufficient+memory+for+an+object">MEM35</a></p></td>
+<td><p>Allocate sufficient memory for an object</p></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="table-3-guideline-rules-that-are-not-applicable-to-rust">
+<h2>Table 3 – Guideline rules that are not applicable to Rust<a class="headerlink" href="#table-3-guideline-rules-that-are-not-applicable-to-rust" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Title</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Safety Critical rust Rule</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/PRE31-C.+Avoid+side+effects+in+arguments+to+unsafe+macros">PRE31</a></p></td>
+<td><p>Avoid side effects in arguments to unsafe macros</p></td>
+<td></td>
+<td></td>
+<td><p><strong>Context</strong> <em>In C, “unsafe macro” means a macro that evaluates
+one of its parameters more than once or not at all. Doing so with
+side effects then means that those side effects are triggered
+either more than once, or not at all.</em>C macros make using this
+kind of pattern safely very hard.In Rust, this is not the case,
+and there are multiple examples of macros that use this pattern
+on purpose and successfully.There are multiple different use
+cases for this, in fact, as explained in <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/122651-general/topic/How.20common.20are.20macros.20that.20evaluate.20side.20effects.20twice.3F/near/564929315">this comment on
+Zulip</a>.
+Furthermore, if no side effecting is required, then the writer of
+the macro can enforce this using <code class="docutils literal notranslate"><span class="pre">const</span></code> blocks, as is
+explained in the <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/122651-general/topic/How.20common.20are.20macros.20that.20evaluate.20side.20effects.20twice.3F/near/564929413">comment right
+after</a>.There
+is no magic feature in Rust to stop a macro from expanding a
+side-effecting expression multiple times. However, doing so
+requires to be a lot more explicit about it. Therefore, if such a
+macro invocation is encountered in the wild, then chances are
+that the user meant to do exactly that.<em>Zulip thread:</em> <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/404510-wg-macros/topic/Macros.20and.20insertion.20of.20side-effecting.20metavariables/with/564129698">Macros
+and insertion of side-effecting
+metavariables</a>
+Review current reasoning for macro applicability</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP30-C.+Do+not+depend+on+the+order+of+evaluation+for+side+effects">EXP30</a></p></td>
+<td><p>Do not depend on the order of evaluation for side effects</p></td>
+<td></td>
+<td></td>
+<td><p>Unlike for C, the evaluation order is fully defined in Rust:
+<a class="reference external" href="https://doc.rust-lang.org/reference/expressions.html#expression-precedence">expressions -&gt; expression
+precedence</a>Thus,
+this rule isn’t really needed. At least, not with the same
+UB-stopping urgency that it is needed for in C.<em>Extra notes:
+there is a restriction lint that touches on this topic, as a
+precedent:</em>
+<code class="docutils literal notranslate"><span class="pre">`mixed_read_write_in_expression</span></code> &lt;<a class="reference external" href="https://rust-lang.github.io/rust-clippy/master/index.html?search=evaluation#mixed_read_write_in_expression">https://rust-lang.github.io/rust-clippy/master/index.html?search=evaluation#mixed_read_write_in_expression</a>&gt;`__</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP32-C.+Do+not+access+a+volatile+object+through+a+nonvolatile+reference">EXP32</a></p></td>
+<td><p>Do not access a volatile object through a nonvolatile reference</p></td>
+<td></td>
+<td></td>
+<td><p>Volatile is specific to C in this case.Furthermore, a mismatch
+like this would be bound by the rules of the type system, and
+thus be caught unless the user were to be using transmutation.
+Rules about transmutation, however, are not a map of this rule
+but they are rather their own thing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ARR39-C.+Do+not+add+or+subtract+a+scaled+integer+to+a+pointer">ARR39</a></p></td>
+<td><p>Do not add or subtract a scaled integer to a pointer</p></td>
+<td></td>
+<td></td>
+<td><p>Pointer arithmetic is done through APIs in Rust, <a class="reference external" href="https://doc.rust-lang.org/std/primitive.pointer.html">all of
+which</a>
+mention up-front that their <code class="docutils literal notranslate"><span class="pre">count:</span> <span class="pre">usize</span></code> parameter is in
+units of the underlying type <code class="docutils literal notranslate"><span class="pre">T</span></code>. Even the name strongly
+indicates that it’s a <strong>count</strong>, and not a specific length.If the
+ARR39 kind of pattern proves to be a problem, a rule can be made
+about it. As far as I can tell, however, it is not.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO32-C.+Do+not+perform+operations+on+devices+that+are+only+appropriate+for+files">FIO32</a></p></td>
+<td><p>Do not perform operations on devices that are only appropriate
+for files</p></td>
+<td></td>
+<td></td>
+<td><p><strong>Context</strong> <em>In C, those APIs might block (the current thread)
+if the files being open correspond to devices (files under
+``/dev/``). This in turn can lead to a Denial of Service, by
+effectively blocking the system.</em> The APIs present in
+<code class="docutils literal notranslate"><span class="pre">`std::fs</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/fs/">https://doc.rust-lang.org/std/fs/</a>&gt;`__ are quite a
+bit different from the ones present in C.Some functions in this
+module may block:- Attempting to take a filesystem lock,- Calling
+<code class="docutils literal notranslate"><span class="pre">Read::read</span></code> (might block waiting for data), and -
+<code class="docutils literal notranslate"><span class="pre">Write::write</span></code> (might block waiting for data to be
+written).However, a rule that restricts the use of blocking
+actions over a filesystem is quite different from FIO32. Thus, I
+don’t believe this maps to Rust. Related filesystem guidance may
+instead belong near #392</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO46-C.+Do+not+access+a+closed+file">FIO46</a></p></td>
+<td><p>Do not access a closed file</p></td>
+<td></td>
+<td></td>
+<td><p>This is guaranteed in Rust already by the fact that closing a
+file consumes the variable, invalidating any future accesses to
+it.<em>Unsafe Rust, as always, could get away with doing something
+like this regardless, but that would be UB and</em> <strong>should be
+covered by a different guideline</strong> <em>(something along the lines of
+“don’t extend lifetimes beyond their valid range”</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ENV34-C.+Do+not+store+pointers+returned+by+certain+functions">ENV34</a></p></td>
+<td><p>Do not store pointers returned by certain functions</p></td>
+<td></td>
+<td></td>
+<td><p>Live References cannot be invalidated in Rust.<em>Implementors of
+such libraries in Unsafe Rust must take care to not invalidate
+the references they create. This would be UB. It would always
+violate the memory model. But the rule to enforce this lies
+outside of the context of ENV34. It’s a more general rule that
+must be followed.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON37-C.+Do+not+call+signal%28%29+in+a+multithreaded+program">CON37</a></p></td>
+<td><p>Do not call signal() in a multithreaded program</p></td>
+<td></td>
+<td></td>
+<td><p>Rust doesn’t provide support for signal handling in <code class="docutils literal notranslate"><span class="pre">std</span></code>.
+Details as to why can be seen
+<a class="reference external" href="https://github.com/rust-lang/rfcs/issues/1368">here</a>.Since
+this feature is not supported in Rust, the rule doesn’t
+apply.<em>That being said, there are crates which provide signal
+handling utilities. Some are mentioned in the linked thread
+above. Dear reader, use those crates at your own discretion.</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC30-C.+Do+not+use+the+rand%28%29+function+for+generating+pseudorandom+numbers">MSC30</a></p></td>
+<td><p>Do not use the rand() function for generating pseudorandom
+numbers</p></td>
+<td></td>
+<td></td>
+<td><p><a class="reference external" href="https://doc.rust-lang.org/std/random/index.html">The APIs for generating pseudorandom numbers in core and
+std</a> are
+currently nightly-only.<em>I don’t know if it was RNG, but IIRC
+something like it from the stdlib was discouraged in Rust as
+well, due to it not being collision resistant. I’m pretty sure it
+was a hash function or something.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/STR31-C.+Guarantee+that+storage+for+strings+has+sufficient+space+for+character+data+and+the+null+terminator">STR31</a></p></td>
+<td><p>Guarantee that storage for strings has sufficient space for
+character data and the null terminator</p></td>
+<td></td>
+<td></td>
+<td><p>Strings are not null-terminated in Rust and their storage space
+is guaranteed</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL40-C.+Do+not+create+incompatible+declarations+of+the+same+function+or+object">DCL40</a></p></td>
+<td><p>Do not create incompatible declarations of the same function or
+object</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: doing this is impossible in Rust.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/PRE30-C.+Do+not+create+a+universal+character+name+through+concatenation">PRE30</a></p></td>
+<td><p>Do not create a universal character name through concatenation</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: it’s just very specific to C</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL38-C.+Use+the+correct+syntax+when+declaring+a+flexible+array+member">DCL38</a></p></td>
+<td><p>Use the correct syntax when declaring a flexible array member</p></td>
+<td></td>
+<td></td>
+<td><p>The rule is about “using the standardized syntax for this
+feature, instead of relying on Undefined Behavior and a
+compiler-specific, non-standardized syntax”.Such a suggestion
+makes no sense in Rust, since there is only one compiler and its
+syntax is the only one available. Correct syntax can compile;
+incorrect syntax cannot.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP35-C.+Do+not+modify+objects+with+temporary+lifetime">EXP35</a></p></td>
+<td><p>Do not modify objects with temporary lifetime</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: the borrow checker eliminates this problem</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP43-C.+Avoid+Undefined+Behavior+when+using+restrict-qualified+pointers">EXP43</a></p></td>
+<td><p>Avoid Undefined Behavior when using restrict-qualified pointers</p></td>
+<td></td>
+<td></td>
+<td><p>The borrow checker gives us correct-by-construction restrict
+qualifications in codegen. Basically, “restrict” is part of the
+type system, and type checking (in particular borrow checking)
+enforces that its rules are always abided by.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ARR32-C.+Ensure+size+arguments+for+variable+length+arrays+are+in+a+valid+range">ARR32</a></p></td>
+<td><p>Ensure size arguments for variable length arrays are in a valid
+range</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: VLAs are not a thing in Rust</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ARR38-C.+Guarantee+that+library+functions+do+not+form+invalid+pointers">ARR38</a></p></td>
+<td><p>Guarantee that library functions do not form invalid pointers</p></td>
+<td></td>
+<td></td>
+<td><p>The rule basically asks the user that, whenever they call a
+function that receives a pointer to an array and a length, that
+said length doesn’t go outside the bounds of the array (which
+would form an invalid pointer)In Safe Rust, this is handled by
+bounds checks, and in the mapping of ARR30 we’re already handling
+that.In Unsafe Rust, doing this is to break the Safety Contract
+of the API we’re calling, which <a class="reference external" href="https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/337">is getting its own
+rule.</a>
+and is outside the mapping of this ARR38 (this rule) Recently
+moved out of the applicable bucket</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/STR32-C.+Do+not+pass+a+non-null-terminated+character+sequence+to+a+library+function+that+expects+a+string">STR32</a></p></td>
+<td><p>Do not pass a non-null-terminated character sequence to a library
+function that expects a string</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: strings are not null-terminated in Rust</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO34-C.+Distinguish+between+characters+read+from+a+file+and+EOF+or+WEOF">FIO34</a></p></td>
+<td><p>Distinguish between characters read from a file and EOF or WEOF</p></td>
+<td></td>
+<td></td>
+<td><p>See the
+<a class="reference external" href="https://doc.rust-lang.org/std/io/trait.Read.html">Read</a>
+trait. EOF / WEOF cannot be acquired from them.As long as file
+reading operations are done through the Read trait, this should
+not be a concern.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO37-C.+Do+not+assume+that+fgets%28%29+or+fgetws%28%29+returns+a+nonempty+string+when+successful">FIO37</a></p></td>
+<td><p>Do not assume that fgets() or fgetws() returns a nonempty string
+when successful</p></td>
+<td></td>
+<td></td>
+<td><p>This rule comes from the need to properly handle errors found
+during the execution of <code class="docutils literal notranslate"><span class="pre">fgets()</span></code> and <code class="docutils literal notranslate"><span class="pre">fgetws()</span></code>. Errors in
+those functions are reported in a way whose proper handling
+cannot be enforced by the compiler.Fallible APIs in Rust return
+values of the enum <code class="docutils literal notranslate"><span class="pre">Result&lt;T,</span> <span class="pre">E&gt;</span></code>, whose error case must be
+properly handled, in order for the program to compile. This
+feature completely eliminates the need for this kind of rule in
+Rust.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO39-C.+Do+not+alternately+input+and+output+from+a+stream+without+an+intervening+flush+or+positioning+call">FIO39</a></p></td>
+<td><p>Do not alternately input and output from a stream without an
+intervening flush or positioning call</p></td>
+<td></td>
+<td></td>
+<td><p>This is UB in C, due to implementation details of the stream
+handling APIs. The implementation of those APIs in Rust is
+different, so the guideline doesn’t really map to it. <em>For more
+information, see</em> <a class="reference external" href="https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/336#issuecomment-3764046307">this
+comment</a>
+<em>and</em> <a class="reference external" href="https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/392">this
+issue</a><em>.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO44-C.+Only+use+values+for+fsetpos%28%29+that+are+returned+from+fgetpos%28%29">FIO44</a></p></td>
+<td><p>Only use values for fsetpos() that are returned from fgetpos()</p></td>
+<td></td>
+<td></td>
+<td><p>The closest APIs in Rust’s <code class="docutils literal notranslate"><span class="pre">std</span></code> to C’s <code class="docutils literal notranslate"><span class="pre">fsetpos</span></code> and
+<code class="docutils literal notranslate"><span class="pre">fgetpos</span></code> are the ones provided by the
+<code class="docutils literal notranslate"><span class="pre">`std::io::Seek</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/io/trait.Seek.html">https://doc.rust-lang.org/std/io/trait.Seek.html</a>&gt;`__
+trait. Their main differences can be summarized by two things:-
+The foundational method of the trait,
+<code class="docutils literal notranslate"><span class="pre">`Seek::seek</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/io/trait.Seek.html#tymethod.seek">https://doc.rust-lang.org/std/io/trait.Seek.html#tymethod.seek</a>&gt;`__,
+seeks by the number of bytes given to it. It doesn’t require the
+“multibyte parser state” that’s sometimes encoded in the
+<code class="docutils literal notranslate"><span class="pre">fpos_t</span></code> parameter for <code class="docutils literal notranslate"><span class="pre">fsetpos</span></code>, since the trait has no
+notion of wide-oriented streams.- There is no Undefined Behavior
+in <code class="docutils literal notranslate"><span class="pre">Seek</span></code>’s APIs.Thus, there is no reason to restrict the
+provenance of the offsets used there.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ERR33-C.+Detect+and+handle+standard+library+errors">ERR33</a></p></td>
+<td><p>Detect and handle standard library errors</p></td>
+<td></td>
+<td></td>
+<td><p>Functions in std that may fail, wrap their result in the
+<code class="docutils literal notranslate"><span class="pre">Result&lt;T,</span> <span class="pre">E&gt;</span></code> type, which forces the caller to handle the
+error case whenever it happens. Thus, this rule is already
+enforced by the compiler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC37-C.+Ensure+that+control+never+reaches+the+end+of+a+non-void+function">MSC37</a></p></td>
+<td><p>Ensure that control never reaches the end of a non-void function</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: this is already enforced by the type system</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/PRE32-C.+Do+not+use+preprocessor+directives+in+invocations+of+function-like+macros">PRE32</a></p></td>
+<td><p>Do not use preprocessor directives in invocations of
+function-like macros</p></td>
+<td></td>
+<td></td>
+<td><p>This rule is needed in C due to how its preprocessor works. It’s
+very C-preprocessor-specific, and doesn’t map to Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL31-C.+Declare+identifiers+before+using+them">DCL31</a></p></td>
+<td><p>Declare identifiers before using them</p></td>
+<td></td>
+<td></td>
+<td><p>Inferred types in Rust must always type-check. Not doing so
+results in a compile-time error. Therefore, the use case for this
+rule doesn’t exist in Rust.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL37-C.+Do+not+declare+or+define+a+reserved+identifier">DCL37</a></p></td>
+<td><p>Do not declare or define a reserved identifier</p></td>
+<td></td>
+<td></td>
+<td><p><strong>Context</strong> <em>In C, reserved identifiers include more than just
+keywords. They include library functions and variables (eg
+``memcpy``, ``errno``)), including some well-known ones (eg
+``abs``). C also lists many identifiers as potentially reserved
+(eg anything beginning with ``str``). It is possible to redefine
+(and thus override) such global identifiers in C, such as by
+adding</em> <code class="docutils literal notranslate"><span class="pre">#define</span> <span class="pre">errno</span> <span class="pre">my_errno</span></code> <em>to a header, which would
+break most C programs.</em>Rust’s scoping rules already prevent
+this kind of breakage. Any form of behavior override is locally
+scoped, and explicitly opted into by the affected parts.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP37-C.+Call+functions+with+the+correct+number+and+type+of+arguments">EXP37</a></p></td>
+<td><p>Call functions with the correct number and type of arguments</p></td>
+<td></td>
+<td></td>
+<td><p>This is enforced by the type system</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP44-C.+Do+not+rely+on+side+effects+in+operands+to+sizeof%2C+_Alignof%2C+or+_Generic">EXP44</a></p></td>
+<td><p>Do not rely on side effects in operands to sizeof, _Alignof or
+_Generic</p></td>
+<td></td>
+<td></td>
+<td><p>This is C-specific</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP47-C.+Do+not+call+va_arg+with+an+argument+of+the+incorrect+type">EXP47</a></p></td>
+<td><p>Do not call va_arg with an argument of the incorrect type</p></td>
+<td></td>
+<td></td>
+<td><p>Variadic Functions don’t exist in Safe Rust. They do exist in
+<strong>Unsafe Rust</strong>, in the form of C’s Variadic Functions. These
+exist as a way to declare and implement variadic functions for
+FFI contexts.That being said, this rule doesn’t map to Rust,
+because while <a class="reference external" href="https://doc.rust-lang.org/std/ffi/struct.VaList.html#safety">it is possible to implement C variadic functions
+incorrectly</a>,
+that issue is covered by the more general rule of <a class="reference external" href="https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/337">Callers of any
+unsafe fn shall abide by the function’s Safety
+contract</a>.<em>Addendum:
+it is very reasonable to argue for a rule along the lines of
+“C-variadic functions should not be used outside of FFI
+contexts”, but such a rule would not be a mapping of CERT-C’s
+EXP47 rule. That is left for future work.</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/STR34-C.+Cast+characters+to+unsigned+char+before+converting+to+larger+integer+sizes">STR34</a></p></td>
+<td><p>Cast characters to unsigned char before converting to larger
+integer sizes</p></td>
+<td></td>
+<td></td>
+<td><p>Characters in Rust are not integers.They are <a class="reference external" href="https://www.unicode.org/glossary/#unicode_scalar_value">unicode scalar
+values</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO30-C.+Exclude+user+input+from+format+strings">FIO30</a></p></td>
+<td><p>Exclude user input from format strings</p></td>
+<td></td>
+<td></td>
+<td><p>Format strings are evaluated at compile time in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO41-C.+Do+not+call+getc%28%29%2C+putc%28%29%2C+getwc%28%29%2C+or+putwc%28%29+with+a+stream+argument+that+has+side+effects">FIO41</a></p></td>
+<td><p>Do not call getc(), putc(), getwc() or putwc() with a stream
+argument that has side effects</p></td>
+<td></td>
+<td></td>
+<td><p>This rule arises from how those APIs are implemented (as C
+macros), and not from a more general aspect of the situation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ENV30-C.+Do+not+modify+the+object+referenced+by+the+return+value+of+certain+functions">ENV30</a></p></td>
+<td><p>Do not modify the object referenced by the return value of
+certain functions</p></td>
+<td></td>
+<td></td>
+<td><p>Immutability, when required, is always enforced in Rust.<em>I
+believe that Unsafe Rust could get away with doing this, jumping
+through some hoops. But that would lie in the vecinity of “Do not
+modify values whose validity invariant requires them to be
+immutable”. Breaking validity invariants is, of course, UB.</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ENV32-C.+All+exit+handlers+must+return+normally">ENV32</a></p></td>
+<td><p>All exit handlers must return normally</p></td>
+<td></td>
+<td></td>
+<td><p>Panicking doesn’t have UB. Panics inside of panics will
+eventually abort the program.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ERR34-C.+Detect+errors+when+converting+a+string+to+a+number">ERR34</a></p></td>
+<td><p>Detect errors when converting a string to a number</p></td>
+<td></td>
+<td></td>
+<td><p>Functions in std that may fail, wrap their result in the
+<code class="docutils literal notranslate"><span class="pre">Result&lt;T,</span> <span class="pre">E&gt;</span></code> type, which forces the caller to handle the
+error case whenever it happens. Thus, this rule is already
+enforced by the compiler.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL36-C.+Do+not+declare+an+identifier+with+conflicting+linkage+classifications">DCL36</a></p></td>
+<td><p>Do not declare an identifier with conflicting linkage
+classifications</p></td>
+<td></td>
+<td></td>
+<td><p>This is a very specific issue to C</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/DCL41-C.+Do+not+declare+variables+inside+a+switch+statement+before+the+first+case+label">DCL41</a></p></td>
+<td><p>Do not declare variables inside a switch statement before the
+first case label</p></td>
+<td></td>
+<td></td>
+<td><p>The semantics of C’s <code class="docutils literal notranslate"><span class="pre">switch</span></code> statements are (fortunately) not
+present in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP45-C.+Do+not+perform+assignments+in+selection+statements">EXP45</a></p></td>
+<td><p>Do not perform assignments in selection statements</p></td>
+<td></td>
+<td></td>
+<td><p>Rust is expression-oriented. Assignments return <code class="docutils literal notranslate"><span class="pre">()</span></code> in Rust.
+Therefore the use-case for this is not really present in Rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/EXP46-C.+Do+not+use+a+bitwise+operator+with+a+Boolean-like+operand">EXP46</a></p></td>
+<td><p>Do not use a bitwise operator with a Boolean-like operand</p></td>
+<td></td>
+<td></td>
+<td><p>The type system makes usage of these operators a reasonable thing
+in Rust. They are well-defined and well-behaved.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO38-C.+Do+not+copy+a+FILE+object">FIO38</a></p></td>
+<td><p>Do not copy a FILE object</p></td>
+<td></td>
+<td></td>
+<td><p>This is related to how the <code class="docutils literal notranslate"><span class="pre">FILE</span></code> object has
+implementation-defined behavior. This is completely C-specific,
+in this case.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO40-C.+Reset+strings+on+fgets%28%29++or+fgetws%28%29+failure">FIO40</a></p></td>
+<td><p>Reset strings on fgets() or fgetws() failure</p></td>
+<td></td>
+<td></td>
+<td><p>Unlike in the original <code class="docutils literal notranslate"><span class="pre">fgets()</span></code> and <code class="docutils literal notranslate"><span class="pre">fgetws()</span></code>
+implementation, the bytes of the buffer <code class="docutils literal notranslate"><span class="pre">buf</span></code> in the
+io-reading-APIs of Rust’s <code class="docutils literal notranslate"><span class="pre">std</span></code> have very well-defined values
+in all scenarios: they follow the rules of the <code class="docutils literal notranslate"><span class="pre">Read</span></code> trait and
+its
+<code class="docutils literal notranslate"><span class="pre">`read</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/io/trait.Read.html#tymethod.read">https://doc.rust-lang.org/std/io/trait.Read.html#tymethod.read</a>&gt;`__
+function. From those building blocks is that functions such as
+<code class="docutils literal notranslate"><span class="pre">`Read::read_to_string</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/io/trait.Read.html#method.read_to_string">https://doc.rust-lang.org/std/io/trait.Read.html#method.read_to_string</a>&gt;`__
+are constructed.As the root cause of this problem isn’t present
+in Rust, this rule is not needed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers">SIG30</a></p></td>
+<td><p>Call only asynchronous-safe functions within signal handlers</p></td>
+<td></td>
+<td></td>
+<td><p>Rust doesn’t provide support for signal handling in <code class="docutils literal notranslate"><span class="pre">std</span></code>.
+Details as to why can be seen
+<a class="reference external" href="https://github.com/rust-lang/rfcs/issues/1368">here</a>.Since
+this feature is not supported in Rust, the rule doesn’t
+apply.<em>That being said, there are crates which provide signal
+handling utilities. Some are mentioned in the linked thread
+above. Dear reader, use those crates at your own discretion.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/SIG31-C.+Do+not+access+shared+objects+in+signal+handlers">SIG31</a></p></td>
+<td><p>Do not access shared objects in signal handlers</p></td>
+<td></td>
+<td></td>
+<td><p><em>Same as SIG30</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ERR30-C.+Take+care+when+reading+errno">ERR30</a></p></td>
+<td><p>Take care when reading errno</p></td>
+<td></td>
+<td></td>
+<td><p>Errno doesn’t exist in Rust.But furthermore, functions that may
+fail wrap their result in the <code class="docutils literal notranslate"><span class="pre">Result&lt;T,</span> <span class="pre">E&gt;</span></code> type, which forces
+the caller to handle the error case if and only if it happened.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/ERR32-C.+Do+not+rely+on+indeterminate+values+of+errno">ERR32</a></p></td>
+<td><p>Do not rely on indeterminate values of errno</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: see ERR30-C</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON30-C.+Clean+up+thread-specific+storage">CON30</a></p></td>
+<td><p>Clean up thread-specific storage</p></td>
+<td></td>
+<td></td>
+<td><p>Thread-specific storage in Rust refers to values behind a
+<code class="docutils literal notranslate"><span class="pre">`LocalKey</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/thread/struct.LocalKey.html">https://doc.rust-lang.org/std/thread/struct.LocalKey.html</a>&gt;`__.There
+is no important difference between how this kind of storage is
+cleaned up and how other resources local to the thread (like its
+stack variables) are cleaned up. Thus, it does not merit its own
+rule.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON39-C.+Do+not+join+or+detach+a+thread+that+was+previously+joined+or+detached">CON39</a></p></td>
+<td><p>Do not join or detach a thread that was previously joined or
+detached</p></td>
+<td></td>
+<td></td>
+<td><p>This does not apply to Rust because:-
+<code class="docutils literal notranslate"><span class="pre">`std::thread::JoinHandle::join</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/thread/struct.JoinHandle.html#method.join">https://doc.rust-lang.org/std/thread/struct.JoinHandle.html#method.join</a>&gt;`__
+consumes the thread, and-
+<code class="docutils literal notranslate"><span class="pre">`JoinHandle</span></code> &lt;<a class="reference external" href="https://doc.rust-lang.org/std/thread/struct.JoinHandle.html">https://doc.rust-lang.org/std/thread/struct.JoinHandle.html</a>&gt;`__
+doesn’t implement <code class="docutils literal notranslate"><span class="pre">Clone</span></code>, so it’s impossible to join it
+twice.Unsafe code would be needed to invalidly copy it. But then
+again, “Obey ownership semantics” can just be one rule.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/INT35-C.+Use+correct+integer+precisions">INT35</a></p></td>
+<td><p>Use correct integer precisions</p></td>
+<td></td>
+<td></td>
+<td><p>All primitive integer types guarantee their precision in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/STR37-C.+Arguments+to+character-handling+functions+must+be+representable+as+an+unsigned+char">STR37</a></p></td>
+<td><p>Arguments to character-handling functions must be representable
+as an unsigned char</p></td>
+<td></td>
+<td></td>
+<td><p>Characters in Rust are not integers</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/STR38-C.+Do+not+confuse+narrow+and+wide+character+strings+and+functions">STR38</a></p></td>
+<td><p>Do not confuse narrow and wide character strings and functions</p></td>
+<td></td>
+<td></td>
+<td><p>There’s only one character type in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MEM33-C.++Allocate+and+copy+structures+containing+a+flexible+array+member+dynamically">MEM33</a></p></td>
+<td><p>Allocate and copy structures containing a flexible array member
+dynamically</p></td>
+<td></td>
+<td></td>
+<td><p>Flexible array members are not a thing in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/FIO47-C.+Use+valid+format+strings">FIO47</a></p></td>
+<td><p>Use valid format strings</p></td>
+<td></td>
+<td></td>
+<td><p>Format strings are evaluated, and therefore, validated, at
+compile time, in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/SIG34-C.+Do+not+call+signal%28%29+from+within+interruptible+signal+handlers">SIG34</a></p></td>
+<td><p>Do not call signal() from within interruptible signal handlers</p></td>
+<td></td>
+<td></td>
+<td><p>Rust doesn’t provide support for signal handling in <code class="docutils literal notranslate"><span class="pre">std</span></code>.
+Details as to why can be seen
+<a class="reference external" href="https://github.com/rust-lang/rfcs/issues/1368">here</a>.Since
+this feature is not supported in Rust, the rule doesn’t
+apply.<em>That being said, there are crates which provide signal
+handling utilities. Some are mentioned in the linked thread
+above. Dear reader, use those crates at your own discretion.</em></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/SIG35-C.+Do+not+return+from+a+computational+exception+signal+handler">SIG35</a></p></td>
+<td><p>Do not return from a computational exception signal handler</p></td>
+<td></td>
+<td></td>
+<td><p><em>Rationale: see SIG34</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/CON31-C.+Do+not+destroy+a+mutex+while+it+is+locked">CON31</a></p></td>
+<td><p>Do not destroy a mutex while it is locked</p></td>
+<td></td>
+<td></td>
+<td><p>This is impossible to do in Rust due to ownership semantics: it’s
+only possible to destroy things one has <code class="docutils literal notranslate"><span class="pre">&amp;mut</span></code> access to.The
+user could use <code class="docutils literal notranslate"><span class="pre">unsafe</span></code> to invalidly create such a reference,
+but doing so would violate ownership semantics (and be immediate
+Undefined Behavior).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC33-C.+Do+not+pass+invalid+data+to+the+asctime%28%29+function">MSC33</a></p></td>
+<td><p>Do not pass invalid data to the asctime() function</p></td>
+<td></td>
+<td></td>
+<td><p>There is no equivalent time-displaying function in either
+<code class="docutils literal notranslate"><span class="pre">core</span></code> nor <code class="docutils literal notranslate"><span class="pre">std</span></code>.<em>As of the time of writing (2026-03-03),
+this kind of functionality can be accessed through external
+libraries such as ``chrono``, ``hifitime``, ``icu``, ``jiff`` and
+``time``.</em></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC38-C.+Do+not+treat+a+predefined+identifier+as+an+object+if+it+might+only+be+implemented+as+a+macro">MSC38</a></p></td>
+<td><p>Do not treat a predefined identifier as an object if it might
+only be implemented as a macro</p></td>
+<td></td>
+<td></td>
+<td><p>There is no such thing as a macro pointer in Rust</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC39-C.+Do+not+call+va_arg%28%29+on+a+va_list+that+has+an+indeterminate+value">MSC39</a></p></td>
+<td><p>Do not call va_arg() on a va_list that has an indeterminate value</p></td>
+<td></td>
+<td></td>
+<td><p>Variadic functions do not exist in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference external" href="https://wiki.sei.cmu.edu/confluence/display/c/MSC40-C.+Do+not+violate+constraints">MSC40</a></p></td>
+<td><p>Do not violate constraints</p></td>
+<td></td>
+<td></td>
+<td><p><em>Context of MSC40: this rule is about not writing code that
+doesn’t comply with the C standard.</em>The Rust compiler rejects
+all such programs. If a program is not valid Rust code, then it
+does not compile.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Standards Matrices" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="misra-c-2025-mapping.html" class="btn btn-neutral float-right" title="Rust Cross Reference with MISRA C 2025" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Contributors to Coding Guidelines Subcommittee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+        This site is powered through <a href="https://www.netlify.com">Netlify</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
