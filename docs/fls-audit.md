@@ -124,7 +124,7 @@ The FLS repo and delta binaries are cached under `./.cache/fls-audit/` and are s
 After completing the checklist, update the local `spec.lock`:
 
 ```shell
-./make.py --update-spec-lock-file
+uv run --frozen make.py --update-spec-lock-file
 ```
 
 Open a new PR with only the changes needed to rationalize the guidelines with

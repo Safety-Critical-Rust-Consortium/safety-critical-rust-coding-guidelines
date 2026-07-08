@@ -39,7 +39,7 @@ jobs:
       - name: Build documentation
         run: |
           mkdir -p build
-          ./make.py 2>&1 | tee build/build.log
+          uv run --frozen make.py 2>&1 | tee build/build.log
           # Check for a wide range of error indicators in the log
           if grep -q -E "Traceback" build/build.log; then
             echo "::error::Build errors detected in log"

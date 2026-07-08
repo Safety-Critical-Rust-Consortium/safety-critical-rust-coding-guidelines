@@ -49,7 +49,7 @@ def check_fls(app, env):
             error_message += "\n\tuv run python scripts/fls_audit.py"
             error_message += "\nIf the audit tool reports missing baseline metadata, provide --baseline-fls-commit/--current-fls-commit or set GITHUB_TOKEN when using deployment offsets."
             error_message += "\nOnce resolved, you may run the following to update the local spec lock file:"
-            error_message += "\n\t./make.py --update-spec-lock-file"
+            error_message += "\n\tuv run --frozen make.py --update-spec-lock-file"
             logger.error(error_message)
             raise FLSValidationError(error_message)
     # Check if all referenced FLS IDs exist

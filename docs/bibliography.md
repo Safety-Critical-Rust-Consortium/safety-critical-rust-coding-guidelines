@@ -116,13 +116,13 @@ bibliography_fail_on_inconsistent = True
 
 ```bash
 # Normal build (no URL validation)
-./make.py
+uv run --frozen make.py
 
 # Build with URL validation (for CI)
-./make.py --validate-urls
+uv run --frozen make.py --validate-urls
 
 # Debug build with URL validation
-./make.py --debug --validate-urls
+uv run --frozen make.py --debug --validate-urls
 ```
 
 ## GitHub Issue Template

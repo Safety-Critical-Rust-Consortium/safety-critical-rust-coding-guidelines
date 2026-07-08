@@ -9,13 +9,16 @@ This repository contains Coding Guidelines for writing Safety Critical Rust, dev
 
 The Safety-Critical Rust Coding Guidelines website uses `Sphinx` and `Sphinx-Needs` to build a rendered version of the coding guidelines, and `uv` to install and manage Python dependencies (including Sphinx itself). To simplify building the rendered version, we created a script called `make.py` that takes care of invoking Sphinx with the right flags.
 
-- On Linux and macOS, build the rendered version by running `./make.py`.
-- On Windows systems, build the rendered version by running `uv run make.py`.
+Build the rendered version by running:
+
+```shell
+uv run --frozen make.py
+```
 
 By default, Sphinx uses incremental rebuilds to generate the content that
 changed since the last invocation. If you notice a problem with incremental
 rebuilds, pass the `-c` flag to clear the existing artifacts before
-building `./make.py -c`.
+building `uv run --frozen make.py -c`.
 
 The following output is generated:
 
@@ -30,7 +33,7 @@ The following output is generated:
 If you're working without internet access or want to avoid reaching out to remote resources, you can pass the `--offline` flag:
 
 ```shell
-./make.py --offline
+uv run --frozen make.py --offline
 ```
 
 This prevents the build system from attempting to fetch remote resources, such as updates to the specification. Use this flag when you need reproducible or air-gapped builds.
@@ -48,7 +51,7 @@ The file is checked against the current live version of the specification, which
 If you run into this while developing a coding guideline, you may ignore this error by running the build with:
 
 ```shell
-./make.py --ignore-spec-lock-diff
+uv run --frozen make.py --ignore-spec-lock-diff
 ```
 
 #### Auditing the difference

@@ -648,7 +648,7 @@ With `:glob:` you do not need to add the new guideline manually.
    With `:glob:` you do not need to update the index per guideline.
 6. **Build locally** to verify the guideline renders correctly:
    ```bash
-   ./make.py
+   uv run --frozen make.py
    ```
 7. **Commit and push** your changes:
    ```bash
