@@ -151,7 +151,7 @@ def test_get_state_issue_snapshot_builds_html_url_from_runtime_config_when_missi
             transport_error=None,
         )
 
-    config = {"REPO_OWNER": "rustfoundation", "REPO_NAME": "safety-critical-rust-coding-guidelines"}
+    config = {"REPO_OWNER": "Safety-Critical-Rust-Consortium", "REPO_NAME": "safety-critical-rust-coding-guidelines"}
     bot = _bot(monkeypatch, github_api_request=fake_request)
     bot.state_issue_number = lambda: 1
     bot.get_config_value = lambda name, default="": config.get(name, default)
