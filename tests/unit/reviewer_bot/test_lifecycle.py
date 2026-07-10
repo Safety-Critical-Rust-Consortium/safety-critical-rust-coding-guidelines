@@ -59,14 +59,14 @@ def test_pr_comment_direct_path_is_epoch_gated(monkeypatch):
         comment_body="hello",
     )
     trust_context = harness.trust_context(
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         comment_author_association="MEMBER",
         current_workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         github_ref="refs/heads/main",
     )
     harness.add_pull_request_metadata(
         issue_number=42,
-        head_repo_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        head_repo_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_author="dana",
     )
 
@@ -169,14 +169,14 @@ def test_plain_reviewer_comment_does_not_clear_warning_or_transition_notice(monk
         comment_body="hello",
     )
     trust_context = harness.trust_context(
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         comment_author_association="MEMBER",
         current_workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         github_ref="refs/heads/main",
     )
     harness.add_pull_request_metadata(
         issue_number=42,
-        head_repo_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        head_repo_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_author="dana",
     )
     harness.runtime.github.get_issue_assignees = lambda issue_number, is_pull_request=None: ["alice"]
@@ -202,14 +202,14 @@ def test_reviewer_comment_does_not_count_as_reviewer_activity_when_live_assignee
         comment_body="hello",
     )
     trust_context = harness.trust_context(
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         comment_author_association="MEMBER",
         current_workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
         github_ref="refs/heads/main",
     )
     harness.add_pull_request_metadata(
         issue_number=42,
-        head_repo_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        head_repo_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_author="dana",
     )
     harness.runtime.github.get_issue_assignees = lambda issue_number, is_pull_request=None: ["bob"]

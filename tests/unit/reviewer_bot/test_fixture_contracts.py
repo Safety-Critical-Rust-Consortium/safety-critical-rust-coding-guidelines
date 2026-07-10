@@ -95,7 +95,7 @@ def test_rest_transport_stub_routes_repo_urls_through_github_stub():
     github = GitHubStub(RouteGitHubApi().add_request("GET", "issues/42", result=github_result(200, {"ok": True})))
     transport = RestTransportStub(github)
 
-    response = transport.request("GET", "https://api.github.com/repos/rustfoundation/safety-critical-rust-coding-guidelines/issues/42")
+    response = transport.request("GET", "https://api.github.com/repos/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/42")
 
     assert response.status_code == 200
     assert response.json() == {"ok": True}

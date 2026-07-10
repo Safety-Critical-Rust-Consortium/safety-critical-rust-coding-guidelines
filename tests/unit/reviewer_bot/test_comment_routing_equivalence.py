@@ -124,8 +124,8 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
             ),
             "trust_context": harness.trust_context(
                 route_outcome=comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
-                github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
-                pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+                github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
+                pr_head_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
                 pr_author="carol",
             ),
         },
@@ -142,8 +142,8 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
             ),
             "trust_context": harness.trust_context(
                 route_outcome=comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
-                github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
-                pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+                github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
+                pr_head_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
                 pr_author="carol",
             ),
         },
@@ -159,7 +159,7 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
             ),
             "trust_context": harness.trust_context(
                 route_outcome=comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE,
-                github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+                github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
                 pr_head_full_name="fork/example",
                 pr_author="carol",
             ),
@@ -176,8 +176,8 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
             ),
             "trust_context": harness.trust_context(
                 route_outcome=comment_routing_policy.PrCommentRouterOutcome.SAFE_NOOP,
-                github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
-                pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+                github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
+                pr_head_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
                 pr_author="carol",
             ),
         },
@@ -192,7 +192,7 @@ def test_route_outcome_equivalence_covers_trusted_deferred_noop_and_issue_direct
                 comment_user_type="User",
             ),
             "trust_context": harness.trust_context(
-                github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+                github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             ),
         },
     ]

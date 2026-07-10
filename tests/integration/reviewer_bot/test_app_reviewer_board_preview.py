@@ -180,7 +180,7 @@ def test_execute_run_preview_reviewer_board_keeps_pr264_alternate_approval_proje
         ISSUE_NUMBER=264,
         VALIDATION_NONCE="board-preview-pr264",
         GITHUB_SHA="workflow-head",
-        GITHUB_REPOSITORY="rustfoundation/safety-critical-rust-coding-guidelines",
+        GITHUB_REPOSITORY="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         GITHUB_RUN_ID="1004",
         GITHUB_RUN_ATTEMPT="1",
     )
@@ -240,7 +240,7 @@ def test_execute_run_preview_reviewer_board_keeps_pr264_alternate_approval_proje
     assert payload["preview_action"] == "preview-reviewer-board"
     assert payload["issue_number"] == 264
     assert payload["validation_nonce"] == "board-preview-pr264"
-    assert payload["evaluated_repo"] == "rustfoundation/safety-critical-rust-coding-guidelines"
+    assert payload["evaluated_repo"] == "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
     assert payload["head_sha"] == "workflow-head"
     assert payload["evaluated_ref"] == "workflow-head"
     assert payload["workflow_path"] == ".github/workflows/reviewer-bot-preview.yml"

@@ -155,7 +155,7 @@ def test_pr_comment_router_workflow_payload_builder_emits_parseable_contract(mon
         lambda _request: io.StringIO(
             json.dumps(
                 {
-                    "head": {"repo": {"full_name": "rustfoundation/safety-critical-rust-coding-guidelines"}},
+                    "head": {"repo": {"full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"}},
                     "user": {"login": "dana"},
                 }
             )
@@ -168,7 +168,7 @@ def test_pr_comment_router_workflow_payload_builder_emits_parseable_contract(mon
             "PAYLOAD_PATH": str(payload_path),
             "GITHUB_EVENT_PATH": str(event_path),
             "GITHUB_OUTPUT": str(output_path),
-            "GITHUB_REPOSITORY": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "GITHUB_REPOSITORY": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             "GITHUB_RUN_ID": "401",
             "GITHUB_RUN_ATTEMPT": "3",
             "GITHUB_TOKEN": "token",
@@ -375,7 +375,7 @@ def test_status_projection_preview_output_carries_standard_artifact_identity():
         projection,
         preview_action="preview-status-label-projection",
         validation_nonce="nonce",
-        evaluated_repo="rustfoundation/safety-critical-rust-coding-guidelines",
+        evaluated_repo="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         head_sha="head",
         evaluated_ref="head",
         workflow_path=".github/workflows/reviewer-bot-preview.yml",
@@ -411,7 +411,7 @@ def test_status_label_repair_summary_carries_standard_artifact_identity():
         issue_number=264,
         issue_numbers=(264,),
         validation_nonce="nonce",
-        evaluated_repo="rustfoundation/safety-critical-rust-coding-guidelines",
+        evaluated_repo="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         head_sha="head",
         evaluated_ref="head",
         workflow_path=".github/workflows/reviewer-bot-sweeper-repair.yml",
@@ -459,7 +459,7 @@ def test_issue314_preview_and_repair_outputs_carry_standard_artifact_identity():
         state_save_attempted=False,
         tracked_state_mutations_attempted=False,
         touched_projection_attempted=False,
-        evaluated_repo="rustfoundation/safety-critical-rust-coding-guidelines",
+        evaluated_repo="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         head_sha="head",
         evaluated_ref="head",
         workflow_path=".github/workflows/reviewer-bot-preview.yml",
@@ -485,7 +485,7 @@ def test_issue314_preview_and_repair_outputs_carry_standard_artifact_identity():
         reviewer_facing_reminder_posts_attempted=0,
         manual_issue314_edit_status="not_attempted",
         state_store_mutation_mode="not_required",
-        evaluated_repo="rustfoundation/safety-critical-rust-coding-guidelines",
+        evaluated_repo="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         head_sha="head",
         evaluated_ref="head",
         workflow_path=".github/workflows/reviewer-bot-sweeper-repair.yml",

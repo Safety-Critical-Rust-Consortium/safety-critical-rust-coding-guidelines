@@ -29,7 +29,7 @@ def test_execute_run_targeted_status_label_repair_does_not_broaden_epoch_repair(
         ISSUE_NUMBER=264,
         VALIDATION_NONCE="nonce-pr264-repair",
         GITHUB_SHA="workflow-head",
-        GITHUB_REPOSITORY="rustfoundation/safety-critical-rust-coding-guidelines",
+        GITHUB_REPOSITORY="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         GITHUB_RUN_ID="888",
         GITHUB_RUN_ATTEMPT="3",
     )
@@ -155,7 +155,7 @@ def test_execute_run_targeted_status_label_repair_fails_closed_without_summary(
         ISSUE_NUMBER=264,
         VALIDATION_NONCE="nonce-pr264-repair",
         GITHUB_SHA="workflow-head",
-        GITHUB_REPOSITORY="rustfoundation/safety-critical-rust-coding-guidelines",
+        GITHUB_REPOSITORY="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         GITHUB_RUN_ID="889",
         GITHUB_RUN_ATTEMPT="1",
     )

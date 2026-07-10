@@ -537,7 +537,7 @@ def test_h4a_review_submission_gap_fixture_stays_narrow_and_explicit():
 
 def test_stage_a_candidate_run_correlation_is_exact_to_workflow_event_pr_and_window(monkeypatch):
     runtime = _runtime(monkeypatch)
-    runtime.set_config_value("GITHUB_REPOSITORY", "rustfoundation/safety-critical-rust-coding-guidelines")
+    runtime.set_config_value("GITHUB_REPOSITORY", "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines")
     result = deferred_gap_diagnosis.correlate_candidate_observer_runs(
         "issue_comment:101",
         source_event_kind="issue_comment:created",
@@ -548,7 +548,7 @@ def test_stage_a_candidate_run_correlation_is_exact_to_workflow_event_pr_and_win
             workflow_run(1, event="issue_comment", path=".github/workflows/reviewer-bot-pr-comment-router.yml", created_at="2026-03-17T10:05:00Z"),
             workflow_run(2, event="issue_comment", path=".github/workflows/reviewer-bot-pr-comment-router.yml", created_at="2026-03-17T10:40:00Z"),
         ],
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
     )
     assert result["candidate_run_ids"] == [1]
 

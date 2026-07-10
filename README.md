@@ -73,7 +73,7 @@ rationalization checklist.
 
 ## What we're working on
 
-The Coding Guidelines [work items board](https://github.com/orgs/rustfoundation/projects/1) shows tickets actively being worked on, and tickets you can pick up.
+The Coding Guidelines [work items board](https://github.com/orgs/Safety-Critical-Rust-Consortium/projects/4) shows tickets actively being worked on, and tickets you can pick up.
 
 ## Contributing
 
@@ -108,4 +108,4 @@ Read other Rust Foundation [policies][foundation-website].
 [ip-policy]: https://foundation.rust-lang.org/policies/intellectual-property-policy/
 [media-guide and trademark]: https://foundation.rust-lang.org/policies/logo-policy-and-media-guide/
 [rust-foundation]: https://foundation.rust-lang.org/
-[safety-critical-rust-consortium]: https://github.com/rustfoundation/safety-critical-rust-consortium
+[safety-critical-rust-consortium]: https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-consortium

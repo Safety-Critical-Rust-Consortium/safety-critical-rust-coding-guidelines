@@ -766,7 +766,7 @@ def test_bootstrapped_runtime_workflow_dispatch_repair_status_labels_uses_real_p
     monkeypatch.setenv("EVENT_ACTION", "")
     monkeypatch.setenv("MANUAL_ACTION", "repair-review-status-labels")
     monkeypatch.setenv("VALIDATION_NONCE", "repair-nonce")
-    monkeypatch.setenv("GITHUB_REPOSITORY", "rustfoundation/safety-critical-rust-coding-guidelines")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines")
     monkeypatch.setenv("GITHUB_RUN_ID", "9001")
     monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
     monkeypatch.setenv("GITHUB_SHA", "workflow-head")

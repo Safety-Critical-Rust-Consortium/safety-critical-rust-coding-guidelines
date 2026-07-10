@@ -91,11 +91,11 @@ def test_label_signoff_create_pr_on_pr_does_not_mark_issue_complete(monkeypatch)
     trust_context = harness.typed_trust_context(
         author_association="MEMBER",
         workflow_file=".github/workflows/reviewer-bot-pr-comment-router.yml",
-        repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         ref="refs/heads/main",
     )
     harness.runtime.github_api = lambda method, endpoint, data=None: {
-        "head": {"repo": {"full_name": "rustfoundation/safety-critical-rust-coding-guidelines"}},
+        "head": {"repo": {"full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"}},
         "user": {"login": "dana"},
         "pull_request": {},
     }

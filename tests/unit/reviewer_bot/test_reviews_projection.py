@@ -336,7 +336,7 @@ def test_status_projection_maps_reassignment_needed_and_exposes_decision_output(
         result,
         preview_action="preview-status-label-projection",
         validation_nonce="nonce",
-        evaluated_repo="rustfoundation/safety-critical-rust-coding-guidelines",
+        evaluated_repo="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         head_sha="head",
         evaluated_ref="head",
         workflow_path=".github/workflows/reviewer-bot-preview.yml",

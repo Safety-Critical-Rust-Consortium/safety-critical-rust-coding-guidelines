@@ -20,7 +20,7 @@ def test_ambiguous_cross_repo_pr_comment_fails_to_deferred_lane():
     admission = PrCommentAdmission(
         route_outcome=PrCommentRouterOutcome.TRUSTED_DIRECT,
         declared_trust_class="pr_trusted_direct",
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_head_full_name="fork/repo",
         pr_author="contributor",
         issue_state="open",

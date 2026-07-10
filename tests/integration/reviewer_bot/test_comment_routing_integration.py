@@ -135,7 +135,7 @@ def test_cross_repo_pr_comment_route_remains_deferred_not_direct(monkeypatch):
     )
     trust_context = harness.trust_context(
         route_outcome=comment_routing.comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE,
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_head_full_name="fork/example",
         pr_author="dana",
     )

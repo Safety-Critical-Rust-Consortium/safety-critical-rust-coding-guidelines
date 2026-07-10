@@ -195,7 +195,7 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
             "installation_id": None,
             "performed_via_app": False,
             "comment_author_association": "MEMBER",
-            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_head_full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             "pr_author": "carol",
             "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
             "expected_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
@@ -208,7 +208,7 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
             "installation_id": None,
             "performed_via_app": False,
             "comment_author_association": "contributor",
-            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_head_full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             "pr_author": "carol",
             "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
             "expected_outcome": comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE,
@@ -234,7 +234,7 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
             "installation_id": None,
             "performed_via_app": False,
             "comment_author_association": "OWNER",
-            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_head_full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             "pr_author": "dependabot[bot]",
             "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
             "expected_outcome": comment_routing_policy.PrCommentRouterOutcome.DEFERRED_RECONCILE,
@@ -247,7 +247,7 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
             "installation_id": None,
             "performed_via_app": False,
             "comment_author_association": "MEMBER",
-            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_head_full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             "pr_author": "carol",
             "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
             "expected_outcome": comment_routing_policy.PrCommentRouterOutcome.SAFE_NOOP,
@@ -274,7 +274,7 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
             "installation_id": None,
             "performed_via_app": False,
             "comment_author_association": "MEMBER",
-            "pr_head_full_name": "rustfoundation/safety-critical-rust-coding-guidelines",
+            "pr_head_full_name": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
             "pr_author": "carol",
             "is_self_comment": True,
             "route_outcome": comment_routing_policy.PrCommentRouterOutcome.TRUSTED_DIRECT,
@@ -284,7 +284,7 @@ def test_pr_comment_router_performed_via_app_helper_executes_source_shape_cases(
     ids=lambda scenario: scenario["name"],
 )
 def test_pr_comment_router_core_policy_covers_workflow_route_outcomes(scenario):
-    repo = "rustfoundation/safety-critical-rust-coding-guidelines"
+    repo = "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
     request = SimpleNamespace(
         is_pull_request=True,
         comment_user_type=scenario["comment_user_type"],

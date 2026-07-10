@@ -13,7 +13,7 @@ def _load_fixture(name: str) -> dict:
 def _transition_notice_gate_ready(payload: dict, expected_ref: str) -> bool:
     return (
         payload["artifact_id"] == "transition-notice-fallback-closure"
-        and payload["evaluated_repo"] == "rustfoundation/safety-critical-rust-coding-guidelines"
+        and payload["evaluated_repo"] == "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
         and payload["evaluated_ref"] == expected_ref
         and payload["closure_ready"] is True
         and payload["remaining_transition_due_without_notice"] == []
@@ -23,7 +23,7 @@ def _transition_notice_gate_ready(payload: dict, expected_ref: str) -> bool:
 def _deferred_payload_gate_ready(payload: dict, expected_ref: str) -> bool:
     return (
         payload["artifact_id"] == "deferred-payload-legacy-closure"
-        and payload["evaluated_repo"] == "rustfoundation/safety-critical-rust-coding-guidelines"
+        and payload["evaluated_repo"] == "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
         and payload["evaluated_ref"] == expected_ref
         and payload["closure_ready"] is True
         and payload["retained_workflow_inventory_matches"] is True

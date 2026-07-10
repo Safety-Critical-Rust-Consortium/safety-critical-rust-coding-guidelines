@@ -1,7 +1,7 @@
 {
   "artifact_id": "transition-notice-fallback-closure",
   "generated_at": "2026-04-13T18:00:00Z",
-  "evaluated_repo": "rustfoundation/safety-critical-rust-coding-guidelines",
+  "evaluated_repo": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
   "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
   "state_issue_number": 314,
   "closure_ready": false,
@@ -17,6 +17,6 @@
     }
   ],
   "commands_run": [
-    "gh workflow run reviewer-bot-sweeper-repair.yml --repo rustfoundation/safety-critical-rust-coding-guidelines --ref main -f action=check-overdue"
+    "gh workflow run reviewer-bot-sweeper-repair.yml --repo Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines --ref main -f action=check-overdue"
   ]
 }

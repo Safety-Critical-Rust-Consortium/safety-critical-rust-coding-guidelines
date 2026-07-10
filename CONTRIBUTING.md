@@ -1,7 +1,7 @@
 # Contributing to the coding guidelines
 
 - Looking for the review process? That's in [REVIEWING.md](REVIEWING.md).
-- Want to [open an issue](https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues)?
+- Want to [open an issue](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues)?
 - Want to write a Safety Critical Rust Coding guideline? You're in the right place.
 
 ## Contribution Workflow
@@ -55,7 +55,7 @@ The Safety Critical Rust Coding guidelines has the same chapter layout as the [F
 
     In this example, the FLS ID is `fls_4rhjpdu4zfqj`.
 
-3. Add a new coding guideline, open a [coding guideline issue](https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/new?template=CODING-GUIDELINE.yml). You'll need the FLS ID from the previous step.
+3. Add a new coding guideline, open a [coding guideline issue](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/new?template=CODING-GUIDELINE.yml). You'll need the FLS ID from the previous step.
 
 
 A GitHub Action will automatically add a comment to your newly created issue with

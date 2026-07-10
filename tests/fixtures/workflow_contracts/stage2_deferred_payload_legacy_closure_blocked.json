@@ -1,7 +1,7 @@
 {
   "artifact_id": "deferred-payload-legacy-closure",
   "generated_at": "2026-04-13T18:00:00Z",
-  "evaluated_repo": "rustfoundation/safety-critical-rust-coding-guidelines",
+  "evaluated_repo": "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
   "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
   "closure_ready": false,
   "retained_workflow_inventory_matches": false,
@@ -38,6 +38,6 @@
   ],
   "control_plane_actions_applied": [],
   "commands_run": [
-    "gh workflow list --repo rustfoundation/safety-critical-rust-coding-guidelines"
+    "gh workflow list --repo Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
   ]
 }

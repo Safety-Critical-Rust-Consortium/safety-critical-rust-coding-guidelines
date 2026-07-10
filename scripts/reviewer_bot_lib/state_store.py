@@ -139,7 +139,7 @@ def default_state_issue_prefix() -> str:
         "## Reviewer Bot State\n\n"
         "> WARNING: DO NOT EDIT MANUALLY - This issue is automatically maintained by the reviewer bot.\n"
         "> Use bot commands instead (see "
-        "[CONTRIBUTING.md](https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/blob/main/CONTRIBUTING.md) "
+        "[CONTRIBUTING.md](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/blob/main/CONTRIBUTING.md) "
         "for details).\n\n"
         "This issue tracks the round-robin assignment of reviewers for coding guidelines.\n\n"
         "### Current State\n\n"

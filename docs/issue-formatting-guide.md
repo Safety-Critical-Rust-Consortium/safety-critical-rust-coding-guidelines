@@ -1,7 +1,7 @@
 # Issue Formatting Guide
 
 ## Purpose
-This guide outlines Markdown standards when submitting a [Coding Guideline issue template](https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/new?template=CODING-GUIDELINE.yml).
+This guide outlines Markdown standards when submitting a [Coding Guideline issue template](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/new?template=CODING-GUIDELINE.yml).
 
 We follow these rules to ensure our content converts cleanly from Markdown to reStructuredText (.rst) when an Issue converted to a Pull Request. During that process the [m2r](https://pypi.org/project/m2r/) converter is used, which is then fed into Sphinx for documentation.
 

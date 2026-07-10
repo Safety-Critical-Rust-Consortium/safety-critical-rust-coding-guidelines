@@ -104,8 +104,8 @@ def test_route_issue_comment_trust_allows_only_same_repo_repo_user_principal(mon
         comment_body="hello",
     )
     pr_admission = harness.pr_admission(
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
-        pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
+        pr_head_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_author="carol",
     )
     assert comment_routing.route_issue_comment_trust(harness.runtime, 42, request, pr_admission) == PrCommentRouterOutcome.TRUSTED_DIRECT
@@ -122,8 +122,8 @@ def test_route_issue_comment_trust_defers_untrusted_author_association(monkeypat
         comment_author_association="CONTRIBUTOR",
     )
     pr_admission = harness.pr_admission(
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
-        pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
+        pr_head_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_author="carol",
     )
 
@@ -141,8 +141,8 @@ def test_route_issue_comment_trust_fails_closed_for_ambiguous_same_repo(monkeypa
         comment_user_type="",
     )
     pr_admission = harness.pr_admission(
-        github_repository="rustfoundation/safety-critical-rust-coding-guidelines",
-        pr_head_full_name="rustfoundation/safety-critical-rust-coding-guidelines",
+        github_repository="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
+        pr_head_full_name="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         pr_author="carol",
     )
     with pytest.raises(RuntimeError, match="Ambiguous same-repo PR comment trust posture"):

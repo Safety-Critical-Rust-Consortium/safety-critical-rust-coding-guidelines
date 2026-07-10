@@ -31,7 +31,7 @@ def test_execute_run_preview_check_overdue_uses_frozen_pr264_operational_project
         ISSUE_NUMBER=264,
         VALIDATION_NONCE="nonce-pr264",
         GITHUB_SHA="workflow-head",
-        GITHUB_REPOSITORY="rustfoundation/safety-critical-rust-coding-guidelines",
+        GITHUB_REPOSITORY="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         GITHUB_RUN_ID="777",
         GITHUB_RUN_ATTEMPT="2",
     )
@@ -128,7 +128,7 @@ def test_execute_run_preview_check_overdue_uses_frozen_pr264_operational_project
     assert payload["preview_action"] == "preview-check-overdue"
     assert payload["issue_number"] == 264
     assert payload["validation_nonce"] == "nonce-pr264"
-    assert payload["evaluated_repo"] == "rustfoundation/safety-critical-rust-coding-guidelines"
+    assert payload["evaluated_repo"] == "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
     assert payload["head_sha"] == "workflow-head"
     assert payload["evaluated_ref"] == "workflow-head"
     assert payload["workflow_path"] == ".github/workflows/reviewer-bot-preview.yml"

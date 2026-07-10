@@ -251,8 +251,8 @@ def test_event_inputs_build_comment_request_and_pr_admission_from_runtime_config
     runtime.set_config_value("COMMENT_SENDER_TYPE", "User")
     runtime.set_config_value("COMMENT_INSTALLATION_ID", "")
     runtime.set_config_value("COMMENT_PERFORMED_VIA_GITHUB_APP", "false")
-    runtime.set_config_value("GITHUB_REPOSITORY", "rustfoundation/safety-critical-rust-coding-guidelines")
-    runtime.set_config_value("PR_HEAD_FULL_NAME", "rustfoundation/safety-critical-rust-coding-guidelines")
+    runtime.set_config_value("GITHUB_REPOSITORY", "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines")
+    runtime.set_config_value("PR_HEAD_FULL_NAME", "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines")
     runtime.set_config_value("PR_AUTHOR", "dana")
     runtime.set_config_value("REVIEWER_BOT_ROUTE_OUTCOME", "trusted_direct")
     runtime.set_config_value("REVIEWER_BOT_TRUST_CLASS", "pr_trusted_direct")
@@ -270,8 +270,8 @@ def test_event_inputs_build_comment_request_and_pr_admission_from_runtime_config
     assert request.issue_labels == ("coding guideline",)
     assert request.comment_source_event_key == "issue_comment:100"
     assert pr_admission is not None
-    assert pr_admission.github_repository == "rustfoundation/safety-critical-rust-coding-guidelines"
-    assert pr_admission.pr_head_full_name == "rustfoundation/safety-critical-rust-coding-guidelines"
+    assert pr_admission.github_repository == "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
+    assert pr_admission.pr_head_full_name == "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines"
     assert pr_admission.pr_author == "dana"
     assert pr_admission.issue_state == "open"
     assert pr_admission.issue_labels == ("coding guideline",)
@@ -327,8 +327,8 @@ def test_event_inputs_build_pr_admission_rejects_request_boundary_mismatch(monke
     runtime.set_config_value("COMMENT_AUTHOR_ASSOCIATION", "MEMBER")
     runtime.set_config_value("COMMENT_SENDER_TYPE", "User")
     runtime.set_config_value("COMMENT_PERFORMED_VIA_GITHUB_APP", "false")
-    runtime.set_config_value("GITHUB_REPOSITORY", "rustfoundation/safety-critical-rust-coding-guidelines")
-    runtime.set_config_value("PR_HEAD_FULL_NAME", "rustfoundation/safety-critical-rust-coding-guidelines")
+    runtime.set_config_value("GITHUB_REPOSITORY", "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines")
+    runtime.set_config_value("PR_HEAD_FULL_NAME", "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines")
     runtime.set_config_value("PR_AUTHOR", "dana")
     runtime.set_config_value("REVIEWER_BOT_ROUTE_OUTCOME", "trusted_direct")
     runtime.set_config_value("REVIEWER_BOT_TRUST_CLASS", "pr_trusted_direct")

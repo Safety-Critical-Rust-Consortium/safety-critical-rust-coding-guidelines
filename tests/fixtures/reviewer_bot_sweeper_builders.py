@@ -68,7 +68,7 @@ def workflow_run(
     event: str,
     path: str,
     created_at: str,
-    repo_full_name: str = "rustfoundation/safety-critical-rust-coding-guidelines",
+    repo_full_name: str = "Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
     pr_number: int | None = 42,
     status: str | None = None,
     conclusion: str | None = None,

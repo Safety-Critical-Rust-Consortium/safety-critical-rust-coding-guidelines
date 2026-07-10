@@ -28,7 +28,7 @@ def test_execute_run_preview_status_label_projection_is_read_only_pr264_contract
         ISSUE_NUMBER=264,
         VALIDATION_NONCE="nonce-pr264-projection",
         GITHUB_SHA="workflow-head",
-        GITHUB_REPOSITORY="rustfoundation/safety-critical-rust-coding-guidelines",
+        GITHUB_REPOSITORY="Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines",
         GITHUB_RUN_ID="777",
         GITHUB_RUN_ATTEMPT="2",
     )

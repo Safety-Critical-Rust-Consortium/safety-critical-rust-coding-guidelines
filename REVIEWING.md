@@ -12,9 +12,9 @@ Before we continue, here's a preamble on how the reviewer bot helps reviewers do
 
 1. The reviewer bot (`guidelines-bot`) automatically assigns reviewers to coding guideline issues and PRs using a round-robin system.
 
-2. Only members marked as "Producer" in the consortium's [`members.md`](https://github.com/rustfoundation/safety-critical-rust-consortium/blob/main/subcommittee/coding-guidelines/members.md) are included in the rotation.
+2. Only members marked as "Producer" in the consortium's [`members.md`](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-consortium/blob/main/arewesafetycriticalyet.org/docs/coding_guidelines/2_members.md) are included in the rotation.
 
-3. The queue's state is stored in [Issue #314](https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/314).
+3. The queue's state is stored in [Issue #314](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/314).
 
 4. All commands are invoked by mentioning `@guidelines-bot` in a comment.
 
@@ -226,7 +226,7 @@ The goal is communication, not perfection. If you need to pass or step away, jus
 
 ## Queue Status
 
-The queue's state is stored in [Issue #314](https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/314) and includes:
+The queue's state is stored in [Issue #314](https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/314) and includes:
 
 - **Current queue position** - Who will be assigned next
 - **Active producers** - All reviewers in the rotation
