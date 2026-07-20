@@ -1,0 +1,79 @@
+name: Reviewer Bot Preview
+
+run-name: preview ${{ github.event.inputs.action }} issue ${{ github.event.inputs.issue_number }} nonce ${{ github.event.inputs.validation_nonce }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Preview action to perform
+        required: true
+        default: preview-check-overdue
+        type: choice
+        options: [preview-check-overdue, preview-status-label-projection, preview-issue314-state-health, preview-reviewer-board]
+      issue_number:
+        description: PR or issue number to preview
+        required: true
+        type: string
+      validation_nonce:
+        description: Validation nonce used to correlate this preview run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  STATE_ISSUE_NUMBER: '314'
+
+jobs:
+  reviewer-bot-preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    steps:
+      - name: Install uv
+        run: python -m pip install uv
+      - name: Checkout trusted bot source
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          ref: ${{ github.sha }}
+      - name: Select trusted bot source
+        id: bot-source
+        uses: ./.github/actions/reviewer-bot-source
+      - name: Run reviewer bot preview
+        env:
+          BOT_SRC_ROOT: ${{ steps.bot-source.outputs.bot-src-root }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: workflow_dispatch
+          EVENT_ACTION: ''
+          MANUAL_ACTION: ${{ github.event.inputs.action }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
+          VALIDATION_NONCE: ${{ github.event.inputs.validation_nonce }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
+          EVALUATED_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+          EVALUATED_REF: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          WORKFLOW_JOB_NAME: ${{ github.job }}
+          REVIEWER_BOARD_ENABLED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && 'true' || 'false' }}
+          REVIEWER_BOARD_TOKEN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'preview-reviewer-board' && secrets.REVIEWER_BOARD_TOKEN || '' }}
+        run: |
+          artifact_dir="$RUNNER_TEMP/reviewer-bot-preview-output-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$artifact_dir"
+          uv run --project "$BOT_SRC_ROOT" reviewer-bot > "$artifact_dir/preview-output.json"
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: reviewer-bot-preview-output-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/reviewer-bot-preview-output-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error

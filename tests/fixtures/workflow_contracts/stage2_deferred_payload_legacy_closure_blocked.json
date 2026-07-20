@@ -1,0 +1,43 @@
+{
+  "artifact_id": "deferred-payload-legacy-closure",
+  "generated_at": "2026-04-13T18:00:00Z",
+  "evaluated_repo": "rustfoundation/safety-critical-rust-coding-guidelines",
+  "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+  "closure_ready": false,
+  "retained_workflow_inventory_matches": false,
+  "blocking_workflows": [
+    {
+      "workflow_name": "Reviewer Bot PR Comment Observer",
+      "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+      "reason": "removed_legacy_workflow_still_active"
+    }
+  ],
+  "queued_or_in_progress_runs": [
+    {
+      "workflow_name": "Reviewer Bot PR Comment Observer",
+      "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+      "run_id": 9001,
+      "run_attempt": 1,
+      "status": "queued",
+      "head_sha": "74c8f6d25636c1772befbb3cc97e0e7598103047",
+      "reason": "removed_legacy_workflow_run"
+    }
+  ],
+  "legacy_artifacts_remaining": [
+    {
+      "workflow_name": "Reviewer Bot PR Comment Observer",
+      "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+      "run_id": 9002,
+      "run_attempt": 1,
+      "artifact_id": 7001,
+      "payload_schema_version": 1,
+      "payload_kind": "observer_noop",
+      "artifact_name": "reviewer-bot-comment-context-9002-attempt-1",
+      "payload_filename": "deferred-comment.json"
+    }
+  ],
+  "control_plane_actions_applied": [],
+  "commands_run": [
+    "gh workflow list --repo rustfoundation/safety-critical-rust-coding-guidelines"
+  ]
+}

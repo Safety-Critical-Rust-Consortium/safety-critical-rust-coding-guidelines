@@ -2,3 +2,9 @@ __pycache__/
 build/
 *.egg-info/
 .cache/
+.venv/
+.coverage
+coverage*.json
+coverage.xml
+htmlcov/
+artifacts/coverage/

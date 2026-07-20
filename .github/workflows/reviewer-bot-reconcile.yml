@@ -2,146 +2,78 @@ name: Reviewer Bot Reconcile
 
 on:
   workflow_run:
-    workflows: ["Reviewer Bot"]
+    workflows:
+      - Reviewer Bot PR Comment Router
+      - Reviewer Bot PR Review Submitted Observer
+      - Reviewer Bot PR Review Dismissed Observer
+      - Reviewer Bot PR Review Comment Observer
     types: [completed]
 
 permissions:
-  issues: write
-  pull-requests: write
-  contents: write
-  actions: read
+  contents: read
 
 env:
-  STATE_ISSUE_NUMBER: "314"
+  STATE_ISSUE_NUMBER: '314'
 
 jobs:
   reconcile:
-    if: ${{ github.event.workflow_run.event == 'pull_request_review' && github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
+    permissions:
+      # Temporary lock debt: contents:write is allowed only for the existing lock-ref API operations.
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: read
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Download reconcile context artifact
-        uses: actions/download-artifact@v5
+        run: python -m pip install uv
+      - name: Download deferred artifact
+        continue-on-error: true
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
         with:
-          name: reviewer-bot-reconcile-context-${{ github.event.workflow_run.id }}
+          path: ${{ runner.temp }}/observer-artifact
           run-id: ${{ github.event.workflow_run.id }}
           repository: ${{ github.repository }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: ${{ runner.temp }}/reviewer-bot
-
-      - name: Validate reconcile context artifact
-        env:
-          RECONCILE_CONTEXT_PATH: ${{ runner.temp }}/reviewer-bot/reconcile-context.json
-          EXPECTED_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
-          EXPECTED_WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      - name: Checkout trusted bot source
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          ref: ${{ github.sha }}
+      - name: Select trusted bot source
+        id: bot-source
+        uses: ./.github/actions/reviewer-bot-source
+      - name: Select deferred payload
         run: |
-          if [ ! -f "${RECONCILE_CONTEXT_PATH}" ]; then
-            echo "Missing reconcile context artifact at ${RECONCILE_CONTEXT_PATH}" >&2
-            exit 1
-          fi
-          uv run python - <<'PY'
-          import json
+          python - <<'PY'
           import os
-          import sys
           from pathlib import Path
-
-          path = Path(os.environ["RECONCILE_CONTEXT_PATH"])
-
-          try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-          except (OSError, json.JSONDecodeError) as exc:
-            print(f"Failed to parse reconcile context artifact JSON: {exc}", file=sys.stderr)
-            raise SystemExit(1)
-
-          if not isinstance(payload, dict):
-            print("Reconcile context artifact must be a JSON object", file=sys.stderr)
-            raise SystemExit(1)
-
-          required_fields = (
-            "schema_version",
-            "event_name",
-            "event_action",
-            "pr_number",
-            "head_sha",
-            "source_run_id",
-          )
-          missing = [field for field in required_fields if field not in payload]
-          if missing:
-            print(
-              "Reconcile context artifact missing required fields: " + ", ".join(missing),
-              file=sys.stderr,
-            )
-            raise SystemExit(1)
-
-          if payload["schema_version"] != 1:
-            print("Unsupported reconcile context schema_version", file=sys.stderr)
-            raise SystemExit(1)
-
-          if payload["event_name"] != "pull_request_review":
-            print("Reconcile context event_name mismatch", file=sys.stderr)
-            raise SystemExit(1)
-
-          if payload["event_action"] != "submitted":
-            print("Reconcile context event_action mismatch", file=sys.stderr)
-            raise SystemExit(1)
-
-          pr_number = payload["pr_number"]
-          if not isinstance(pr_number, int) or pr_number <= 0:
-            print("Reconcile context pr_number must be a positive integer", file=sys.stderr)
-            raise SystemExit(1)
-
-          artifact_head_sha = payload["head_sha"]
-          if not isinstance(artifact_head_sha, str) or not artifact_head_sha.strip():
-            print("Reconcile context head_sha must be a non-empty string", file=sys.stderr)
-            raise SystemExit(1)
-          artifact_head_sha = artifact_head_sha.strip()
-
-          source_run_id = payload["source_run_id"]
-          if not isinstance(source_run_id, int) or source_run_id <= 0:
-            print("Reconcile context source_run_id must be a positive integer", file=sys.stderr)
-            raise SystemExit(1)
-
-          expected_run_id = int(os.environ["EXPECTED_WORKFLOW_RUN_ID"])
-          if source_run_id != expected_run_id:
-            print("Reconcile context source_run_id does not match triggering run id", file=sys.stderr)
-            raise SystemExit(1)
-
-          expected_head_sha = os.environ["EXPECTED_WORKFLOW_RUN_HEAD_SHA"].strip()
-          if not expected_head_sha:
-            print("Missing expected workflow_run head SHA", file=sys.stderr)
-            raise SystemExit(1)
-          if artifact_head_sha != expected_head_sha:
-            print("Reconcile context head_sha does not match workflow_run head_sha", file=sys.stderr)
-            raise SystemExit(1)
-
-          github_env = os.environ.get("GITHUB_ENV")
-          if not github_env:
-            print("GITHUB_ENV is not available", file=sys.stderr)
-            raise SystemExit(1)
-
-          with open(github_env, "a", encoding="utf-8") as env_file:
-            env_file.write(f"WORKFLOW_RUN_RECONCILE_PR_NUMBER={pr_number}\n")
-            env_file.write(f"WORKFLOW_RUN_RECONCILE_HEAD_SHA={artifact_head_sha}\n")
+          files = sorted(Path(os.environ['RUNNER_TEMP']).joinpath('observer-artifact').rglob('*.json'))
+          if len(files) > 1:
+              raise SystemExit(f'Expected at most one deferred payload, found {len(files)}')
+          if len(files) == 1:
+              print(f'DEFERRED_CONTEXT_PATH={files[0]}', file=open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8'))
           PY
-
-      - name: Run reviewer bot reconcile
+      - name: Run trusted reconcile
         env:
+          BOT_SRC_ROOT: ${{ steps.bot-source.outputs.bot-src-root }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STATE_ISSUE_NUMBER: ${{ env.STATE_ISSUE_NUMBER }}
           EVENT_NAME: workflow_run
-          EVENT_ACTION: ${{ github.event.action }}
-          WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
-          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_ACTION: completed
+          REVIEWER_BOT_WORKFLOW_KIND: reconcile
+          WORKFLOW_RUN_TRIGGERING_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_TRIGGERING_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          WORKFLOW_RUN_TRIGGERING_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF: ${{ github.ref }}
           WORKFLOW_RUN_ID: ${{ github.run_id }}
           WORKFLOW_NAME: ${{ github.workflow }}
           WORKFLOW_JOB_NAME: ${{ github.job }}
+        run: uv run --project "$BOT_SRC_ROOT" reviewer-bot
+      - name: Workflow summary
         run: |
-          uv run python scripts/reviewer_bot.py
+          {
+            echo 'Deferred-gap recovery guidance:'
+            echo '- docs/reviewer-bot-review-freshness-operator-runbook.md'
+          } >> "$GITHUB_STEP_SUMMARY"

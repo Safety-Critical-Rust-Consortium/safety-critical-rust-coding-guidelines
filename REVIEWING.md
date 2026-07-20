@@ -6,7 +6,7 @@ If you are contributing a guideline, start with [CONTRIBUTING.md](CONTRIBUTING.m
 ## Reviewer Bot Commands
 
 > [!NOTE]
-> These commands only apply in the context of coding guideline issues.
+> These commands apply to tracked reviewer-bot issue reviews. Some commands remain specific to coding-guideline or FLS-audit issues.
 
 Before we continue, here's a preamble on how the reviewer bot helps reviewers do their job.
 
@@ -86,7 +86,6 @@ permission to persist reviewer-bot state.
 
 Who can run it:
 - The currently assigned reviewer
-- A maintainer with triage+ permission
 
 What it does (for the current PR only):
 - If the latest review by the assigned reviewer is `APPROVED`, it marks the review complete.
@@ -96,6 +95,23 @@ What it does (for the current PR only):
 **Example:**
 ```
 @guidelines-bot /rectify
+```
+
+### Mark a Tracked Issue Review Complete
+
+```
+@guidelines-bot /done
+```
+
+Use this to mark a tracked non-PR issue review complete when the review work is finished.
+
+- Available on generic tracked issues and FLS audit issues
+- Not available on pull requests
+- Not available on coding guideline issues, which still use `sign-off: create pr`
+
+**Example:**
+```
+@guidelines-bot /done
 ```
 
 ### Assign a Specific Reviewer
