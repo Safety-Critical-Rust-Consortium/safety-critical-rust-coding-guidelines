@@ -22,7 +22,9 @@ Entries below are failure modes whose root cause is specific to Rust's language,
 **Common sub-pattern:** `len * size_of::<T>()` or `base + offset` wrapping silently, followed immediately by `alloc(wrapped_size)` and an `unsafe` write past the actual end.
 
 **Mitigation:** Use `checked_mul`, `checked_add`, or enable `overflow-checks = true` in `[profile.release]` for safety-critical builds.
+
 **Also in C/C++:** the same size-calculation-then-heap-overflow pattern is a classic C bug (`malloc(n * size)` overflowing before allocation); C leaves signed overflow as undefined behaviour and unsigned overflow as silent wraparound. What is Rust-specific here is the debug/release split and the `checked_*`/`overflow-checks` mitigation vocabulary.
+
 ---
 
 ### A.2 — Silent Truncation via `as` Casting
