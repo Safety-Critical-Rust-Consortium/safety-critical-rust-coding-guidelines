@@ -14,9 +14,9 @@ Entries below are failure modes whose root cause is specific to Rust's language,
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2018-1000810 | `std` | `str::repeat(n)` multiplied byte length × repeat count without overflow check; wrapped result caused buffer overflow |
-| CVE-2026-44983 | `smallbitvec` | Integer overflow in internal capacity calculation produced an undersized heap buffer |
-| CVE-2026-42199 | `grid` | `Grid::expand_rows()` overflow corrupted the relationship between logical dimensions and backing storage |
+| [CVE-2018-1000810](https://www.cve.org/CVERecord?id=CVE-2018-1000810) | `std` | `str::repeat(n)` multiplied byte length × repeat count without overflow check; wrapped result caused buffer overflow |
+| [CVE-2026-44983](https://www.cve.org/CVERecord?id=CVE-2026-44983) | `smallbitvec` | Integer overflow in internal capacity calculation produced an undersized heap buffer |
+| [CVE-2026-42199](https://www.cve.org/CVERecord?id=CVE-2026-42199) | `grid` | `Grid::expand_rows()` overflow corrupted the relationship between logical dimensions and backing storage |
 | RUSTSEC-2019-0003 | `smallvec` | `insert_many` size arithmetic overflow before unsafe allocation |
 
 **Common sub-pattern:** `len * size_of::<T>()` or `base + offset` wrapping silently, followed immediately by `alloc(wrapped_size)` and an `unsafe` write past the actual end.
@@ -56,8 +56,8 @@ let y: u8 = x as u8;   // silently 0x42 — no warning, no panic
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2019-12083 | `std` | `Error::type_id` override could be used to violate Rust's safety guarantees; the stabilised method was unsound |
-| CVE-2025-24898 | `rust-openssl` | `ssl::select_next_proto` returned a slice pointing into the `server` argument's buffer but with the lifetime of `client`; the returned reference could outlive `server` |
+| [CVE-2019-12083](https://www.cve.org/CVERecord?id=CVE-2019-12083) | `std` | `Error::type_id` override could be used to violate Rust's safety guarantees; the stabilised method was unsound |
+| [CVE-2025-24898](https://www.cve.org/CVERecord?id=CVE-2025-24898) | `rust-openssl` | `ssl::select_next_proto` returned a slice pointing into the `server` argument's buffer but with the lifetime of `client`; the returned reference could outlive `server` |
 | RUSTSEC-2018-0001 | `owning_ref` | Fundamentally unsound design; aliasing `&` and `&mut` via raw pointers possible through the safe API |
 | RUSTSEC-2020-0023 | `rio` | `mem::transmute` used to extend a lifetime, creating a reference that could outlive the data it pointed to |
 
@@ -401,13 +401,13 @@ Since the Rust 2024 edition, attributes that affect linkage/ABI (`no_mangle`, `e
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2022-24713 | `regex` | Built-in ReDoS mitigations had a bypass; crafted regexes or inputs caused excessive CPU time |
-| CVE-2026-34219 | `libp2p` Gossipsub | Remotely reachable `panic` in backoff expiry handling; unauthenticated attacker can crash the node |
-| CVE-2026-33040 | `libp2p` Gossipsub | Attacker-controlled PRUNE backoff value used in unchecked time arithmetic, causing wrap and potential panic |
-| CVE-2026-35405 | `libp2p` rendezvous | No limit on namespaces a single peer can register; exhausts server memory |
-| CVE-2026-35457 | `libp2p` rendezvous | Pagination cookies stored without bounds; unauthenticated peer causes unbounded allocation |
+| [CVE-2022-24713](https://www.cve.org/CVERecord?id=CVE-2022-24713) | `regex` | Built-in ReDoS mitigations had a bypass; crafted regexes or inputs caused excessive CPU time |
+| [CVE-2026-34219](https://www.cve.org/CVERecord?id=CVE-2026-34219) | `libp2p` Gossipsub | Remotely reachable `panic` in backoff expiry handling; unauthenticated attacker can crash the node |
+| [CVE-2026-33040](https://www.cve.org/CVERecord?id=CVE-2026-33040) | `libp2p` Gossipsub | Attacker-controlled PRUNE backoff value used in unchecked time arithmetic, causing wrap and potential panic |
+| [CVE-2026-35405](https://www.cve.org/CVERecord?id=CVE-2026-35405) | `libp2p` rendezvous | No limit on namespaces a single peer can register; exhausts server memory |
+| [CVE-2026-35457](https://www.cve.org/CVERecord?id=CVE-2026-35457) | `libp2p` rendezvous | Pagination cookies stored without bounds; unauthenticated peer causes unbounded allocation |
 | RUSTSEC-multiple | `serde_yaml`, `bincode`, `serde_json` | Deeply nested input causes unbounded recursion → stack overflow |
-| CVE-2025-62162 | `cel-rust` | Certain malformed CEL expressions caused the parser to panic |
+| [CVE-2025-62162](https://www.cve.org/CVERecord?id=CVE-2025-62162) | `cel-rust` | Certain malformed CEL expressions caused the parser to panic |
 
 **Common sub-patterns:**
 - Missing depth limit in recursive parsers/deserializers.
@@ -556,40 +556,40 @@ This is distinct from H.1 because it applies even to correctly-named but comprom
 
 | Sub-group | Category | Primary CWEs | Key CVEs / Source |
 |---|---|---|---|
-| A.1 | Integer arithmetic overflow / underflow | CWE-190, CWE-680 | CVE-2018-1000810, CVE-2026-44983 |
-| A.2 | `as` cast silent truncation | CWE-681, CWE-197 | Rustonomicon; ANSSI LANG-ARITH |
-| B.1 | Unsound `unsafe` abstractions | CWE-119, CWE-416 | CVE-2019-12083, CVE-2025-24898 |
-| B.2 | Panic safety in `unsafe` | CWE-415 | RUSTSEC-2018-0003 |
-| B.3 | `static mut` data races | CWE-362, CWE-820 | Rustonomicon; ANSSI UNSAFE-NOUB |
-| B.4 | Wrong atomic memory ordering | CWE-362, CWE-366 | Rustonomicon atomics chapter |
-| B.5 | `transmute` without layout guarantee | CWE-843 | Rustonomicon transmutes chapter |
-| B.6 | Uninitialized memory misuse | CWE-457, CWE-908 | RUSTSEC-2019-0003 |
-| B.7 | `RefCell`/`Mutex` runtime borrow & lock panics | CWE-667, CWE-674 | Rust std docs (`RefCell`, `Mutex` poisoning) |
-| B.8 | Reading uninitialized padding bytes | CWE-457, CWE-908 | Rustonomicon; `bytemuck`/`zerocopy` docs |
-| B.9 | Misbehaving safe-trait impls corrupting `unsafe` invariants | CWE-664, CWE-125, CWE-787 | Rustonomicon "Working with Unsafe" |
-| B.10 | Atomic data not placed in proper memory section (embedded) | CWE-662, CWE-667 | Vendor TRM / linker-script practice |
-| C.1 | `Rc`/`Arc` cycles → leak / no secure cleanup | CWE-401, CWE-312 | ANSSI MEM-MUT-REC-RC, LANG-DROP-SEC |
-| C.2 | Panicking inside `Drop` | CWE-248 | ANSSI LANG-DROP-NO-PANIC |
-| C.3 | `mem::forget` bypassing secure cleanup | CWE-312, CWE-401 | ANSSI MEM-FORGET |
-| C.4 | Unsound `Pin`/`Unpin` misuse | CWE-825, CWE-664 | Rustonomicon `Pin` chapter |
-| C.5 | Drop order mistakes | CWE-664 | Rust Reference (destructors) |
-| C.6 | Manual `Drop` + `ptr::read` without `mem::forget` → double drop | CWE-415 | Historical `smallvec`/`arrayvec` advisories |
-| C.7 | Cross-thread `Rc` use without atomic refcount | CWE-362, CWE-416 | RUSTSEC-2020-0029 |
-| D.1 | FFI panic unwind | CWE-119 | ANSSI FFI-NOPANIC |
-| D.2 | Non-robust types at FFI boundary | CWE-843 | ANSSI FFI-NOENUM |
-| D.3 | `repr(packed)` unaligned references | CWE-704, CWE-843 | Rustonomicon; std `addr_of!` docs |
-| D.4 | `no_mangle`/`export_name`/`link_section` linker hazards | CWE-665, CWE-758 | Rust 2024 edition `unsafe attributes` |
-| E.1 | Reachable panics / resource exhaustion | CWE-400, CWE-674 | CVE-2022-24713, CVE-2026-34219 |
-| E.2 | `Default::default()` infinite recursion | CWE-674 | Rust compiler behaviour |
-| E.3 | Blocking sync operations in async contexts | CWE-667, CWE-400 | `clippy::await_holding_lock` |
-| E.4 | Unbounded channels/queues | CWE-400, CWE-770 | Tokio/crossbeam documentation |
-| E.5 | `unwrap`/`expect`/swallowed-error anti-patterns | CWE-248, CWE-252, CWE-390 | `clippy::unwrap_used` |
-| E.6 | Async cancellation safety (future dropped mid-`.await`) | CWE-662, CWE-696 | Tokio `select!` documentation |
-| E.7 | Forgetting to poll a future (silent no-op) | CWE-252 | `#[must_use]` on `Future` |
-| G.1 | Inconsistent `PartialEq`/`Hash`/`Ord` | CWE-697, CWE-1023 | Rust API Guidelines |
-| G.2 | Derive macro order dependence / helper-attribute conflicts | CWE-696 | Proc-macro derive documentation |
-| H.1 | Supply-chain / typosquatting | CWE-1104 | Multiple RUSTSEC malicious advisories |
-| H.2 | `build.rs` / proc-macro compile-time execution | CWE-94, CWE-426 | ANSSI LIBS-VETTING |
+| A.1 | Integer arithmetic overflow / underflow | [CWE-190](https://cwe.mitre.org/data/definitions/190.html), [CWE-680](https://cwe.mitre.org/data/definitions/680.html) | [CVE-2018-1000810](https://www.cve.org/CVERecord?id=CVE-2018-1000810), [CVE-2026-44983](https://www.cve.org/CVERecord?id=CVE-2026-44983) |
+| A.2 | `as` cast silent truncation | [CWE-681](https://cwe.mitre.org/data/definitions/681.html), [CWE-197](https://cwe.mitre.org/data/definitions/197.html) | Rustonomicon; ANSSI LANG-ARITH |
+| B.1 | Unsound `unsafe` abstractions | [CWE-119](https://cwe.mitre.org/data/definitions/119.html), [CWE-416](https://cwe.mitre.org/data/definitions/416.html) | [CVE-2019-12083](https://www.cve.org/CVERecord?id=CVE-2019-12083), [CVE-2025-24898](https://www.cve.org/CVERecord?id=CVE-2025-24898) |
+| B.2 | Panic safety in `unsafe` | [CWE-415](https://cwe.mitre.org/data/definitions/415.html) | RUSTSEC-2018-0003 |
+| B.3 | `static mut` data races | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-820](https://cwe.mitre.org/data/definitions/820.html) | Rustonomicon; ANSSI UNSAFE-NOUB |
+| B.4 | Wrong atomic memory ordering | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-366](https://cwe.mitre.org/data/definitions/366.html) | Rustonomicon atomics chapter |
+| B.5 | `transmute` without layout guarantee | [CWE-843](https://cwe.mitre.org/data/definitions/843.html) | Rustonomicon transmutes chapter |
+| B.6 | Uninitialized memory misuse | [CWE-457](https://cwe.mitre.org/data/definitions/457.html), [CWE-908](https://cwe.mitre.org/data/definitions/908.html) | RUSTSEC-2019-0003 |
+| B.7 | `RefCell`/`Mutex` runtime borrow & lock panics | [CWE-667](https://cwe.mitre.org/data/definitions/667.html), [CWE-674](https://cwe.mitre.org/data/definitions/674.html) | Rust std docs (`RefCell`, `Mutex` poisoning) |
+| B.8 | Reading uninitialized padding bytes | [CWE-457](https://cwe.mitre.org/data/definitions/457.html), [CWE-908](https://cwe.mitre.org/data/definitions/908.html) | Rustonomicon; `bytemuck`/`zerocopy` docs |
+| B.9 | Misbehaving safe-trait impls corrupting `unsafe` invariants | [CWE-664](https://cwe.mitre.org/data/definitions/664.html), [CWE-125](https://cwe.mitre.org/data/definitions/125.html), [CWE-787](https://cwe.mitre.org/data/definitions/787.html) | Rustonomicon "Working with Unsafe" |
+| B.10 | Atomic data not placed in proper memory section (embedded) | [CWE-662](https://cwe.mitre.org/data/definitions/662.html), [CWE-667](https://cwe.mitre.org/data/definitions/667.html) | Vendor TRM / linker-script practice |
+| C.1 | `Rc`/`Arc` cycles → leak / no secure cleanup | [CWE-401](https://cwe.mitre.org/data/definitions/401.html), [CWE-312](https://cwe.mitre.org/data/definitions/312.html) | ANSSI MEM-MUT-REC-RC, LANG-DROP-SEC |
+| C.2 | Panicking inside `Drop` | [CWE-248](https://cwe.mitre.org/data/definitions/248.html) | ANSSI LANG-DROP-NO-PANIC |
+| C.3 | `mem::forget` bypassing secure cleanup | [CWE-312](https://cwe.mitre.org/data/definitions/312.html), [CWE-401](https://cwe.mitre.org/data/definitions/401.html) | ANSSI MEM-FORGET |
+| C.4 | Unsound `Pin`/`Unpin` misuse | [CWE-825](https://cwe.mitre.org/data/definitions/825.html), [CWE-664](https://cwe.mitre.org/data/definitions/664.html) | Rustonomicon `Pin` chapter |
+| C.5 | Drop order mistakes | [CWE-664](https://cwe.mitre.org/data/definitions/664.html) | Rust Reference (destructors) |
+| C.6 | Manual `Drop` + `ptr::read` without `mem::forget` → double drop | [CWE-415](https://cwe.mitre.org/data/definitions/415.html) | Historical `smallvec`/`arrayvec` advisories |
+| C.7 | Cross-thread `Rc` use without atomic refcount | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-416](https://cwe.mitre.org/data/definitions/416.html) | RUSTSEC-2020-0029 |
+| D.1 | FFI panic unwind | [CWE-119](https://cwe.mitre.org/data/definitions/119.html) | ANSSI FFI-NOPANIC |
+| D.2 | Non-robust types at FFI boundary | [CWE-843](https://cwe.mitre.org/data/definitions/843.html) | ANSSI FFI-NOENUM |
+| D.3 | `repr(packed)` unaligned references | [CWE-704](https://cwe.mitre.org/data/definitions/704.html), [CWE-843](https://cwe.mitre.org/data/definitions/843.html) | Rustonomicon; std `addr_of!` docs |
+| D.4 | `no_mangle`/`export_name`/`link_section` linker hazards | [CWE-665](https://cwe.mitre.org/data/definitions/665.html), [CWE-758](https://cwe.mitre.org/data/definitions/758.html) | Rust 2024 edition `unsafe attributes` |
+| E.1 | Reachable panics / resource exhaustion | [CWE-400](https://cwe.mitre.org/data/definitions/400.html), [CWE-674](https://cwe.mitre.org/data/definitions/674.html) | [CVE-2022-24713](https://www.cve.org/CVERecord?id=CVE-2022-24713), [CVE-2026-34219](https://www.cve.org/CVERecord?id=CVE-2026-34219) |
+| E.2 | `Default::default()` infinite recursion | [CWE-674](https://cwe.mitre.org/data/definitions/674.html) | Rust compiler behaviour |
+| E.3 | Blocking sync operations in async contexts | [CWE-667](https://cwe.mitre.org/data/definitions/667.html), [CWE-400](https://cwe.mitre.org/data/definitions/400.html) | `clippy::await_holding_lock` |
+| E.4 | Unbounded channels/queues | [CWE-400](https://cwe.mitre.org/data/definitions/400.html), [CWE-770](https://cwe.mitre.org/data/definitions/770.html) | Tokio/crossbeam documentation |
+| E.5 | `unwrap`/`expect`/swallowed-error anti-patterns | [CWE-248](https://cwe.mitre.org/data/definitions/248.html), [CWE-252](https://cwe.mitre.org/data/definitions/252.html), [CWE-390](https://cwe.mitre.org/data/definitions/390.html) | `clippy::unwrap_used` |
+| E.6 | Async cancellation safety (future dropped mid-`.await`) | [CWE-662](https://cwe.mitre.org/data/definitions/662.html), [CWE-696](https://cwe.mitre.org/data/definitions/696.html) | Tokio `select!` documentation |
+| E.7 | Forgetting to poll a future (silent no-op) | [CWE-252](https://cwe.mitre.org/data/definitions/252.html) | `#[must_use]` on `Future` |
+| G.1 | Inconsistent `PartialEq`/`Hash`/`Ord` | [CWE-697](https://cwe.mitre.org/data/definitions/697.html), [CWE-1023](https://cwe.mitre.org/data/definitions/1023.html) | Rust API Guidelines |
+| G.2 | Derive macro order dependence / helper-attribute conflicts | [CWE-696](https://cwe.mitre.org/data/definitions/696.html) | Proc-macro derive documentation |
+| H.1 | Supply-chain / typosquatting | [CWE-1104](https://cwe.mitre.org/data/definitions/1104.html) | Multiple RUSTSEC malicious advisories |
+| H.2 | `build.rs` / proc-macro compile-time execution | [CWE-94](https://cwe.mitre.org/data/definitions/94.html), [CWE-426](https://cwe.mitre.org/data/definitions/426.html) | ANSSI LIBS-VETTING |
 
 ---
 
@@ -603,12 +603,12 @@ The following bug classes are **not specific to Rust** — the same root cause a
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2026-44662 | `rust-openssl` | `cipher_update` / `Crypter::update` sized the output buffer incorrectly for AES key-wrap-with-padding ciphers; potential heap write past buffer |
-| CVE-2026-41898 | `rust-openssl` | FFI trampolines for PSK/cookie callbacks forwarded the user closure's returned `usize` directly to OpenSSL without clamping or validation |
-| CVE-2026-41681 | `rust-openssl` | `EVP_DigestFinal()` always writes `EVP_MD_CTX_size()` bytes; `MdCtxRef::digest_final` did not guarantee the output buffer was that large |
-| CVE-2026-41678 | `rust-openssl` | `aes::unwrap_key()` had an incorrect assertion (`out.len() + 8 <= in_.len()` instead of `>=`) allowing misuse |
-| CVE-2026-41676 | `rust-openssl` | `Deriver::derive` passed `buf.len()` as both the in/out length parameter to `EVP_PKEY_derive`, which can truncate the derived key silently |
-| CVE-2026-41677 | `rust-openssl` | `*_from_pem_callback` APIs did not validate the length returned by the user's password callback; a callback returning too large a length caused a buffer overread |
+| [CVE-2026-44662](https://www.cve.org/CVERecord?id=CVE-2026-44662) | `rust-openssl` | `cipher_update` / `Crypter::update` sized the output buffer incorrectly for AES key-wrap-with-padding ciphers; potential heap write past buffer |
+| [CVE-2026-41898](https://www.cve.org/CVERecord?id=CVE-2026-41898) | `rust-openssl` | FFI trampolines for PSK/cookie callbacks forwarded the user closure's returned `usize` directly to OpenSSL without clamping or validation |
+| [CVE-2026-41681](https://www.cve.org/CVERecord?id=CVE-2026-41681) | `rust-openssl` | `EVP_DigestFinal()` always writes `EVP_MD_CTX_size()` bytes; `MdCtxRef::digest_final` did not guarantee the output buffer was that large |
+| [CVE-2026-41678](https://www.cve.org/CVERecord?id=CVE-2026-41678) | `rust-openssl` | `aes::unwrap_key()` had an incorrect assertion (`out.len() + 8 <= in_.len()` instead of `>=`) allowing misuse |
+| [CVE-2026-41676](https://www.cve.org/CVERecord?id=CVE-2026-41676) | `rust-openssl` | `Deriver::derive` passed `buf.len()` as both the in/out length parameter to `EVP_PKEY_derive`, which can truncate the derived key silently |
+| [CVE-2026-41677](https://www.cve.org/CVERecord?id=CVE-2026-41677) | `rust-openssl` | `*_from_pem_callback` APIs did not validate the length returned by the user's password callback; a callback returning too large a length caused a buffer overread |
 
 **Mitigation:** All lengths crossing an FFI boundary must be validated (clamped, checked against actual buffer size) before use. Treat every value coming *out* of a C callback as untrusted.
 
@@ -620,9 +620,9 @@ The following bug classes are **not specific to Rust** — the same root cause a
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2022-21658 | `std` | `fs::remove_dir_all` followed symlinks during recursive deletion; allowed a concurrent unprivileged process to delete arbitrary files |
-| CVE-2022-36113 | Cargo | Crate tarballs could contain symlinks that, after extraction, caused subsequent writes to land outside the intended directory |
-| CVE-2026-5223 | Cargo | Symlinks inside crate tarballs from third-party registries could override source code of another crate |
+| [CVE-2022-21658](https://www.cve.org/CVERecord?id=CVE-2022-21658) | `std` | `fs::remove_dir_all` followed symlinks during recursive deletion; allowed a concurrent unprivileged process to delete arbitrary files |
+| [CVE-2022-36113](https://www.cve.org/CVERecord?id=CVE-2022-36113) | Cargo | Crate tarballs could contain symlinks that, after extraction, caused subsequent writes to land outside the intended directory |
+| [CVE-2026-5223](https://www.cve.org/CVERecord?id=CVE-2026-5223) | Cargo | Symlinks inside crate tarballs from third-party registries could override source code of another crate |
 | RUSTSEC-multiple | tar, zip, archive crates | "Zip Slip" variants: archive entries with `../` components extract outside target directory |
 
 **Mitigation:** Use the `cap-std` / `cap-primitives` capability-based filesystem API, which opens a directory once and scopes all subsequent operations to that file descriptor, eliminating TOCTOU windows. Always canonicalize and validate archive entry paths before writing.
@@ -635,8 +635,8 @@ The following bug classes are **not specific to Rust** — the same root cause a
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2024-24576 | `std` | `std::process::Command` did not properly escape arguments when invoking `.bat` / `.cmd` files on Windows; allowed command injection if any argument was attacker-controlled |
-| CVE-2024-43402 | `std` | The fix for CVE-2024-24576 was incomplete; further bypass was possible |
+| [CVE-2024-24576](https://www.cve.org/CVERecord?id=CVE-2024-24576) | `std` | `std::process::Command` did not properly escape arguments when invoking `.bat` / `.cmd` files on Windows; allowed command injection if any argument was attacker-controlled |
+| [CVE-2024-43402](https://www.cve.org/CVERecord?id=CVE-2024-43402) | `std` | The fix for [CVE-2024-24576](https://www.cve.org/CVERecord?id=CVE-2024-24576) was incomplete; further bypass was possible |
 
 **Mitigation:** Never pass untrusted input as arguments to shell scripts or batch files. If unavoidable, validate and escape with a dedicated, well-tested quoting library. Pin to Rust ≥ 1.81.0 where the fix is complete.
 
@@ -648,11 +648,11 @@ Business-logic bugs that do not involve any language-specific mechanism (UB, pan
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| CVE-2026-43911 | Vaultwarden | Refresh tokens not invalidated when `security_stamp` rotates (password/KDF change); stale tokens remain valid |
-| CVE-2026-43912 | Vaultwarden | Cross-organization references allowed; group/collection membership could be manipulated across org boundaries |
-| CVE-2026-43913 | Vaultwarden | Unconfirmed org owner could purge the entire vault; invitation flow did not enforce confirmed status before privileged operations |
-| CVE-2026-43914 | Vaultwarden | Login brute-force protection bypassable when email 2FA is enabled |
-| CVE-2026-42559 | RMCP (MCP SDK) | Streamable HTTP server did not validate `Host` header; SSRF / routing attacks possible |
+| [CVE-2026-43911](https://www.cve.org/CVERecord?id=CVE-2026-43911) | Vaultwarden | Refresh tokens not invalidated when `security_stamp` rotates (password/KDF change); stale tokens remain valid |
+| [CVE-2026-43912](https://www.cve.org/CVERecord?id=CVE-2026-43912) | Vaultwarden | Cross-organization references allowed; group/collection membership could be manipulated across org boundaries |
+| [CVE-2026-43913](https://www.cve.org/CVERecord?id=CVE-2026-43913) | Vaultwarden | Unconfirmed org owner could purge the entire vault; invitation flow did not enforce confirmed status before privileged operations |
+| [CVE-2026-43914](https://www.cve.org/CVERecord?id=CVE-2026-43914) | Vaultwarden | Login brute-force protection bypassable when email 2FA is enabled |
+| [CVE-2026-42559](https://www.cve.org/CVERecord?id=CVE-2026-42559) | RMCP (MCP SDK) | Streamable HTTP server did not validate `Host` header; SSRF / routing attacks possible |
 
 **Common sub-pattern:** Business-logic validation is missing or only partially enforced at one layer (e.g., the API handler) while the data model allows another path to the same privileged action.
 
