@@ -17,7 +17,7 @@ Entries below are failure modes whose root cause is specific to Rust's language,
 | [CVE-2018-1000810](https://www.cve.org/CVERecord?id=CVE-2018-1000810) | `std` | `str::repeat(n)` multiplied byte length × repeat count without overflow check; wrapped result caused buffer overflow |
 | [CVE-2026-44983](https://www.cve.org/CVERecord?id=CVE-2026-44983) | `smallbitvec` | Integer overflow in internal capacity calculation produced an undersized heap buffer |
 | [CVE-2026-42199](https://www.cve.org/CVERecord?id=CVE-2026-42199) | `grid` | `Grid::expand_rows()` overflow corrupted the relationship between logical dimensions and backing storage |
-| RUSTSEC-2019-0003 | `smallvec` | `insert_many` size arithmetic overflow before unsafe allocation |
+| [RUSTSEC-2019-0003](https://rustsec.org/advisories/2019-0003.html) | `smallvec` | `insert_many` size arithmetic overflow before unsafe allocation |
 
 **Common sub-pattern:** `len * size_of::<T>()` or `base + offset` wrapping silently, followed immediately by `alloc(wrapped_size)` and an `unsafe` write past the actual end.
 
@@ -58,8 +58,8 @@ let y: u8 = x as u8;   // silently 0x42 — no warning, no panic
 |---|---|---|
 | [CVE-2019-12083](https://www.cve.org/CVERecord?id=CVE-2019-12083) | `std` | `Error::type_id` override could be used to violate Rust's safety guarantees; the stabilised method was unsound |
 | [CVE-2025-24898](https://www.cve.org/CVERecord?id=CVE-2025-24898) | `rust-openssl` | `ssl::select_next_proto` returned a slice pointing into the `server` argument's buffer but with the lifetime of `client`; the returned reference could outlive `server` |
-| RUSTSEC-2018-0001 | `owning_ref` | Fundamentally unsound design; aliasing `&` and `&mut` via raw pointers possible through the safe API |
-| RUSTSEC-2020-0023 | `rio` | `mem::transmute` used to extend a lifetime, creating a reference that could outlive the data it pointed to |
+| [RUSTSEC-2018-0001](https://rustsec.org/advisories/2018-0001.html) | `owning_ref` | Fundamentally unsound design; aliasing `&` and `&mut` via raw pointers possible through the safe API |
+| [RUSTSEC-2020-0023](https://rustsec.org/advisories/2020-0023.html) | `rio` | `mem::transmute` used to extend a lifetime, creating a reference that could outlive the data it pointed to |
 
 **Common sub-pattern:** `mem::transmute` for lifetime laundering, `unsafe impl Send/Sync` without verifying actual thread-safety, and returning `&T` derived from a `*const T` whose provenance has ended.
 
@@ -73,8 +73,8 @@ let y: u8 = x as u8;   // silently 0x42 — no warning, no panic
 
 | CVE / Advisory | Crate | Description |
 |---|---|---|
-| RUSTSEC-2018-0003 | `smallvec` | Panic during element `clone` left the vector length pointing past live elements; subsequent drop caused double-free |
-| RUSTSEC-2019-0012 | `arrayvec` | Same pattern: panic during `extend` left array partially initialised |
+| [RUSTSEC-2018-0003](https://rustsec.org/advisories/2018-0003.html) | `smallvec` | Panic during element `clone` left the vector length pointing past live elements; subsequent drop caused double-free |
+| [RUSTSEC-2019-0012](https://rustsec.org/advisories/2019-0012.html) | `arrayvec` | Same pattern: panic during `extend` left array partially initialised |
 | Similar | `tinyvec`, various iterator adapters | Variations of the same panic-during-clone/drop-in-unsafe bug |
 
 **Common sub-pattern:** `vec.set_len(new_len)` or similar is called *before* filling the new slots; if filling panics, slots with uninitialized or moved-from data are in scope for `Drop`.
@@ -154,7 +154,7 @@ Rust exposes C++20 atomic orderings (`Relaxed`, `Acquire`, `Release`, `AcqRel`, 
 
 | Advisory | Crate | Description |
 |---|---|---|
-| RUSTSEC-2019-0003 | `smallvec` | `insert_many` allowed reading uninitialized memory when the supplied iterator panicked partway through |
+| [RUSTSEC-2019-0003](https://rustsec.org/advisories/2019-0003.html) | `smallvec` | `insert_many` allowed reading uninitialized memory when the supplied iterator panicked partway through |
 | Common pattern | various | `MaybeUninit::uninit().assume_init()` used directly on non-trivial types instead of initializing field-by-field |
 
 **Guideline:** Ban `mem::uninitialized` and `mem::zeroed` for types that are not validly all-zero. Every `assume_init()` call must be paired with a `// SAFETY:` comment proving every field/byte was written on all preceding paths (including early returns and panics).
@@ -308,7 +308,7 @@ Rust has two different, easily confused drop-order rules: struct/tuple **fields 
 
 `Rc<T>`'s reference count is a plain, non-atomic `Cell<usize>` — cheap, but only sound for single-threaded use; `Rc<T>` is deliberately `!Send`/`!Sync` to prevent it crossing threads. Manually forcing it across threads (`unsafe impl Send` on a wrapper, or defeating the auto-trait via transmute) reintroduces a data race on the reference count itself: two threads incrementing/decrementing concurrently can lose updates, causing the count to reach zero while a live reference still exists (dangling pointer) or never reach zero (leak).
 
-**Example:** RUSTSEC-2020-0029 (`futures-intrusive`) — a type was falsely marked `Send`, allowing exactly this cross-thread reference-count race.
+**Example:** [RUSTSEC-2020-0029](https://rustsec.org/advisories/2020-0029.html) (`futures-intrusive`) — a type was falsely marked `Send`, allowing exactly this cross-thread reference-count race.
 
 **Guideline:** Never wrap `Rc<T>` to force `Send`/`Sync`. Use `Arc<T>` (atomic refcount) for any type that might cross a thread boundary, even if "in practice" only one thread touches it at a time — the guarantee must hold structurally, not by convention.
 
@@ -406,7 +406,7 @@ Since the Rust 2024 edition, attributes that affect linkage/ABI (`no_mangle`, `e
 | [CVE-2026-33040](https://www.cve.org/CVERecord?id=CVE-2026-33040) | `libp2p` Gossipsub | Attacker-controlled PRUNE backoff value used in unchecked time arithmetic, causing wrap and potential panic |
 | [CVE-2026-35405](https://www.cve.org/CVERecord?id=CVE-2026-35405) | `libp2p` rendezvous | No limit on namespaces a single peer can register; exhausts server memory |
 | [CVE-2026-35457](https://www.cve.org/CVERecord?id=CVE-2026-35457) | `libp2p` rendezvous | Pagination cookies stored without bounds; unauthenticated peer causes unbounded allocation |
-| RUSTSEC-multiple | `serde_yaml`, `bincode`, `serde_json` | Deeply nested input causes unbounded recursion → stack overflow |
+| [RUSTSEC-multiple](https://rustsec.org/advisories/) | `serde_yaml`, `bincode`, `serde_json` | Deeply nested input causes unbounded recursion → stack overflow |
 | [CVE-2025-62162](https://www.cve.org/CVERecord?id=CVE-2025-62162) | `cel-rust` | Certain malformed CEL expressions caused the parser to panic |
 
 **Common sub-patterns:**
@@ -559,11 +559,11 @@ This is distinct from H.1 because it applies even to correctly-named but comprom
 | A.1 | Integer arithmetic overflow / underflow | [CWE-190](https://cwe.mitre.org/data/definitions/190.html), [CWE-680](https://cwe.mitre.org/data/definitions/680.html) | [CVE-2018-1000810](https://www.cve.org/CVERecord?id=CVE-2018-1000810), [CVE-2026-44983](https://www.cve.org/CVERecord?id=CVE-2026-44983) |
 | A.2 | `as` cast silent truncation | [CWE-681](https://cwe.mitre.org/data/definitions/681.html), [CWE-197](https://cwe.mitre.org/data/definitions/197.html) | Rustonomicon; ANSSI LANG-ARITH |
 | B.1 | Unsound `unsafe` abstractions | [CWE-119](https://cwe.mitre.org/data/definitions/119.html), [CWE-416](https://cwe.mitre.org/data/definitions/416.html) | [CVE-2019-12083](https://www.cve.org/CVERecord?id=CVE-2019-12083), [CVE-2025-24898](https://www.cve.org/CVERecord?id=CVE-2025-24898) |
-| B.2 | Panic safety in `unsafe` | [CWE-415](https://cwe.mitre.org/data/definitions/415.html) | RUSTSEC-2018-0003 |
+| B.2 | Panic safety in `unsafe` | [CWE-415](https://cwe.mitre.org/data/definitions/415.html) | [RUSTSEC-2018-0003](https://rustsec.org/advisories/2018-0003.html) |
 | B.3 | `static mut` data races | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-820](https://cwe.mitre.org/data/definitions/820.html) | Rustonomicon; ANSSI UNSAFE-NOUB |
 | B.4 | Wrong atomic memory ordering | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-366](https://cwe.mitre.org/data/definitions/366.html) | Rustonomicon atomics chapter |
 | B.5 | `transmute` without layout guarantee | [CWE-843](https://cwe.mitre.org/data/definitions/843.html) | Rustonomicon transmutes chapter |
-| B.6 | Uninitialized memory misuse | [CWE-457](https://cwe.mitre.org/data/definitions/457.html), [CWE-908](https://cwe.mitre.org/data/definitions/908.html) | RUSTSEC-2019-0003 |
+| B.6 | Uninitialized memory misuse | [CWE-457](https://cwe.mitre.org/data/definitions/457.html), [CWE-908](https://cwe.mitre.org/data/definitions/908.html) | [RUSTSEC-2019-0003](https://rustsec.org/advisories/2019-0003.html) |
 | B.7 | `RefCell`/`Mutex` runtime borrow & lock panics | [CWE-667](https://cwe.mitre.org/data/definitions/667.html), [CWE-674](https://cwe.mitre.org/data/definitions/674.html) | Rust std docs (`RefCell`, `Mutex` poisoning) |
 | B.8 | Reading uninitialized padding bytes | [CWE-457](https://cwe.mitre.org/data/definitions/457.html), [CWE-908](https://cwe.mitre.org/data/definitions/908.html) | Rustonomicon; `bytemuck`/`zerocopy` docs |
 | B.9 | Misbehaving safe-trait impls corrupting `unsafe` invariants | [CWE-664](https://cwe.mitre.org/data/definitions/664.html), [CWE-125](https://cwe.mitre.org/data/definitions/125.html), [CWE-787](https://cwe.mitre.org/data/definitions/787.html) | Rustonomicon "Working with Unsafe" |
@@ -574,7 +574,7 @@ This is distinct from H.1 because it applies even to correctly-named but comprom
 | C.4 | Unsound `Pin`/`Unpin` misuse | [CWE-825](https://cwe.mitre.org/data/definitions/825.html), [CWE-664](https://cwe.mitre.org/data/definitions/664.html) | Rustonomicon `Pin` chapter |
 | C.5 | Drop order mistakes | [CWE-664](https://cwe.mitre.org/data/definitions/664.html) | Rust Reference (destructors) |
 | C.6 | Manual `Drop` + `ptr::read` without `mem::forget` → double drop | [CWE-415](https://cwe.mitre.org/data/definitions/415.html) | Historical `smallvec`/`arrayvec` advisories |
-| C.7 | Cross-thread `Rc` use without atomic refcount | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-416](https://cwe.mitre.org/data/definitions/416.html) | RUSTSEC-2020-0029 |
+| C.7 | Cross-thread `Rc` use without atomic refcount | [CWE-362](https://cwe.mitre.org/data/definitions/362.html), [CWE-416](https://cwe.mitre.org/data/definitions/416.html) | [RUSTSEC-2020-0029](https://rustsec.org/advisories/2020-0029.html) |
 | D.1 | FFI panic unwind | [CWE-119](https://cwe.mitre.org/data/definitions/119.html) | ANSSI FFI-NOPANIC |
 | D.2 | Non-robust types at FFI boundary | [CWE-843](https://cwe.mitre.org/data/definitions/843.html) | ANSSI FFI-NOENUM |
 | D.3 | `repr(packed)` unaligned references | [CWE-704](https://cwe.mitre.org/data/definitions/704.html), [CWE-843](https://cwe.mitre.org/data/definitions/843.html) | Rustonomicon; std `addr_of!` docs |
@@ -623,7 +623,7 @@ The following bug classes are **not specific to Rust** — the same root cause a
 | [CVE-2022-21658](https://www.cve.org/CVERecord?id=CVE-2022-21658) | `std` | `fs::remove_dir_all` followed symlinks during recursive deletion; allowed a concurrent unprivileged process to delete arbitrary files |
 | [CVE-2022-36113](https://www.cve.org/CVERecord?id=CVE-2022-36113) | Cargo | Crate tarballs could contain symlinks that, after extraction, caused subsequent writes to land outside the intended directory |
 | [CVE-2026-5223](https://www.cve.org/CVERecord?id=CVE-2026-5223) | Cargo | Symlinks inside crate tarballs from third-party registries could override source code of another crate |
-| RUSTSEC-multiple | tar, zip, archive crates | "Zip Slip" variants: archive entries with `../` components extract outside target directory |
+| [RUSTSEC-multiple](https://rustsec.org/advisories/) | tar, zip, archive crates | "Zip Slip" variants: archive entries with `../` components extract outside target directory |
 
 **Mitigation:** Use the `cap-std` / `cap-primitives` capability-based filesystem API, which opens a directory once and scopes all subsequent operations to that file descriptor, eliminating TOCTOU windows. Always canonicalize and validate archive entry paths before writing.
 
