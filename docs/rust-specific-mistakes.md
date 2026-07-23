@@ -1,6 +1,6 @@
 # Rust-Specific Failure Mode Taxonomy
 
-*Sources: cve.org, RustSec advisory-db, ANSSI Secure Rust Guidelines, The Rustonomicon, Rust API Guidelines.*
+*Sources: [cve.org](https://www.cve.org/), [RustSec advisory-db](https://github.com/rustsec/advisory-db), [ANSSI Secure Rust Guidelines](https://www.ssi.gouv.fr/en/), [The Rustonomicon](https://doc.rust-lang.org/nomicon/), [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/).*
 
 Entries below are failure modes whose root cause is specific to Rust's language, standard-library, or ecosystem semantics (ownership/borrowing, `unsafe`, panics, trait system, macros, Cargo). Pitfalls that are equally applicable to C/C++ (or any language) and merely *happen* to have been observed in Rust crates are collected separately in [General / Cross-Language Pitfalls](#general--cross-language-pitfalls) at the end of this document.
 
@@ -662,12 +662,12 @@ Business-logic bugs that do not involve any language-specific mechanism (UB, pan
 
 | Source | What's there |
 |---|---|
-| **RustSec Advisory Database** (github.com/rustsec/advisory-db) | All published Rust CVEs, categorized |
+| **[RustSec Advisory Database](https://github.com/rustsec/advisory-db)** | All published Rust CVEs, categorized |
 | **"How Do Programmers Use Unsafe Rust?"** (Astrauskas et al., OOPSLA 2020) | Empirical study of unsafe usage |
 | **"Is Rust Used Safely by Software Developers?"** (Evans et al., ICSE 2020) | Statistical survey |
 | **"Memory-Safety Challenge Considered Solved? An In-Depth Study with All Rust CVEs"** (Xu et al., 2021) | Categorizes ~all Rust memory CVEs by root cause |
-| **Rustonomicon** | Official documentation of `unsafe` invariants |
-| **Clippy lint list** | ~600 lints, many capture real bugs |
+| **[Rustonomicon](https://doc.rust-lang.org/nomicon/)** | Official documentation of `unsafe` invariants |
+| **[Clippy lint list](https://rust-lang.github.io/rust-clippy/master/)** | ~600 lints, many capture real bugs |
 | **Ferrocene Language Specification** | The qualified Rust spec used for safety-critical work; aligned with ISO 26262 |
-| **Rust Coding Guidelines Working Group** (`rust-lang/rust-clippy/issues` and the subgroup wiki) | Ongoing official effort toward MISRA-like guidelines |
-| **ANSSI Secure Rust Guidelines** | Concrete rule statements (`LANG-*`, `MEM-*`, `FFI-*`) referenced throughout this document |
+| **[Rust Coding Guidelines Working Group](https://github.com/rust-lang/rust-clippy/issues)** | Ongoing official effort toward MISRA-like guidelines |
+| **[ANSSI Secure Rust Guidelines](https://www.ssi.gouv.fr/en/)** | Concrete rule statements (`LANG-*`, `MEM-*`, `FFI-*`) referenced throughout this document |
