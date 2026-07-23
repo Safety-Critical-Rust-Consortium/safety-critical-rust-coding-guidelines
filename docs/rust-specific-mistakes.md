@@ -663,11 +663,11 @@ Business-logic bugs that do not involve any language-specific mechanism (UB, pan
 | Source | What's there |
 |---|---|
 | **[RustSec Advisory Database](https://github.com/rustsec/advisory-db)** | All published Rust CVEs, categorized |
-| **"How Do Programmers Use Unsafe Rust?"** (Astrauskas et al., OOPSLA 2020) | Empirical study of unsafe usage |
-| **"Is Rust Used Safely by Software Developers?"** (Evans et al., ICSE 2020) | Statistical survey |
-| **"Memory-Safety Challenge Considered Solved? An In-Depth Study with All Rust CVEs"** (Xu et al., 2021) | Categorizes ~all Rust memory CVEs by root cause |
+| **["How Do Programmers Use Unsafe Rust?"](https://dl.acm.org/doi/10.1145/3428232)** (Astrauskas et al., OOPSLA 2020) | Empirical study of unsafe usage |
+| **["Is Rust Used Safely by Software Developers?"](https://ieeexplore.ieee.org/document/9091052)** (Evans et al., ICSE 2020) | Statistical survey |
+| **["Memory-Safety Challenge Considered Solved? An In-Depth Study with All Rust CVEs"](https://arxiv.org/abs/2103.03222)** (Xu et al., 2021) | Categorizes ~all Rust memory CVEs by root cause |
 | **[Rustonomicon](https://doc.rust-lang.org/nomicon/)** | Official documentation of `unsafe` invariants |
 | **[Clippy lint list](https://rust-lang.github.io/rust-clippy/master/)** | ~600 lints, many capture real bugs |
-| **Ferrocene Language Specification** | The qualified Rust spec used for safety-critical work; aligned with ISO 26262 |
+| **[Ferrocene Language Specification](https://github.com/rust-lang/fls)** | The qualified Rust spec used for safety-critical work; aligned with ISO 26262 |
 | **[Rust Coding Guidelines Working Group](https://github.com/rust-lang/rust-clippy/issues)** | Ongoing official effort toward MISRA-like guidelines |
 | **[ANSSI Secure Rust Guidelines](https://www.ssi.gouv.fr/en/)** | Concrete rule statements (`LANG-*`, `MEM-*`, `FFI-*`) referenced throughout this document |
