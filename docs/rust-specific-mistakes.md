@@ -178,6 +178,37 @@ let _b = cell.borrow_mut(); // panics: already mutably borrowed
 
 ---
 
+### B.8 — Reading Uninitialized Padding Bytes
+
+Compilers insert padding bytes between struct fields to satisfy alignment; those bytes have **no defined value at all**, not even "unspecified" — they are genuinely uninitialized. Reinterpreting a struct as a raw byte slice (`slice::from_raw_parts(&s as *const S as *const u8, size_of::<S>())`), `memcmp`-ing two structs, hashing raw bytes, or serializing "as bytes" for FFI/wire formats reads those padding bytes — which is undefined behaviour even though no field value is actually misused.
+
+```rust
+#[repr(C)]
+struct S { a: u8, b: u32 } // 3 padding bytes between a and b, uninitialized
+```
+
+**Guideline:** Never reinterpret a struct's raw bytes without accounting for padding. Use `bytemuck`'s `Pod`/`Zeroable` derives (which reject types containing padding at compile time) or `zerocopy`, rather than hand-rolled `unsafe` byte casts. If padding is unavoidable, make it explicit with named filler fields and zero them.
+
+---
+
+### B.9 — Misbehaving Safe-Trait Implementations Corrupting `unsafe` Invariants
+
+Several standard-library and third-party data structures use `unsafe` internally (unchecked indexing, raw pointer arithmetic) while trusting that a *safe*, user-supplied trait impl (`Ord`, `PartialOrd`, `Eq`, `Hash`, `Borrow`) behaves consistently for the lifetime of the structure. The trait itself is safe to implement incorrectly — the compiler cannot verify `Ord` is a genuine total order — so a buggy or adversarial impl (e.g., a comparator whose result depends on external mutable state, or on floating-point `NaN`) does not fail to compile; it corrupts the invariant the `unsafe` code relies on, and downstream unchecked indexing can then read or write out of bounds.
+
+**Documented in:** the Rustonomicon explicitly calls out `Ord`/`PartialOrd`/`Eq`/`Hash`/`Borrow` as traits whose safe-looking contract violations can be leveraged to break `unsafe` code that assumes them (e.g. binary-search-then-`get_unchecked` patterns, or sorted-structure internals).
+
+**Guideline:** Any `unsafe` code that indexes or dereferences based on the result of a safe trait method (`Ord::cmp`, `Hash::hash`, etc.) supplied by a generic type parameter must not assume the trait is implemented correctly — re-validate bounds itself, or restrict the unsafe optimization to trait impls the crate controls.
+
+---
+
+### B.10 — Atomic Data Not Placed in a Proper Memory Section (Embedded / Multi-Core)
+
+On some microcontrollers and multi-core SoCs, an `AtomicUsize`/`AtomicU32` is only truly atomic with respect to other bus masters (a second core, a DMA engine) if it resides in a specific memory region — e.g. a non-cached, shared SRAM section backed by the core's exclusive-monitor (`LDREX`/`STREX` on ARM) rather than a cached alias. Placing atomic data in the default `.data`/`.bss` section, which the linker script may map to cached or per-core-private memory, can make the atomic operation correct from one core's point of view while a second core or DMA engine observes torn or stale values — Rust's `Ordering` model says nothing about the underlying physical memory attributes.
+
+**Guideline:** For cross-core or DMA-visible atomics, explicitly place the data with `#[link_section = ".shared_uncached"]` (or the vendor-specific section name), verified against the linker script and MPU/MMU configuration. Confirm with the chip's technical reference manual that the exclusive-monitor/atomic support actually covers that memory region.
+
+---
+
 ## C — Memory and Resource Lifetime
 
 ### C.1 — `Rc`/`Arc` Reference Cycles → Leak / No Secure Cleanup
@@ -255,6 +286,34 @@ impl Drop for Handle {
 
 ---
 
+### C.5 — Drop Order Mistakes
+
+Rust has two different, easily confused drop-order rules: struct/tuple **fields drop in declaration order** (top to bottom), while **local variables drop in reverse declaration order** (last declared, first dropped). Code that reorders struct fields "for readability", or relies on a `Drop` impl's side effects happening before/after a sibling field's `Drop` (e.g. a lock guard must release before the data it guards is torn down, or a hardware handle must close before its logger), can silently break that ordering with no compiler warning — Rust does not treat drop order as part of a type's documented contract unless the author says so.
+
+**Guideline:** When field drop order matters, document the dependency directly above the struct definition, or wrap the ordering-sensitive fields in a small struct with an explicit `Drop` impl that sequences them deliberately. Never rely on remembering the field-vs-local rule during review — verify it explicitly.
+
+---
+
+### C.6 — Manual `Drop` + `Copy`-Like `ptr::read` Without `mem::forget` → Double Drop
+
+`ptr::read(src)` performs a bitwise copy out of `src` **without** invalidating `src` — the compiler still considers the original location live and will run its `Drop` impl later (e.g. when the enclosing container is itself dropped or reassigned), running the destructor twice on what is logically "the same" resource: double-free, double-close, or double-unlock.
+
+**Example:** a `Vec`-like or arena-like container reading an element out with `ptr::read` to return it to the caller, but forgetting to also mark the original slot as logically moved-out (via `mem::forget` on the stale handle, `ManuallyDrop`, or shrinking the container's length *before* the value becomes observable). Several historical `smallvec`/`arrayvec` advisories (see B.2) stem from exactly this shape.
+
+**Guideline:** Every `ptr::read` of a `!Copy` value must be paired, on the same control-flow path, with either shrinking the owning container's length/state before the value becomes reachable, or `mem::forget`/`ManuallyDrop` on the source location. Prefer safe alternatives (`Vec::remove`, `Option::take`) over raw `ptr::read` wherever possible.
+
+---
+
+### C.7 — Cross-Thread Use of `Rc`/Reference-Counted Types Without Atomic Backing
+
+`Rc<T>`'s reference count is a plain, non-atomic `Cell<usize>` — cheap, but only sound for single-threaded use; `Rc<T>` is deliberately `!Send`/`!Sync` to prevent it crossing threads. Manually forcing it across threads (`unsafe impl Send` on a wrapper, or defeating the auto-trait via transmute) reintroduces a data race on the reference count itself: two threads incrementing/decrementing concurrently can lose updates, causing the count to reach zero while a live reference still exists (dangling pointer) or never reach zero (leak).
+
+**Example:** RUSTSEC-2020-0029 (`futures-intrusive`) — a type was falsely marked `Send`, allowing exactly this cross-thread reference-count race.
+
+**Guideline:** Never wrap `Rc<T>` to force `Send`/`Sync`. Use `Arc<T>` (atomic refcount) for any type that might cross a thread boundary, even if "in practice" only one thread touches it at a time — the guarantee must hold structurally, not by convention.
+
+---
+
 ## D — FFI Boundary Safety
 
 ### D.1 — Panics Unwinding Across Language Boundaries
@@ -323,6 +382,14 @@ let r = &h.value; // UB: `value` may be at a misaligned address
 ```
 
 **Guideline:** Never take a direct reference to a field of a `#[repr(packed)]` struct. Read/write the field by value (`let v = h.value;` — this copies through `read_unaligned` under the hood) or use `addr_of!`/`addr_of_mut!` to obtain a raw pointer without creating an intermediate reference.
+
+---
+
+### D.4 — `#[unsafe(no_mangle)]`/`export_name`/`link_section` Symbol & Linker Hazards
+
+Since the Rust 2024 edition, attributes that affect linkage/ABI (`no_mangle`, `export_name`, `link_section`) must be written as `#[unsafe(no_mangle)]` etc., because they are inherently unsafe: they can cause silent symbol collisions at link time. Two crates (or a crate and the final binary) exporting the same symbol name via `no_mangle` is **not** a compile error — the linker picks one, and calls to the "other" symbol silently jump to unrelated code (undefined behaviour, not necessarily even a link error, especially with weak symbols or C interop). Similarly, `link_section` can misplace static data into a section with the wrong properties (e.g. a non-writable `.rodata`-like section, wrong alignment, or a section not included in the final image), causing corruption or silent discard by the linker.
+
+**Guideline:** Prefer mangled symbols; when `no_mangle`/`export_name` is required for FFI, use a crate/library-specific prefix to avoid collisions, and verify with `nm`/a linker map that only one definition of the exported symbol exists in the final binary. Treat `link_section` placement as reviewed, linker-script-verified configuration, not decoration.
 
 ---
 
@@ -405,6 +472,26 @@ async fn handler(state: Arc<std::sync::Mutex<State>>) {
 
 ---
 
+### E.6 — Async Cancellation Safety (Future Dropped Mid-`.await`)
+
+Unlike a thread, which runs to completion unless explicitly killed, a Rust `Future` can be dropped at any `.await` point — via `select!`, `timeout`, or the parent task simply being cancelled/dropped — and execution just stops there; there is no automatic `finally`-equivalent. Code that assumes "the rest of this async fn will always run" after an `.await` (releasing a lock, decrementing a counter, completing a two-phase state change, sending a completion notification) can leave that state permanently inconsistent if cancelled at exactly that point.
+
+**Example:** `select! { _ = timeout => {}, _ = do_transfer() => {} }` where `do_transfer` debits one account then awaits before crediting the other — a timeout cancels the future between the two steps, leaving the debit applied but not the credit.
+
+**Guideline:** Structure async state machines so every `.await` point represents a valid, resumable-or-abandonable state ("cancellation-safe", per the `tokio::select!` documentation), or move non-cancellation-safe sequences into a detached `tokio::spawn` task (not directly cancelled by the caller dropping its handle) plus explicit cleanup.
+
+---
+
+### E.7 — Forgetting to Poll a Future (Silent No-Op)
+
+A `Future` does nothing at all until it is polled (via `.await`, an executor, or `futures::executor::block_on`) — merely calling an `async fn` performs zero work: no request is sent, no timer starts. Because futures are only `#[must_use]`-warned, not enforced, and are trivially droppable, a future created and then dropped without ever being awaited (e.g. forgotten in `let _ = some_async_fn();`, or an unreached `join!`/`select!` branch) silently does nothing instead of failing loudly.
+
+**Example:** `async fn send_metrics() { .. }` called as `let _ = send_metrics();` inside an async context compiles cleanly and silently never sends anything, because the returned `Future` is dropped unpolled.
+
+**Guideline:** Promote `#[warn(unused_must_use)]` on `Future`-returning calls to `deny`. Never bind an unawaited future to `_` or a throwaway `let` without a comment explaining why it is intentionally not awaited.
+
+---
+
 ## F — Filesystem and Platform Safety
 
 Issues previously catalogued under this category (TOCTOU/path-traversal, Windows command-line escaping) are not specific to Rust's language semantics — the same bug classes affect any language performing filesystem or process operations. They are covered in [General / Cross-Language Pitfalls](#general--cross-language-pitfalls) below, retaining Rust-ecosystem examples for context.
@@ -425,6 +512,14 @@ Rust requires (but does not enforce at compile time) that manually-written `Part
 **Security relevance:** these are logic bugs, not UB, but a broken `Eq`/`Hash` on a key type used for authorization/cache lookups (e.g. treating two distinct principals as "equal" for a permission check) can lead to access-control bypass or cache poisoning.
 
 **Guideline:** Prefer `#[derive(PartialEq, Eq, Hash, PartialOrd, Ord)]` over hand-written impls. If a manual impl is required, it must cover exactly the same set of fields across all four traits, and floating-point fields must be excluded from `Eq`/`Hash`/`Ord` (or wrapped in a total-order newtype).
+
+---
+
+### G.2 — Derive Macro Order Dependence and Helper-Attribute Consumption Conflicts
+
+`#[derive(A, B)]` expands each derive macro independently, but many proc-macro derives look for and consume "helper attributes" attached to the same item (e.g. `#[serde(...)]`). When two derives both want to observe or strip the same helper attribute, or a derive's expansion is order-sensitive relative to attributes registered by another, the **textual order** of the derive list can silently change which macro sees which attributes — sometimes producing an "unknown attribute" error attributed to the wrong macro, and sometimes a macro simply ignoring an attribute it never saw, with no error at all.
+
+**Guideline:** Do not assume `#[derive(A, B)]` is commutative when custom derive macros with helper attributes are involved; consult each macro's documentation for required ordering and pin it with a comment where it matters. Prefer macros that namespace their helper attributes to avoid cross-derive ambiguity.
 
 ---
 
@@ -470,19 +565,29 @@ This is distinct from H.1 because it applies even to correctly-named but comprom
 | B.5 | `transmute` without layout guarantee | CWE-843 | Rustonomicon transmutes chapter |
 | B.6 | Uninitialized memory misuse | CWE-457, CWE-908 | RUSTSEC-2019-0003 |
 | B.7 | `RefCell`/`Mutex` runtime borrow & lock panics | CWE-667, CWE-674 | Rust std docs (`RefCell`, `Mutex` poisoning) |
+| B.8 | Reading uninitialized padding bytes | CWE-457, CWE-908 | Rustonomicon; `bytemuck`/`zerocopy` docs |
+| B.9 | Misbehaving safe-trait impls corrupting `unsafe` invariants | CWE-664, CWE-125, CWE-787 | Rustonomicon "Working with Unsafe" |
+| B.10 | Atomic data not placed in proper memory section (embedded) | CWE-662, CWE-667 | Vendor TRM / linker-script practice |
 | C.1 | `Rc`/`Arc` cycles → leak / no secure cleanup | CWE-401, CWE-312 | ANSSI MEM-MUT-REC-RC, LANG-DROP-SEC |
 | C.2 | Panicking inside `Drop` | CWE-248 | ANSSI LANG-DROP-NO-PANIC |
 | C.3 | `mem::forget` bypassing secure cleanup | CWE-312, CWE-401 | ANSSI MEM-FORGET |
 | C.4 | Unsound `Pin`/`Unpin` misuse | CWE-825, CWE-664 | Rustonomicon `Pin` chapter |
+| C.5 | Drop order mistakes | CWE-664 | Rust Reference (destructors) |
+| C.6 | Manual `Drop` + `ptr::read` without `mem::forget` → double drop | CWE-415 | Historical `smallvec`/`arrayvec` advisories |
+| C.7 | Cross-thread `Rc` use without atomic refcount | CWE-362, CWE-416 | RUSTSEC-2020-0029 |
 | D.1 | FFI panic unwind | CWE-119 | ANSSI FFI-NOPANIC |
 | D.2 | Non-robust types at FFI boundary | CWE-843 | ANSSI FFI-NOENUM |
 | D.3 | `repr(packed)` unaligned references | CWE-704, CWE-843 | Rustonomicon; std `addr_of!` docs |
+| D.4 | `no_mangle`/`export_name`/`link_section` linker hazards | CWE-665, CWE-758 | Rust 2024 edition `unsafe attributes` |
 | E.1 | Reachable panics / resource exhaustion | CWE-400, CWE-674 | CVE-2022-24713, CVE-2026-34219 |
 | E.2 | `Default::default()` infinite recursion | CWE-674 | Rust compiler behaviour |
 | E.3 | Blocking sync operations in async contexts | CWE-667, CWE-400 | `clippy::await_holding_lock` |
 | E.4 | Unbounded channels/queues | CWE-400, CWE-770 | Tokio/crossbeam documentation |
 | E.5 | `unwrap`/`expect`/swallowed-error anti-patterns | CWE-248, CWE-252, CWE-390 | `clippy::unwrap_used` |
+| E.6 | Async cancellation safety (future dropped mid-`.await`) | CWE-662, CWE-696 | Tokio `select!` documentation |
+| E.7 | Forgetting to poll a future (silent no-op) | CWE-252 | `#[must_use]` on `Future` |
 | G.1 | Inconsistent `PartialEq`/`Hash`/`Ord` | CWE-697, CWE-1023 | Rust API Guidelines |
+| G.2 | Derive macro order dependence / helper-attribute conflicts | CWE-696 | Proc-macro derive documentation |
 | H.1 | Supply-chain / typosquatting | CWE-1104 | Multiple RUSTSEC malicious advisories |
 | H.2 | `build.rs` / proc-macro compile-time execution | CWE-94, CWE-426 | ANSSI LIBS-VETTING |
 
