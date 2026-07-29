@@ -67,9 +67,8 @@ To see a full report of the difference:
 uv run python scripts/fls_audit.py
 ```
 
-See `docs/fls-audit.md` for the full workflow, snapshots, advanced options, and
-the steps to rationalize and update `src/spec.lock`, including the
-rationalization checklist.
+See [FLS audit docs](docs/fls-audit.md) for the full workflow, snapshots, advanced options, and
+the steps to rationalize and update `src/spec.lock`, including the srationalization checklist.
 
 ## What we're working on
 
