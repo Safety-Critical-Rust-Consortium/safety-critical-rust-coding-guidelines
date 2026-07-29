@@ -6,6 +6,8 @@ first table covers guidelines that are applicable to Rust in general, while the 
 guidelines that are applicable in the presence of unsafe code. The third table lists guidelines that are not applicable
 to Rust.
 
+The mappings use the shared :ref:`standards-matrix-coverage`.
+
 The origin of this assessment can be found at `MISRA C:2025 Addendum 6`_.
 
 

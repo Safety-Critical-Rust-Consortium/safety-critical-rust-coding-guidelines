@@ -1,10 +1,12 @@
 Rust Cross Reference with CERT-C 2016
 =======================================
 
-The following tables provide a cross reference between the CERT-C 2025 guidelines and their applicability to Rust. The
+The following tables provide a cross reference between the CERT C 2016 guidelines and their applicability to Rust. The
 first table covers guidelines that are applicable to Rust in general, while the second table covers additional
 guidelines that are applicable in the presence of unsafe code. The third table lists guidelines that are not applicable
 to Rust.
+
+The mappings use the shared :ref:`standards-matrix-coverage`.
 
 
 Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)
