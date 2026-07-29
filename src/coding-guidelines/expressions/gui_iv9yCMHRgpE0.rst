@@ -26,6 +26,16 @@ An integer shall not be converted to an invalid pointer
       The mapping between pointers and integers must be consistent with the addressing structure of the
       execution environment. Issues may arise, for example, on architectures that have a segmented memory model.
 
+      Constructing a pointer from an integer and accessing memory through that pointer are distinct operations.
+      A `well-formed pointer may carry no provenance
+      <https://rust-lang.github.io/fls/values.html#fls_ffh8mAkebORJ>`_ despite having a plausible machine address.
+      Before the pointer is used to read or write memory, it must have `provenance permitting that access
+      <https://rust-lang.github.io/fls/values.html#fls_c3DaCLQEBpYQ>`_ in addition to satisfying the alignment,
+      type, and representation conditions above.
+
+      This guideline constrains the result of the conversion. It does not claim that constructing or storing an
+      integer-derived pointer, without accessing memory through it, is by itself undefined behavior.
+
    .. non_compliant_example::
       :id: non_compl_ex_CkytKjRQezfQ
       :status: draft
@@ -34,6 +44,11 @@ An integer shall not be converted to an invalid pointer
       The manipulated address may have discarded part of the original address space, and the flag may
       silently interfere with the address value. On platforms where pointers are 64-bits this may have
       particularly unexpected results.
+
+      The example constructs the resulting pointer but does not access memory through it. It is noncompliant
+      because the address manipulation does not demonstrate that the result meets this guideline's alignment,
+      type, and representation requirements. Any later memory access would additionally require provenance
+      permitting that access.
 
       .. rust-example::
 
@@ -53,7 +68,8 @@ An integer shall not be converted to an invalid pointer
 
       This compliant solution uses a struct to provide storage for both the pointer and the flag value.
       This solution is portable to machines of different word sizes, both smaller and larger than 32 bits,
-      working even when pointers cannot be represented in any integer type.
+      working even when pointers cannot be represented in any integer type. Keeping the pointer as a pointer
+      also preserves its provenance instead of reconstructing it from a numeric address.
 
       .. rust-example::
 

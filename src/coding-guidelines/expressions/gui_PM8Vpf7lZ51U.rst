@@ -22,6 +22,12 @@ An integer shall not be converted to a pointer
    :std:`std::mem::transmute` shall not be used with any numeric type (including floating point types)
    as the argument to the ``Src`` parameter, and any pointer type as the argument to the ``Dst`` parameter.
 
+   In this guideline, "any pointer type" includes raw pointer types, reference types, and function
+   pointer types. This is intentionally broader than the FLS definition of `pointer type
+   <https://rust-lang.github.io/fls/types-and-traits.html#fls_3qI8FXMsyk0f>`_, which excludes
+   function pointer types: creating a function pointer from a numeric value via
+   :std:`std::mem::transmute` carries at least the same risk as creating a data pointer.
+
    .. rationale::
       :id: rat_YqhEiWTj9z6L
       :status: draft
@@ -30,6 +36,16 @@ An integer shall not be converted to a pointer
       including an address that does not point to a valid object, an address that points to an
       object of the wrong type, or an address that is not properly aligned. Use of such a pointer
       to access memory will result in undefined behavior.
+
+      Satisfying those address, type, and alignment conditions is not sufficient to establish that
+      memory access is permitted. A `well-formed pointer may carry no provenance
+      <https://rust-lang.github.io/fls/values.html#fls_ffh8mAkebORJ>`_, and `accessing memory through a pointer
+      without provenance permitting the access <https://rust-lang.github.io/fls/values.html#fls_c3DaCLQEBpYQ>`_
+      is undefined behavior.
+
+      The FLS does not specify the provenance result of every numeric-to-pointer conversion. This
+      guideline therefore imposes a conservative subset restriction instead of treating a matching
+      numeric address or pointer representation as proof that the result may be dereferenced.
 
       The ``as`` operator also does not check that the size of the source operand is the same as
       the size of a pointer, which may lead to unexpected results if the address computation was
