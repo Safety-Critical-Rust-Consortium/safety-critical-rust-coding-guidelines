@@ -23,10 +23,7 @@ An integer shall not be converted to a pointer
    as the argument to the ``Src`` parameter, and any pointer type as the argument to the ``Dst`` parameter.
 
    In this guideline, "any pointer type" includes raw pointer types, reference types, and function
-   pointer types. This is intentionally broader than the FLS definition of `pointer type
-   <https://rust-lang.github.io/fls/types-and-traits.html#fls_3qI8FXMsyk0f>`_, which excludes
-   function pointer types: creating a function pointer from a numeric value via
-   :std:`std::mem::transmute` carries at least the same risk as creating a data pointer.
+   pointer types.
 
    .. rationale::
       :id: rat_YqhEiWTj9z6L
@@ -53,6 +50,11 @@ An integer shall not be converted to a pointer
 
       While ``as`` can notionally be used to create a null pointer, the functions
       :std:`core::ptr::null` and :std:`core::ptr::null_mut` are the more idiomatic way to do this.
+
+      This guideline's use of "any pointer type" is intentionally broader than the FLS definition of
+      `pointer type <https://rust-lang.github.io/fls/types-and-traits.html#fls_3qI8FXMsyk0f>`_, which
+      excludes function pointer types. Creating a function pointer from a numeric value via
+      :std:`std::mem::transmute` carries at least the same risk as creating a data pointer.
 
    .. non_compliant_example::
       :id: non_compl_ex_0ydPk7VENSrA

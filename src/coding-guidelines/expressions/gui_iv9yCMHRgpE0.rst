@@ -46,9 +46,10 @@ An integer shall not be converted to an invalid pointer
       particularly unexpected results.
 
       The example constructs the resulting pointer but does not access memory through it. It is noncompliant
-      because the address manipulation does not demonstrate that the result meets this guideline's alignment,
-      type, and representation requirements. Any later memory access would additionally require provenance
-      permitting that access.
+      because, for some inputs or platforms where its layout assumptions do not hold, the masked and shifted
+      address can yield a pointer that is incorrectly aligned, does not point to an entity of the referenced
+      type, or has an invalid representation. Such a result violates this guideline. Any later memory access
+      would additionally require provenance permitting that access.
 
       .. rust-example::
 
