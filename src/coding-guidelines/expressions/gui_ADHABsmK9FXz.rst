@@ -27,6 +27,9 @@ The 'as' operator should not be used with numeric operands
    **Exception:** ``as`` may be used with ``usize`` as the right operand and an expression of raw pointer
    type as the left operand.
 
+   An ``as`` cast from a numeric value to a raw pointer type is outside the scope of this guideline; it is
+   prohibited by the guideline `A numeric value shall not be converted to a pointer`.
+
    .. rationale::
       :id: rat_v56bjjcveLxQ
       :status: draft
@@ -45,13 +48,8 @@ The 'as' operator should not be used with numeric operands
       truncated when the destination integer type is too small. The ``usize`` type is guaranteed to be wide enough
       to hold the address value.
 
-      The inverse conversion is not symmetrical. Interpreting an integer as a machine address does not, by itself,
-      establish that the resulting pointer designates a valid object of the right type, is properly aligned, or has
-      provenance permitting a later memory access. The FLS classifies `access through a pointer without provenance
-      permitting that access <https://rust-lang.github.io/fls/values.html#fls_c3DaCLQEBpYQ>`_ as undefined behavior.
-
-      Neither ``as`` nor :std:`std::mem::transmute` validates those conditions. ``transmute`` makes an unsafe
-      conversion explicit, but it does not by itself establish that the resulting pointer may be dereferenced.
+      The exception permits extracting an address only. Converting a numeric value back to a raw pointer is governed
+      by the guideline `A numeric value shall not be converted to a pointer`.
 
    .. non_compliant_example::
       :id: non_compl_ex_hzGUYoMnK59w
@@ -60,10 +58,6 @@ The 'as' operator should not be used with numeric operands
       ``as`` used here can change the value range or lose precision.
       Even when it doesn't, nothing enforces the correct behaviour or communicates whether
       we intend to allow lossy conversions, or only expect valid conversions.
-
-      The integer-to-pointer casts are also noncompliant uses of ``as``. Replacing them with
-      ``transmute`` would make the conversion unsafe and explicit, but would not by itself
-      establish that the resulting pointer has provenance permitting memory access.
 
       .. rust-example::
 
@@ -84,11 +78,6 @@ The 'as' operator should not be used with numeric operands
            let _a1 = p1 as usize;        // compliant by exception
            let _a2 = p1 as u16;          // non-compliant - may lose address range
            let _a3 = p1 as u64;          // non-compliant - use usize to indicate intent
-
-           let a1 = p1 as usize;
-           let _p2 = a1 as * const u32;  // non-compliant - numeric-to-pointer cast
-           let a2 = p1 as u16;
-           let _p3 = a2 as * const u32;  // non-compliant (and most likely not in a valid address range)
          }
          #
          # fn main() {}
@@ -102,8 +91,7 @@ The 'as' operator should not be used with numeric operands
       Valid conversions that risk losing value, where doing so would be an error, can
       communicate this and include an error check, with ``try_into`` or ``try_from``.
       Bit reinterpretation through ``transmute`` is a different operation from numeric
-      value conversion and is not a general replacement for an integer-to-pointer cast.
-      Every ``transmute`` must independently satisfy its safety requirements.
+      value conversion. Every ``transmute`` must independently satisfy its safety requirements.
 
       .. rust-example::
          :miri:

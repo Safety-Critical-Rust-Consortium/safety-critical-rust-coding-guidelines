@@ -3,10 +3,10 @@
 
 .. default-domain:: coding-guidelines
 
-An integer shall not be converted to an invalid pointer
-=======================================================
+A numeric value shall not be converted to an invalid pointer
+============================================================
 
-.. guideline:: An integer shall not be converted to an invalid pointer
+.. guideline:: A numeric value shall not be converted to an invalid pointer
    :id: gui_iv9yCMHRgpE0
    :category: <TODO>
    :status: draft
@@ -27,14 +27,17 @@ An integer shall not be converted to an invalid pointer
       execution environment. Issues may arise, for example, on architectures that have a segmented memory model.
 
       Constructing a pointer from an integer and accessing memory through that pointer are distinct operations.
-      A `well-formed pointer may carry no provenance
-      <https://rust-lang.github.io/fls/values.html#fls_ffh8mAkebORJ>`_ despite having a plausible machine address.
-      Before the pointer is used to read or write memory, it must have `provenance permitting that access
-      <https://rust-lang.github.io/fls/values.html#fls_c3DaCLQEBpYQ>`_ in addition to satisfying the alignment,
-      type, and representation conditions above.
+      A well-formed pointer may carry no provenance :cite:`gui_iv9yCMHRgpE0:FLS-WELL-FORMED-POINTER`
+      despite having a plausible machine address. Before the pointer is used to read or write memory, it must
+      have provenance permitting that access :cite:`gui_iv9yCMHRgpE0:FLS-POINTER-ACCESS-PROVENANCE` in
+      addition to satisfying the alignment, type, and representation conditions above.
 
       This guideline constrains the result of the conversion. It does not claim that constructing or storing an
       integer-derived pointer, without accessing memory through it, is by itself undefined behavior.
+
+      This guideline remains binding when code operates under an approved deviation from the guideline
+      `A numeric value shall not be converted to a pointer`: a deviation permits performing the
+      conversion, but does not permit the conversion to produce an invalid pointer.
 
    .. non_compliant_example::
       :id: non_compl_ex_CkytKjRQezfQ
@@ -45,6 +48,9 @@ An integer shall not be converted to an invalid pointer
       silently interfere with the address value. On platforms where pointers are 64-bits this may have
       particularly unexpected results.
 
+      Assume the numeric-to-pointer conversion below is covered by an approved deviation from the guideline
+      `A numeric value shall not be converted to a pointer`.
+
       The example constructs the resulting pointer but does not access memory through it. It is noncompliant
       because, for some inputs or platforms where its layout assumptions do not hold, the masked and shifted
       address can yield a pointer that is incorrectly aligned, does not point to an entity of the referenced
@@ -54,10 +60,10 @@ An integer shall not be converted to an invalid pointer
       .. rust-example::
 
         #[allow(dead_code)]
-        fn f1(flag: u32, ptr: * const u32) {
+        fn f1(flag: usize, ptr: * const u32) {
           /* ... */
           let mut rep = ptr as usize;
-          rep = (rep & 0x7fffff) | ((flag as usize) << 23);
+          rep = (rep & 0x7fffff) | (flag << 23);
           let _p2 = rep as * const u32;
         }
         #
@@ -90,3 +96,17 @@ An integer shall not be converted to an invalid pointer
         }
         #
         # fn main() {}
+
+   .. bibliography::
+      :id: bib_iv9yCMHRgpE0
+      :status: draft
+
+      .. list-table::
+         :header-rows: 0
+         :widths: auto
+         :class: bibliography-table
+
+         * - :bibentry:`gui_iv9yCMHRgpE0:FLS-WELL-FORMED-POINTER`
+           - The Rust FLS. "Values - Pointer Types." https://rust-lang.github.io/fls/values.html#fls_ffh8mAkebORJ
+         * - :bibentry:`gui_iv9yCMHRgpE0:FLS-POINTER-ACCESS-PROVENANCE`
+           - The Rust FLS. "Values - Pointer Types." https://rust-lang.github.io/fls/values.html#fls_c3DaCLQEBpYQ
