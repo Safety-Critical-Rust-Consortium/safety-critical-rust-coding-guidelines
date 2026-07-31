@@ -28,6 +28,7 @@ Avoid unused macros
         .. rust-example::
             :no_run:
 
+            #[allow(unused_macros)]
             macro_rules! never_used {
                 () => {};
             }
