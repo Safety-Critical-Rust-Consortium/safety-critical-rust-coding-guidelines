@@ -49,7 +49,7 @@ Avoid unused macros
             }
 
             fn main() {
-              self::used_macro!()
+              self::used_macro!{}
             }
 
 .. bibliography::
