@@ -7,7 +7,7 @@ Avoid unused macros
     :status: draft
     :release: unclear
     :fls: fls_83182bfa9uqb
-    :decidability: decideable
+    :decidability: decidable
     :scope: system
     :tags: maintainability
 
