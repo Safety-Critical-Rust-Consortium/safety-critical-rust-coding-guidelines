@@ -26,6 +26,7 @@ Avoid unused macros
         The macro `never_used` is not used.
 
         .. rust-example::
+            :no_run:
 
             macro_rules! never_used {
                 () => {};
@@ -43,13 +44,14 @@ Avoid unused macros
 
         .. rust-example::
 
-            #[macro_export]
             macro_rules! used_macro {
-                () => {};
+            ($t:expr) => {
+                println!("MACRO TEXT: {}", $t);
+                }
             }
 
             fn main() {
-              self::used_macro!{}
+            used_macro!("I am used, therefore I am.");
             }
 
 .. bibliography::
