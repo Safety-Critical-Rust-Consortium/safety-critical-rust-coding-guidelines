@@ -52,7 +52,7 @@ Avoid unused macros
             }
 
             fn main() {
-            used_macro!("I am used, therefore I am.");
+                used_macro!("I am used, therefore I am.");
             }
 
 .. bibliography::
