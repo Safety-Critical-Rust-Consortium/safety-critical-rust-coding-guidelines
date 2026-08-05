@@ -75,7 +75,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      - ``-``
      -
      -
-     - While the C++ standard is obviously not relevant, the general principle applies to analogous Specifications (e.g. FLS). However, in the safe Rust subset all syntactically programs not rejected by the compiler should be in compliance (otherwise its a bug in the compiler) Unsafe Rust, must be free of UB in order to conform.
+     - While the C++ standard is obviously not relevant, the general principle applies to analogous Specifications (e.g. FLS). However, in the safe Rust subset all syntactically programs not rejected by the compiler should be in compliance (otherwise its a bug in the compiler) Unsafe Rust, must be free of UB in order to conform. Rust does not quite have language extensions, but unstable features are similar and should be avoided.
    * - Rule 4.1.2
      - ``-``
      -
@@ -168,16 +168,6 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      - :need:`gui_ADHABsmK9FXz`
      - Advisory
      - Point 2 of the rationale about missing intent applies to rust "as" casts. specific functions should be used instead.
-   * - Rule 8.2.6
-     -
-     -
-     -
-     - Just like in C++ roundtripping pointers through pointers to void (union) is allowed, therefore the rationale fully applies. Casting from integer to pointer requires additional care to not create a pointer without provenance. Casting from integers or pointers to void (union in rust) to pointers is allowed in safe rust.
-   * - Rule 8.2.7
-     -
-     -
-     -
-     - Rationale mentions tools that track pointers. This applies to rust as for example miri misses UB when exposed provenance is used. Casting pointers to integers and back is allowed in safe rust, so this rule also applies to safe rust.
    * - Rule 8.2.8
      -
      -
@@ -231,7 +221,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      -
-     - While Rust does not have C-style for loops, the idea of using iterators instead of manual loops applies to Rust.
+     - While Rust does not have C-style for loops, the idea of using iterators instead of manual loops applies to Rust. Especially when using ``while`` loops where the index is modified in the loop body it is easy to write a loop which does not conform to this rule in rust.
    * - Rule 10.1.1
      -
      -
@@ -266,7 +256,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      -
-     - rationale applies fully to rust
+     - rationale applies fully to rust. Rust also has private and public members of structs. Confusion about the possible states of the object therefore also apply to rust.
    * - Rule 15.0.1
      -
      -
@@ -505,6 +495,16 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      - "reinterpret\_cast" maps to "transmute" in Rust and it is similarly dangerous. In Rust one additional exception might be added in regards to "repr(transparent" types. "transmute" is a unsafe function so safe code isn't affected.
+   * - Rule 8.2.6
+     -
+     -
+     -
+     - Just like in C++ roundtripping pointers through pointers to void (union) is allowed, therefore the rationale fully applies. Casting from integer to pointer requires additional care to not create a pointer without provenance. While casting from integers or pointers to void (union in rust) to pointers is allowed in safe rust, using these pointers requires unsafe. In a program using only safe rust these operations can't cause issues, therefore this only maps to unsafe rust.
+   * - Rule 8.2.7
+     -
+     -
+     -
+     - While casting between pointers and integers is allowed in safe rust, it can't cause issues because the created pointers can't be used. Similar rationale also applies to precision loss in pointer tracking tools (like miri in rust), which is not a problem if the pointer is not used. Therefore this does not apply to safe rust.
    * - Rule 8.2.11
      -
      -
@@ -573,7 +573,7 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      -
-     - In Rust custom panic payloads can be thrown with the function "std::panic::panic\_any". Using this with raw pointers leads to unclear ownership semantics, just like in C++ which should be avoided. Smartpointers or 'static references are exceptions as the ownership semantics are clear. Using custom panic types requires coordination between the panic handler and the panic locations. With only safe code in the panic handler misuse of raw pointer is not possible, therefore it does not map to rust.
+     - In Rust custom panic payloads can be thrown with the function "std::panic::panic\_any". Using this with raw pointers leads to unclear ownership semantics, just like in C++ which should be avoided. Smartpointers or 'static references are exceptions as the ownership semantics are clear. Using custom panic types requires coordination between the panic handler and the panic locations. With only safe code in the panic handler misuse of raw pointer is not possible, therefore it does not map to safe rust.
    * - Rule 21.6.5
      -
      -
