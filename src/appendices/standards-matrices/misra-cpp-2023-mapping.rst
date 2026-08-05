@@ -372,16 +372,14 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      - In Rust, Items are always part of their crates namespace. -> The majority of this rule is covered out of the box Functions and variables that are declared ``#[unsafe(no_mangle)]`` can lead to issues.
+   * - Rule 6.2.1
+     -
+     - The module and crate systems of Rust make this practically impossible; if you were to define two types with the same names in different files, when calling them you'd still need to do something like ``let x = foo1::Struct`` and ``let y = foo2::Struct``, otherwise the compiler wouldn't allow a more "global" call of ``use foo1::Struct; use foo2::Struct`` due to ambiguity. HOWEVER, in the case of unsafe Rust/FFI, `#[unsafe(no_mangle)]` can lead to potential issues.
    * - Rule 6.2.2
      - Rule 8.3 (closely related)
      -
      -
      - MISRA C mapping, FFI: an extern declaration shall have a type compatible with the C declaration. Besides that Rust does not separate declaration and definition of functions
-   * - Rule 6.2.4
-     -
-     -
-     -
-     - Rust does not have neither a header file mechanism or C++-esque external linkage; however, when using unsafe Rust, the user should be careful when calling ``#[no_mangle]`` or ``extern "C"`` as we could define a same symbol in two different spaces
    * - Rule 6.5.1
      -
      -
@@ -542,6 +540,20 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      - In safe rust the compiler enforces that a variable is initialized when used. While declarations without initialization are possible the compiler checks that it is initialized before it can be used. Since the value cannot be read it is not a "state" that increases complexity. It can even reduce complexity as it may allow removing a "mut" annotation from a variable. In unsafe rust MaybeUninit can be used to delay initialization of variables without the compiler checking correct usage. Here the rule fully applies.
+   * - Rule 11.6.2
+     -
+     - Catching the use of unset variables for operations is done by the Rust compiler after performing definite assignment analysis. The following snippet will give us an error:
+
+       .. code-block:: rust
+
+          fn f() {
+              let x: i32;
+              let y: i32 = x + 1;
+          }
+
+       Diagnostics: used binding ``x`` isn't initialized ``x`` used here but it isn't initialized [E0381]
+
+       In unsafe Rust, there is a chance we read a value from uninit memory and it behaves as UB, not necessarily leading to a program crash/panic
    * - Rule 12.3.1
      -
      -
@@ -661,12 +673,14 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 6.0.2
      - Rule 8.11
      - MISRA C mapping
-   * - Rule 6.2.1
-     -
-     - The module and crate systems of Rust make this practically impossible; if you were to define two types with the same names in different files, when calling them you'd still need to do something like ``let x = foo1::Struct`` and ``let y = foo2::Struct``, otherwise the compiler wouldn't allow a more "global" call of ``use foo1::Struct; use foo2::Struct`` due to ambiguity.
    * - Rule 6.2.3
      -
      - Rust's module system makes duplicate definitions structurally impossible; the compiler would give you the according errors as well ([E0252])
+   * - Rule 6.2.4
+     -
+     -
+     -
+     - Rust does not have neither a header file mechanism or C++-esque external linkage; Using no_mangle is covered by the more general Rule 6.2.1
    * - Rule 6.4.2
      - ``-``
      - **Applicability:** Not currently applicable to safe or unsafe Rust; applicable to both upon stabilization.
@@ -755,18 +769,6 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 11.3.1
      -
      - In Rust the array type behaves like the C++ type "std::array" in that it has value semantics and the size stays known. As "std::array" is recommended as a compliant alternative, the Rust array type is compliant and this rule doesn't map.
-   * - Rule 11.6.2
-     -
-     - Catching the use of unset variables for operations is done by the Rust compiler after performing definite assignment analysis. The following snippet will give us an error:
-
-       .. code-block:: rust
-
-          fn f() {
-              let x: i32;
-              let y: i32 = x + 1;
-          }
-
-       Diagnostics: used binding ``x`` isn't initialized ``x`` used here but it isn't initialized [E0381]
    * - Rule 11.6.3
      -
      - Rust doesn't allow assigning two enum variants the same value, even when done explicitly. Error E0081 is emitted. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=6c72cfac7ae776bf605e7d7f1135a5e6
