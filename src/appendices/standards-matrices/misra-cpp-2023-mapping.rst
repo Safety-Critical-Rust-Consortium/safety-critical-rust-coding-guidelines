@@ -364,6 +364,8 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      - In Rust, Items are always part of their crates namespace. -> The majority of this rule is covered out of the box Functions and variables that are declared ``#[unsafe(no_mangle)]`` can lead to issues.
    * - Rule 6.2.1
      -
+     -
+     -
      - The module and crate systems of Rust make this practically impossible; if you were to define two types with the same names in different files, when calling them you'd still need to do something like ``let x = foo1::Struct`` and ``let y = foo2::Struct``, otherwise the compiler wouldn't allow a more "global" call of ``use foo1::Struct; use foo2::Struct`` due to ambiguity. HOWEVER, in the case of unsafe Rust/FFI, `#[unsafe(no_mangle)]` can lead to potential issues.
    * - Rule 6.2.2
      - Rule 8.3 (closely related)
@@ -542,6 +544,8 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      - In safe rust the compiler enforces that a variable is initialized when used. While declarations without initialization are possible the compiler checks that it is initialized before it can be used. Since the value cannot be read it is not a "state" that increases complexity. It can even reduce complexity as it may allow removing a "mut" annotation from a variable. In unsafe rust MaybeUninit can be used to delay initialization of variables without the compiler checking correct usage. Here the rule fully applies.
    * - Rule 11.6.2
      -
+     -
+     -
      - Catching the use of unset variables for operations is done by the Rust compiler after performing definite assignment analysis. The following snippet will give us an error:
 
        .. code-block:: rust
@@ -677,8 +681,6 @@ Table 3 – Guidelines not currently applicable to Rust
      -
      - Rust's module system makes duplicate definitions structurally impossible; the compiler would give you the according errors as well ([E0252])
    * - Rule 6.2.4
-     -
-     -
      -
      - Rust does not have neither a header file mechanism or C++-esque external linkage; Using no_mangle is covered by the more general Rule 6.2.1
    * - Rule 6.4.2
