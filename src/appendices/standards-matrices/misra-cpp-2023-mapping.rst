@@ -536,7 +536,7 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      -
-     - The rationale that inline assembly (or naked functions) should be avoided in favor of language intrinsics applies to rust. In safe rust the use of inline assembly is not possible, therefore this rule doesn't apply to safe rust.
+     - The rationale that inline assembly or naked functions should be avoided in favor of language intrinsics applies to rust. In safe rust the use of inline assembly is not possible, therefore this rule doesn't apply to safe rust.
    * - Rule 11.6.1
      -
      -
@@ -557,17 +557,18 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
 
        Diagnostics: used binding ``x`` isn't initialized ``x`` used here but it isn't initialized [E0381]
 
-       In unsafe Rust, there is a chance we read a value from uninit memory and it behaves as UB, not necessarily leading to a program crash/panic
+       In unsafe Rust, there is a chance we read a value from uninit memory and it behaves as UB, not necessarily leading to a program crash/panic.
+       This especially applies to code using MaybeUninit or doing manual memory management, as new allocations are uninitialized by default.
    * - Rule 12.3.1
      -
      -
      -
-     - It is not possible to create UB with unions in safe rust, because reading from them is not allowed. Issues with memory leaks because of ManuallyDrop are covered by rule 21.6.2. In unsafe rust the rationale fully applies. In this case this rule applies if there is unsafe code in any place where the union type is accessible.
+     - It is not possible to create UB with unions in safe rust, because reading from them is not allowed. Issues with memory leaks because of ManuallyDrop (which often is required for unions in rust) are covered by rule 21.6.2 and therefore don't make this rule apply to safe code. In regards to unions rust has less UB than C++, because rust has untyped memory. For example casting between an integer and float of the same size is fully defined in rust. The rule still applies to unsafe code, because causing UB is easily possible. Since this rule is about union declarations it applies to every union that is accessible from unsafe code.
    * - Rule 15.1.4
      -
      -
      -
-     - In safe rust the compiler checks that every member of a object is initialized when the object is created. In unsafe rust (especially using MaybeUninit) this rule applies.
+     - In safe rust the compiler checks that every member of a struct, enum, tuple or array is initialized when it is created. In unsafe rust (especially using MaybeUninit) this rule applies.
    * - Dir 15.8.1
      -
      -
