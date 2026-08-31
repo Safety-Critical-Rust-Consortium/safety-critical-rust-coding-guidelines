@@ -4,6 +4,7 @@
 
 import json
 import re
+import time
 
 import requests
 from sphinx.errors import SphinxError
@@ -13,10 +14,72 @@ from . import fls_diff
 from .common import bar_format, get_tqdm, logger
 
 fls_paragraph_ids_url = "https://rust-lang.github.io/fls/paragraph-ids.json"
+FLS_FETCH_TIMEOUT = (5, 30)
+FLS_FETCH_RETRY_DELAYS = (1, 2)
+# Contributor builds fall back promptly; enforcing gates wait out ordinary CDN throttling.
+FLS_FETCH_NONBLOCKING_RETRY_BUDGET_SECONDS = 3
+FLS_FETCH_ENFORCING_RETRY_BUDGET_SECONDS = 60
 
 
 class FLSValidationError(SphinxError):
     category = "FLS Validation Error"
+
+
+def record_fls_notice(app, message):
+    notices = getattr(app, "fls_notices", None)
+    if notices is None:
+        notices = []
+        app.fls_notices = notices
+    notices.append(message)
+
+
+def fetch_live_fls_data(
+    json_url, *, retry_budget_seconds=FLS_FETCH_NONBLOCKING_RETRY_BUDGET_SECONDS
+):
+    retry_sleep = 0
+    for attempt in range(len(FLS_FETCH_RETRY_DELAYS) + 1):
+        try:
+            response = requests.get(json_url, timeout=FLS_FETCH_TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except (json.JSONDecodeError, ValueError) as error:
+            logger.info("Unable to parse live FLS data from %s: %s", json_url, error)
+            return None
+        except requests.RequestException as error:
+            response = getattr(error, "response", None)
+            status = getattr(response, "status_code", None)
+            retryable = isinstance(error, (requests.ConnectionError, requests.Timeout)) or (
+                isinstance(error, requests.HTTPError)
+                and status is not None
+                and (status == 429 or status >= 500)
+            )
+            if not retryable or attempt == len(FLS_FETCH_RETRY_DELAYS):
+                logger.info("Unable to retrieve live FLS data from %s: %s", json_url, error)
+                return None
+            delay = FLS_FETCH_RETRY_DELAYS[attempt]
+            if status in (429, 503):
+                retry_after = response.headers.get("Retry-After")
+                if retry_after is not None:
+                    try:
+                        parsed_delay = int(retry_after)
+                    except ValueError:
+                        pass
+                    else:
+                        if parsed_delay >= 0:
+                            delay = parsed_delay
+            remaining = retry_budget_seconds - retry_sleep
+            if delay > remaining:
+                logger.info(
+                    "Live FLS retry delay of %s seconds exceeds the "
+                    "%s-second remaining budget",
+                    delay,
+                    remaining,
+                )
+                return None
+            logger.info("Live FLS request failed; retrying in %s second(s): %s", delay, error)
+            time.sleep(delay)
+            retry_sleep += delay
+    raise AssertionError("unreachable")
 
 
 def check_fls(app, env):
@@ -25,19 +88,54 @@ def check_fls(app, env):
     #
     check_fls_exists_and_valid_format(app, env)
     offline_mode = env.config.offline
+    enforce_freshness = app.config.enable_spec_lock_consistency
+    json_url = app.config.fls_paragraph_ids_url
 
     # Gather all FLS paragraph IDs from the specification and get the raw JSON
-    fls_ids, raw_json_data = gather_fls_paragraph_ids(app, fls_paragraph_ids_url)
-    # Error out if we couldn't get the raw JSON data
+    fls_ids, raw_json_data = gather_fls_paragraph_ids(app, json_url, offline=offline_mode)
+    freshness_available = True
     if not raw_json_data:
-        error_message = f"Failed to retrieve or parse the FLS specification from {fls_paragraph_ids_url}"
-        logger.error(error_message)
-        raise FLSValidationError(error_message)
-    if not offline_mode:  # in offline mode, ignore checking against the lock file
+        if not offline_mode and not enforce_freshness:
+            fls_ids, raw_json_data = gather_fls_paragraph_ids(
+                app, json_url, offline=True
+            )
+            freshness_available = False
+            if raw_json_data:
+                record_fls_notice(
+                    app,
+                    "Live FLS unavailable or unusable; freshness was not checked. "
+                    "References were validated against the committed src/spec.lock.",
+                )
+        if not raw_json_data:
+            if offline_mode:
+                error_message = f"Failed to read or parse the committed FLS lock at {app.confdir / 'spec.lock'}"
+            elif not enforce_freshness:
+                error_message = (
+                    "Failed to retrieve the live FLS and read or parse the committed "
+                    f"FLS lock at {app.confdir / 'spec.lock'}"
+                )
+            else:
+                error_message = (
+                    "Failed to retrieve or parse the FLS specification from "
+                    f"{json_url}"
+                )
+            logger.error(error_message)
+            raise FLSValidationError(error_message)
+
+    app.fls_urls = {
+        fls_id: metadata["url"]
+        for fls_id, metadata in fls_ids.items()
+        if metadata.get("url")
+    }
+
+    if not offline_mode and freshness_available:
         # Check for differences against lock file
         has_differences, differences = check_fls_lock_consistency(
             app, env, raw_json_data
         )
+        if has_differences:
+            if not enforce_freshness:
+                has_differences = False
         if has_differences:
             error_message = (
                 "The FLS specification has changed since the lock file was created:\n"
@@ -179,9 +277,9 @@ def check_fls_ids_correct(app, env, fls_ids):
     pbar.close()  # Ensure cleanup
 
 
-def gather_fls_paragraph_ids(app, json_url):
+def gather_fls_paragraph_ids(app, json_url, *, offline=None):
     """
-    Gather all Ferrocene Language Specification paragraph IDs from the paragraph-ids.json file
+    Gather all FLS paragraph IDs from the paragraph-ids.json file
     or from the lock file in offline mode, including both container section IDs and individual paragraph IDs.
 
     Args:
@@ -191,7 +289,7 @@ def gather_fls_paragraph_ids(app, json_url):
     Returns:
         Dictionary mapping paragraph IDs to metadata AND the complete raw JSON data
     """
-    offline = app.config.offline
+    offline_mode = app.config.offline if offline is None else offline
     lock_path = app.confdir / "spec.lock"
 
     # Dictionary to store all FLS IDs and their metadata
@@ -200,42 +298,42 @@ def gather_fls_paragraph_ids(app, json_url):
 
     try:
         # Load the JSON file
-        if not offline:
+        if not offline_mode:
             logger.info("Gathering FLS paragraph IDs from %s", json_url)
-            response = requests.get(json_url)
-            response.raise_for_status()  # Raise exception for HTTP errors
-            # Parse the JSON data
-            try:
-                raw_json_data = response.json()
-                data = raw_json_data  # Keep reference to the original data
-                logger.debug("Successfully parsed JSON data")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse JSON: {e}")
-                logger.debug(f"Response content preview: {response.text[:500]}...")
-                raise
+            retry_budget_seconds = (
+                FLS_FETCH_ENFORCING_RETRY_BUDGET_SECONDS
+                if app.config.enable_spec_lock_consistency
+                else FLS_FETCH_NONBLOCKING_RETRY_BUDGET_SECONDS
+            )
+            raw_json_data = fetch_live_fls_data(
+                json_url, retry_budget_seconds=retry_budget_seconds
+            )
+            if raw_json_data is None:
+                return {}, None
+            data = raw_json_data
+            logger.debug("Successfully parsed JSON data")
 
         else:  # if online mode is on read from the lock file
             if not lock_path.exists():
-                logger.warning(
-                    f"No FLS lock file found at {lock_path}"
-                )  # TODO: returns an error
-                return False, []
+                logger.error(f"No FLS lock file found at {lock_path}")
+                return {}, None
             logger.info("Gathering FLS paragraph IDs from lock file: %s", lock_path)
             with open(lock_path, "r", encoding="utf-8") as f:
                 raw_json_data = f.read()
                 data = json.loads(raw_json_data)
 
         # Check if we have the expected document structure
-        if "documents" not in data:
-            logger.error("JSON does not have 'documents' key")
-            logger.debug(f"JSON keys: {list(data.keys())}")
+        documents = data.get("documents") if isinstance(data, dict) else None
+        if not isinstance(documents, list) or not documents:
+            log = logger.error if offline_mode else logger.info
+            log("FLS data does not contain a nonempty 'documents' list")
             return {}, None
 
         # Base URL for constructing direct links
         base_url = "https://rust-lang.github.io/fls/"
 
         # Process each document in the JSON structure
-        for document in data["documents"]:
+        for document in documents:
             doc_title = document.get("title", "Unknown")
 
             # Process each section in the document
@@ -288,6 +386,11 @@ def gather_fls_paragraph_ids(app, json_url):
                         "parent_section_id": section_id if section_id else None,
                     }
 
+        if not all_fls_ids:
+            log = logger.error if offline_mode else logger.info
+            log("FLS data does not contain any usable section or paragraph IDs")
+            return {}, None
+
         logger.info(f"Found {len(all_fls_ids)} total FLS IDs (sections and paragraphs)")
         # Count sections vs paragraphs
         sections_count = sum(
@@ -301,8 +404,12 @@ def gather_fls_paragraph_ids(app, json_url):
 
         return all_fls_ids, raw_json_data
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching paragraph IDs from {json_url}: {e}")
+    # Upstream schema drift makes live data unusable; check_fls decides whether
+    # that is fatal or whether the build can fall back to the committed lock.
+    except (json.JSONDecodeError, OSError, AttributeError, TypeError, ValueError) as error:
+        source = lock_path if offline_mode else json_url
+        log = logger.error if offline_mode else logger.info
+        log("Failed to parse FLS data from %s: %s", source, error)
         return {}, None
 
 
@@ -320,14 +427,26 @@ def check_fls_lock_consistency(app, env, fls_raw_data):
         - Boolean indicating whether differences were found
         - List of difference descriptions with affected guidelines (for error reporting)
     """
-    if not app.config.enable_spec_lock_consistency:
-        logger.warn("Spec lock file consistency check disabled")
-        return (False, [])
-
-    import json
-
     logger.info("Checking FLS lock file consistency")
     lock_path = app.confdir / "spec.lock"
+
+    if not lock_path.exists():
+        error_message = f"No FLS lock file found at {lock_path}"
+        logger.error(error_message)
+        raise FLSValidationError(error_message)
+
+    try:
+        with open(lock_path, "r", encoding="utf-8") as f:
+            locked_data = json.load(f)
+    except (json.JSONDecodeError, OSError) as error:
+        error_message = f"Failed to read FLS lock file {lock_path}: {error}"
+        logger.error(error_message)
+        raise FLSValidationError(error_message) from error
+    documents = locked_data.get("documents") if isinstance(locked_data, dict) else None
+    if not isinstance(documents, list) or not documents:
+        error_message = f"Invalid FLS lock file {lock_path}: documents must be a nonempty list"
+        logger.error(error_message)
+        raise FLSValidationError(error_message)
 
     # Get the needs data to find affected guidelines
     data = SphinxNeedsData(env)
@@ -356,19 +475,11 @@ def check_fls_lock_consistency(app, env, fls_raw_data):
                     {"id": need_id, "title": need.get("title", "Untitled")}
                 )
 
-    # If no lock file exists, skip checking
-    if not lock_path.exists():
-        logger.warning(
-            f"No FLS lock file found at {lock_path}, skipping consistency check"
-        )
-        return False, []
-
     try:
-        # Load lock file
-        with open(lock_path, "r", encoding="utf-8") as f:
-            locked_data = json.load(f)
         live_paragraphs = fls_diff.extract_paragraphs(fls_raw_data)
         locked_paragraphs = fls_diff.extract_paragraphs(locked_data)
+        if not locked_paragraphs:
+            raise ValueError("the lock contains no FLS paragraphs")
 
         logger.info(f"Found {len(live_paragraphs)} paragraphs in live data")
         logger.info(f"Found {len(locked_paragraphs)} paragraphs in lock file")
@@ -379,20 +490,41 @@ def check_fls_lock_consistency(app, env, fls_raw_data):
             fls_diff.build_detailed_differences(diff, fls_to_guidelines)
         )
 
+        temp_path = None
+        report_unavailable = False
         if has_differences:
             try:
                 temp_path = fls_diff.write_detailed_report(detailed_differences)
-                logger.warning(f"Detailed FLS differences written to: {temp_path}")
-            except Exception as e:
-                logger.error(f"Failed to write detailed differences to temp file: {e}")
+                log = logger.warning if app.config.enable_spec_lock_consistency else logger.info
+                log(f"Detailed FLS differences written to: {temp_path}")
+            except Exception as error:
+                log = logger.warning if app.config.enable_spec_lock_consistency else logger.info
+                log(f"Failed to write detailed differences to temp file: {error}")
+                report_unavailable = True
+
+            if not app.config.enable_spec_lock_consistency:
+                if temp_path:
+                    details = f" Details: {temp_path}."
+                elif report_unavailable:
+                    details = " Detailed report unavailable."
+                else:
+                    details = ""
+                record_fls_notice(
+                    app,
+                    "spec.lock drift detected; build continued "
+                    f"(added: {len(diff['added'])}, removed: {len(diff['removed'])}, "
+                    f"changed: {len(diff['changed'])}).{details} "
+                    "Run `uv run --frozen make.py --enforce-spec-lock-diff` to make this blocking.",
+                )
 
         summary = fls_diff.build_summary(affected_guidelines, has_differences)
 
         return has_differences, summary
 
-    except (json.JSONDecodeError, IOError) as e:
-        logger.error(f"Error reading or parsing lock file {lock_path}: {e}")
-        return False, [f"Failed to read lock file: {e}"]
+    except (TypeError, ValueError, KeyError) as error:
+        error_message = f"Invalid FLS lock file {lock_path}: {error}"
+        logger.error(error_message)
+        raise FLSValidationError(error_message) from error
 
 
 def insert_fls_coverage(app, env, fls_ids):

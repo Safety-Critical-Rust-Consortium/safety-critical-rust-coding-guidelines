@@ -2,7 +2,9 @@ name: FLS Audit
 
 on:
   schedule:
-    - cron: '0 4 * * *'
+    # Actions cron has minute precision. Minute 23 avoids top-of-hour load,
+    # when GitHub warns that scheduled workflows may be delayed or dropped.
+    - cron: '23 4 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -17,6 +19,16 @@ jobs:
   fls-audit:
     runs-on: ubuntu-latest
     steps:
+      - name: Require default branch for manual runs
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]]; then
+            echo "::error::Manual FLS audit runs must use the default branch ($DEFAULT_BRANCH)."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -24,7 +36,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: uv sync --dev
+        run: uv sync --locked --dev
 
       - name: Run FLS audit
         run: uv run python scripts/fls_audit.py --no-delta
@@ -38,5 +50,18 @@ jobs:
           uv run python scripts/fls_audit_issue.py \
             --report-json build/fls_audit/report.json \
             --report-md build/fls_audit/report.md \
+            --spec-lock src/spec.lock \
             --label fls-audit \
             --title-prefix "FLS audit:"
+
+      - name: Upload audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fls-audit-reports
+          path: |
+            build/fls_audit/report.json
+            build/fls_audit/report.md
+            build/fls_audit/report.ansi.md
+          if-no-files-found: warn
+          retention-days: 90

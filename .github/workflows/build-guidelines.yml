@@ -1,8 +1,6 @@
-name: Build 
+name: Build
 on:
   push:
-    tags:
-      - "*.*.*"
     branches:
       - "main"
   # this fires for the temporary branch the merge queue creates
@@ -12,69 +10,123 @@ on:
       - "main"
   # workflow_call trigger to make this workflow reusable
   workflow_call:
+    inputs:
+      enforce_spec_lock:
+        description: Fail when the live FLS differs from src/spec.lock
+        type: boolean
+        default: false
+      offline:
+        description: Build from src/spec.lock without retrieving the live FLS
+        type: boolean
+        default: false
 
 jobs:
   # Check Rust examples compile before building docs
   check_rust_examples:
     uses: ./.github/workflows/check-rust-examples.yml
 
+  fls_audit_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: Run FLS audit tests
+        run: >-
+          uv run --frozen pytest
+          tests/unit/fls_audit
+          tests/integration/fls_audit
+          tests/contract/fls_audit
+
   build:
-    needs: check_rust_examples
+    needs:
+      - check_rust_examples
+      - fls_audit_tests
     # Always run so that 'build' (the required status check) explicitly fails
-    # when check_rust_examples fails, rather than being skipped.
+    # when a prerequisite fails, rather than being skipped.
     # Skipped jobs don't block merge queue, but failed jobs do.
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Fail if example checks failed
-        if: needs.check_rust_examples.result != 'success'
+      - name: Fail if prerequisite checks failed
+        if: needs.check_rust_examples.result != 'success' || needs.fls_audit_tests.result != 'success'
         run: |
-          echo "::error::check_rust_examples workflow failed with result: ${{ needs.check_rust_examples.result }}"
-          echo "One or more Rust example checks did not pass. See the check_rust_examples job for details."
+          if [[ "${{ needs.check_rust_examples.result }}" != "success" ]]; then
+            echo "::error::check_rust_examples workflow failed with result: ${{ needs.check_rust_examples.result }}"
+          fi
+          if [[ "${{ needs.fls_audit_tests.result }}" != "success" ]]; then
+            echo "::error::fls_audit_tests job finished with result: ${{ needs.fls_audit_tests.result }}"
+          fi
+          echo "One or more prerequisite checks did not pass. See the prerequisite jobs for details."
           exit 1
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       - name: Build documentation
+        shell: bash
+        env:
+          ENFORCE_SPEC_LOCK: ${{ inputs.enforce_spec_lock || false }}
+          OFFLINE_BUILD: ${{ inputs.offline || false }}
         run: |
           mkdir -p build
-          uv run --frozen make.py 2>&1 | tee build/build.log
+          build_args=()
+          if [[ "$ENFORCE_SPEC_LOCK" == "true" && "$OFFLINE_BUILD" == "true" ]]; then
+            echo "::error::The documentation build cannot enforce live FLS freshness in offline mode."
+            exit 1
+          elif [[ "$OFFLINE_BUILD" == "true" ]]; then
+            build_args+=(--offline)
+          elif [[ "$ENFORCE_SPEC_LOCK" == "true" ]]; then
+            build_args+=(--enforce-spec-lock-diff)
+          fi
+
+          set +e
+          uv run --frozen make.py "${build_args[@]}" 2>&1 | tee build/build.log
+          build_status=${PIPESTATUS[0]}
+          set -e
+
           # Check for a wide range of error indicators in the log
           if grep -q -E "Traceback" build/build.log; then
             echo "::error::Build errors detected in log"
-            
+
             # Extract error contexts and annotate them in the GitHub Actions UI
             echo "=== ERROR DETAILS ==="
-            
+
             # Check for the Sphinx temp error file reference and extract it if present
-            TEMP_ERROR_FILE=$(grep -o '/tmp/sphinx-err-[^ ]*\.log' build/build.log | head -1)
-            if [ ! -z "$TEMP_ERROR_FILE" ] && [ -f "$TEMP_ERROR_FILE" ]; then
+            TEMP_ERROR_FILE=$(grep -o '/tmp/sphinx-err-[^ ]*\.log' build/build.log | head -1 || true)
+            if [ -n "$TEMP_ERROR_FILE" ] && [ -f "$TEMP_ERROR_FILE" ]; then
               # Save this traceback for artifacts
               echo "=== TRACEBACK ==="
               echo "Saving traceback to build/sphinx_traceback.log"
               cp "$TEMP_ERROR_FILE" build/sphinx_traceback.log
             fi
-            
+
             # Check for FLS differences file reference and extract it if present
-            FLS_DIFF_FILE=$(grep -o '/tmp/fls_diff_[^ ]*\.txt' build/build.log | head -1)
-            if [ ! -z "$FLS_DIFF_FILE" ] && [ -f "$FLS_DIFF_FILE" ]; then
+            FLS_DIFF_FILE=$(grep -o '/tmp/fls_diff_[^ ]*\.txt' build/build.log | head -1 || true)
+            if [ -n "$FLS_DIFF_FILE" ] && [ -f "$FLS_DIFF_FILE" ]; then
               # Save this differences file for artifacts
               echo "=== SPEC LOCK FILE DIFFERENCES ==="
               echo "Saving spec lock file differences to to build/spec_lock_file_differences.log"
               cp "$FLS_DIFF_FILE" build/spec_lock_file_differences.txt
             fi
 
-            exit 1
+            build_status=1
           else
             # Even if there's no error, still check for FLS differences file
-            FLS_DIFF_FILE=$(grep -o '/tmp/fls_diff_[^ ]*\.txt' build/build.log | head -1)
-            if [ ! -z "$FLS_DIFF_FILE" ] && [ -f "$FLS_DIFF_FILE" ]; then
+            FLS_DIFF_FILE=$(grep -o '/tmp/fls_diff_[^ ]*\.txt' build/build.log | head -1 || true)
+            if [ -n "$FLS_DIFF_FILE" ] && [ -f "$FLS_DIFF_FILE" ]; then
               echo "=== SPEC LOCK FILE DIFFERENCES, NO BUILD ERROR ==="
               echo "Saving spec lock file differences to to build/spec_lock_file_differences.log"
               cp "$FLS_DIFF_FILE" build/spec_lock_file_differences.txt
             fi
           fi
+
+          while IFS= read -r notice; do
+            echo "::warning title=FLS validation::${notice#*FLS NOTICE: }"
+          done < <(grep 'FLS NOTICE:' build/build.log || true)
+
+          exit "$build_status"
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         if: always()

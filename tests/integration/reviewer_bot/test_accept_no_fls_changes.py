@@ -124,6 +124,7 @@ def test_update_spec_lock_file_mode_exits_before_build_docs(monkeypatch, tmp_pat
             {
                 "clear": False,
                 "offline": False,
+                "enforce_spec_lock_diff": False,
                 "ignore_spec_lock_diff": False,
                 "update_spec_lock_file": True,
                 "validate_urls": False,

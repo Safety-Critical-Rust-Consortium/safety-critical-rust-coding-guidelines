@@ -15,6 +15,13 @@ Build the rendered version by running:
 uv run --frozen make.py
 ```
 
+The required uv version is pinned in `pyproject.toml`. Until a tooling owner is
+assigned, periodic uv upgrades are a shared maintainer responsibility: update
+the uv runtime pin, the `uv_build` range, the Netlify `UV_VERSION` in
+`netlify.toml`, and `uv.lock` together in one PR. Netlify uses that
+repository-controlled configuration instead of its UI build command so deploy
+previews install the same uv version as local and GitHub Actions builds.
+
 By default, Sphinx uses incremental rebuilds to generate the content that
 changed since the last invocation. If you notice a problem with incremental
 rebuilds, pass the `-c` flag to clear the existing artifacts before
@@ -36,27 +43,45 @@ If you're working without internet access or want to avoid reaching out to remot
 uv run --frozen make.py --offline
 ```
 
-This prevents the build system from attempting to fetch remote resources, such as updates to the specification. Use this flag when you need reproducible or air-gapped builds.
+With the required dependencies available, this makes FLS validation use the
+committed `src/spec.lock` instead of fetching current FLS paragraph data. It
+does not make the complete command air-gapped or byte-for-byte reproducible:
+`uv` may need to retrieve locked dependencies, and hosted workflows continue to
+use GitHub services.
 
-Use `--offline` if you are running `make.py` frequently during development, to prevent rate-limiting due to repeated requests to the [the FLS](https://rust-lang.github.io/fls/paragraph-ids.json).
+Use `--offline` if you are running `make.py` frequently during development, to prevent rate-limiting due to repeated requests to the [FLS](https://rust-lang.github.io/fls/paragraph-ids.json).
 
-### Build breaking due to out-dated spec lock file
+### Checking an out-of-date spec lock file
 
-It's a fairly common occurrence for the build to break due to an out of date spec lock file in `src/spec.lock`.
+It is fairly common for `src/spec.lock` to become outdated while a contributor is developing an unrelated guideline.
 
-The file is checked against the current live version of the specification, which means that your local development may go out of date while you are developing a feature.
+Local and normal CI builds print a prominent end-of-build drift summary without
+failing solely because of it; CI also creates a warning annotation and preserves
+the detailed report as an artifact. If the live FLS remains unavailable or
+unusable after bounded retries, these non-enforcing builds validate references
+against the committed lock and report that freshness was not checked. A
+guideline that references an FLS item newer than the committed lock still fails
+validation; synchronize the lock in a reviewed change rather than bypassing the
+reference check. Missing or malformed lock data and invalid FLS references
+still fail the build.
 
-#### Continuing work while on a feature branch
+CI enforcement differs by workflow; see the [FLS CI enforcement policy](docs/fls-audit.md#ci-enforcement-policy) for the blocking and nonblocking paths.
 
-If you run into this while developing a coding guideline, you may ignore this error by running the build with:
+#### Enforcing freshness locally
+
+Nightly and Release Preflight enforce freshness. To run the same check locally:
 
 ```shell
-uv run --frozen make.py --ignore-spec-lock-diff
+uv run --frozen make.py --enforce-spec-lock-diff
 ```
+
+Freshness enforcement requires live FLS data and cannot be combined with
+`--offline`. The deprecated `--ignore-spec-lock-diff` option remains a no-op for
+command-line compatibility; non-enforcing behavior is already the default.
 
 #### Auditing the difference
 
-When the build breaks due to the difference in `spec.lock`, a log is saved in `/tmp/fls_diff_<random>.txt` which you can use to audit the differences.
+When the build detects a difference in `spec.lock`, a log is saved in `/tmp/fls_diff_<random>.txt` which you can use to audit the differences.
 
 To see a quick summary of the difference:
 
@@ -71,7 +96,15 @@ uv run python scripts/fls_audit.py
 ```
 
 See [FLS audit docs](docs/fls-audit.md) for the full workflow, snapshots, advanced options, and
-the steps to rationalize and update `src/spec.lock`, including the srationalization checklist.
+the steps to rationalize and update `src/spec.lock`, including the rationalization checklist.
+
+## Releasing
+
+Release maintainers must run `Release Preflight` for the exact intended commit
+before creating a version tag. Follow [RELEASING.md](RELEASING.md), the
+canonical release procedure, for selecting a candidate, handling a moving
+`main` branch, tagging the preflighted commit, verifying deployment, and
+recovering from failures.
 
 ## What we're working on
 

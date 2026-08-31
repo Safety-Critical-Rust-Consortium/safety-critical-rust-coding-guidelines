@@ -1,0 +1,2 @@
+class AuditIssueError(RuntimeError):
+    pass

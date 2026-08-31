@@ -1,5 +1,5 @@
 [build-system]
-requires = ["uv_build>=0.9.27,<0.10.0"]
+requires = ["uv_build>=0.12.6,<0.13.0"]
 build-backend = "uv_build"
 
 [project]
@@ -23,6 +23,9 @@ dependencies = [
 
 [project.scripts]
 reviewer-bot = "scripts.reviewer_bot:main"
+
+[tool.uv]
+required-version = "==0.12.6"
 
 [tool.uv.workspace]
 members = ["builder", "exts"]
@@ -75,7 +78,7 @@ xfail_strict = true
 [tool.coverage.run]
 branch = true
 relative_files = true
-source = ["scripts.reviewer_bot", "scripts.reviewer_bot_lib"]
+source = ["scripts.reviewer_bot", "scripts.reviewer_bot_lib", "scripts.fls_audit_issue_lib"]
 
 [tool.coverage.report]
 show_missing = true

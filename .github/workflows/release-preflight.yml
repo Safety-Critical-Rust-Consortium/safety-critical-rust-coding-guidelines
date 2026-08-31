@@ -1,0 +1,77 @@
+name: Release Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Exact 40-character commit SHA to validate and release
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate release commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require commit from default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::release_sha must be a full lowercase 40-character commit SHA."
+            exit 1
+          fi
+          if [[ "$RELEASE_SHA" != "$GITHUB_SHA" ]]; then
+            echo "::error::release_sha $RELEASE_SHA does not match selected ref commit $GITHUB_SHA."
+            exit 1
+          fi
+          git fetch origin "$DEFAULT_BRANCH"
+          if ! git merge-base --is-ancestor "$RELEASE_SHA" "origin/$DEFAULT_BRANCH"; then
+            echo "::error::Release commit $RELEASE_SHA is not reachable from $DEFAULT_BRANCH."
+            exit 1
+          fi
+
+      - name: Mark preflight pending
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/fls_release_status.sh pending
+
+  build:
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build-guidelines.yml
+    with:
+      enforce_spec_lock: true
+
+  record:
+    name: Record preflight result
+    if: always()
+    needs:
+      - validate
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Record preflight result
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: bash scripts/fls_release_status.sh preflight-result

@@ -43,7 +43,7 @@ If you want to discuss the feasibility of a guideline or discuss it with others,
 
 ### 2) Open a new coding guideline issue
 
-The Safety Critical Rust Coding guidelines has the same chapter layout as the [Ferrocene Language Specification](https://spec.ferrocene.dev/) (FLS). To contribute a new guideline, find the relevant section from the FLS, then write a guideline in the corresponding chapter of the coding guidelines.
+The Safety Critical Rust Coding Guidelines use the same chapter layout as [the FLS](https://rust-lang.github.io/fls/). To contribute a new guideline, find the relevant section in the FLS, then write a guideline in the corresponding chapter of the coding guidelines.
 
 1. Before you begin, make sure you agree to the [Licensing clause](#licenses) and [code of conduct](CODE_OF_CONDUCT.md).
 
