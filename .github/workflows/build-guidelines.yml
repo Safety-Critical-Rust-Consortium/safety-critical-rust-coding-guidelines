@@ -38,6 +38,7 @@ jobs:
           tests/unit/fls_audit
           tests/integration/fls_audit
           tests/contract/fls_audit
+          tests/contract/tooling
 
   build:
     needs:
