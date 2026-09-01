@@ -328,14 +328,14 @@ def test_pr_comment_router_workflow_contains_route_and_trusted_jobs_in_order():
     assert set(data["jobs"]) == {"route-pr-comment", "trusted-direct"}
     route_steps = data["jobs"]["route-pr-comment"]["steps"]
     trusted_steps = data["jobs"]["trusted-direct"]["steps"]
-    assert route_steps[0]["name"] == "Install uv"
-    assert route_steps[1]["name"] == "Checkout trusted bot source"
-    assert route_steps[2]["name"] == "Select trusted bot source"
+    assert route_steps[0]["name"] == "Checkout trusted bot source"
+    assert route_steps[1]["name"] == "Select trusted bot source"
+    assert route_steps[2]["name"] == "Install uv"
     assert route_steps[3]["name"] == "Route PR comment"
     assert route_steps[4]["name"] == "Upload deferred comment artifact"
-    assert trusted_steps[0]["name"] == "Install uv"
-    assert trusted_steps[1]["name"] == "Checkout trusted bot source"
-    assert trusted_steps[2]["name"] == "Select trusted bot source"
+    assert trusted_steps[0]["name"] == "Checkout trusted bot source"
+    assert trusted_steps[1]["name"] == "Select trusted bot source"
+    assert trusted_steps[2]["name"] == "Install uv"
     assert trusted_steps[3]["name"] == "Run reviewer bot"
 
 def test_pr_comment_router_upload_is_emitted_only_for_deferred_reconcile():
@@ -422,6 +422,68 @@ def test_reviewer_bot_workflows_use_shared_source_action_without_raw_extraction(
         if 'uv run --project "$BOT_SRC_ROOT"' in text or 'python "$BOT_SRC_ROOT/scripts/reviewer_bot.py"' in text:
             assert "uses: ./.github/actions/reviewer-bot-source" in text
             assert "BOT_SRC_ROOT: ${{ steps.bot-source.outputs.bot-src-root }}" in text
+
+
+def test_operational_reviewer_bot_jobs_install_uv_from_trusted_project_pin():
+    expected_jobs = {
+        ("reviewer-bot-issue-comment-direct.yml", "reviewer-bot-issue-comment-direct"),
+        ("reviewer-bot-issues.yml", "reviewer-bot-issues"),
+        ("reviewer-bot-pr-comment-router.yml", "route-pr-comment"),
+        ("reviewer-bot-pr-comment-router.yml", "trusted-direct"),
+        ("reviewer-bot-pr-metadata.yml", "reviewer-bot-pr-metadata"),
+        ("reviewer-bot-preview.yml", "reviewer-bot-preview"),
+        ("reviewer-bot-privileged-commands.yml", "privileged-command-executor"),
+        ("reviewer-bot-reconcile.yml", "reconcile"),
+        ("reviewer-bot-sweeper-repair.yml", "reviewer-bot-sweeper-repair"),
+    }
+    covered_jobs = set()
+
+    for path in sorted(Path(".github/workflows").glob("reviewer-bot-*.yml")):
+        workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for job_name, job in workflow.get("jobs", {}).items():
+            steps = job.get("steps", [])
+            execution_indexes = [
+                index
+                for index, step in enumerate(steps)
+                if 'uv run --project "$BOT_SRC_ROOT"' in str(step.get("run", ""))
+            ]
+            if not execution_indexes:
+                continue
+
+            covered_jobs.add((path.name, job_name))
+            checkout_indexes = [
+                index
+                for index, step in enumerate(steps)
+                if str(step.get("uses", "")).startswith("actions/checkout@")
+            ]
+            source_indexes = [
+                index
+                for index, step in enumerate(steps)
+                if step.get("uses") == "./.github/actions/reviewer-bot-source"
+            ]
+            setup_indexes = [
+                index
+                for index, step in enumerate(steps)
+                if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")
+            ]
+
+            assert len(checkout_indexes) == 1
+            assert len(source_indexes) == 1
+            assert len(setup_indexes) == 1
+            assert len(execution_indexes) == 1
+            assert checkout_indexes[0] < source_indexes[0] < setup_indexes[0] < execution_indexes[0]
+
+            checkout = steps[checkout_indexes[0]]
+            setup = steps[setup_indexes[0]]
+            assert "path" not in checkout.get("with", {})
+            setup_action, setup_sha = setup["uses"].split("@", 1)
+            assert setup_action == "astral-sh/setup-uv"
+            assert len(setup_sha) == 40
+            int(setup_sha, 16)
+            assert setup.get("with") == {"version-file": "pyproject.toml"}
+            assert all("python -m pip install uv" not in str(step.get("run", "")) for step in steps)
+
+    assert covered_jobs == expected_jobs
 
 
 def test_reviewer_bot_source_action_validates_checkout_provenance():
