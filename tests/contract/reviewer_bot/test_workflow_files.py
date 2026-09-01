@@ -1,4 +1,5 @@
 import json
+import re
 import textwrap
 from pathlib import Path
 from types import SimpleNamespace
@@ -425,7 +426,7 @@ def test_reviewer_bot_workflows_use_shared_source_action_without_raw_extraction(
 
 
 def test_operational_reviewer_bot_jobs_install_uv_from_trusted_project_pin():
-    expected_jobs = {
+    operational_uv_jobs = {
         ("reviewer-bot-issue-comment-direct.yml", "reviewer-bot-issue-comment-direct"),
         ("reviewer-bot-issues.yml", "reviewer-bot-issues"),
         ("reviewer-bot-pr-comment-router.yml", "route-pr-comment"),
@@ -436,54 +437,71 @@ def test_operational_reviewer_bot_jobs_install_uv_from_trusted_project_pin():
         ("reviewer-bot-reconcile.yml", "reconcile"),
         ("reviewer-bot-sweeper-repair.yml", "reviewer-bot-sweeper-repair"),
     }
-    covered_jobs = set()
+    ci_uv_jobs = {
+        ("reviewer-bot-tests.yml", "reviewer-bot-contract"),
+        ("reviewer-bot-tests.yml", "reviewer-bot-coverage"),
+        ("reviewer-bot-tests.yml", "reviewer-bot-integration"),
+        ("reviewer-bot-tests.yml", "reviewer-bot-unit"),
+    }
+    uv_token = re.compile(r"\buvx?\b")
+    workflow_jobs: dict[tuple[str, str], dict] = {}
+    discovered_uv_jobs = set()
 
     for path in sorted(Path(".github/workflows").glob("reviewer-bot-*.yml")):
         workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
         for job_name, job in workflow.get("jobs", {}).items():
+            job_key = (path.name, job_name)
+            workflow_jobs[job_key] = job
             steps = job.get("steps", [])
-            execution_indexes = [
-                index
-                for index, step in enumerate(steps)
-                if 'uv run --project "$BOT_SRC_ROOT"' in str(step.get("run", ""))
-            ]
-            if not execution_indexes:
-                continue
+            if any(
+                uv_token.search(str(step.get("uses", "")))
+                or uv_token.search(str(step.get("run", "")))
+                for step in steps
+            ):
+                discovered_uv_jobs.add(job_key)
 
-            covered_jobs.add((path.name, job_name))
-            checkout_indexes = [
-                index
-                for index, step in enumerate(steps)
-                if str(step.get("uses", "")).startswith("actions/checkout@")
-            ]
-            source_indexes = [
-                index
-                for index, step in enumerate(steps)
-                if step.get("uses") == "./.github/actions/reviewer-bot-source"
-            ]
-            setup_indexes = [
-                index
-                for index, step in enumerate(steps)
-                if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")
-            ]
+    assert discovered_uv_jobs == operational_uv_jobs | ci_uv_jobs
 
-            assert len(checkout_indexes) == 1
-            assert len(source_indexes) == 1
-            assert len(setup_indexes) == 1
-            assert len(execution_indexes) == 1
-            assert checkout_indexes[0] < source_indexes[0] < setup_indexes[0] < execution_indexes[0]
+    for job_key in sorted(operational_uv_jobs):
+        steps = workflow_jobs[job_key].get("steps", [])
+        checkout_indexes = [
+            index
+            for index, step in enumerate(steps)
+            if str(step.get("uses", "")).startswith("actions/checkout@")
+        ]
+        source_indexes = [
+            index
+            for index, step in enumerate(steps)
+            if step.get("uses") == "./.github/actions/reviewer-bot-source"
+        ]
+        setup_indexes = [
+            index
+            for index, step in enumerate(steps)
+            if str(step.get("uses", "")).startswith("astral-sh/setup-uv@")
+        ]
+        uv_shell_lines = [
+            (index, line.strip())
+            for index, step in enumerate(steps)
+            for line in str(step.get("run", "")).splitlines()
+            if uv_token.search(line)
+        ]
 
-            checkout = steps[checkout_indexes[0]]
-            setup = steps[setup_indexes[0]]
-            assert "path" not in checkout.get("with", {})
-            setup_action, setup_sha = setup["uses"].split("@", 1)
-            assert setup_action == "astral-sh/setup-uv"
-            assert len(setup_sha) == 40
-            int(setup_sha, 16)
-            assert setup.get("with") == {"version-file": "pyproject.toml"}
-            assert all("python -m pip install uv" not in str(step.get("run", "")) for step in steps)
+        assert len(checkout_indexes) == 1
+        assert len(source_indexes) == 1
+        assert len(setup_indexes) == 1
+        assert len(uv_shell_lines) == 1
+        execution_index, execution_line = uv_shell_lines[0]
+        assert len(uv_token.findall(execution_line)) == 1
+        assert re.match(r'^uv\s+run\s+--project\s+"\$BOT_SRC_ROOT"(?:\s|$)', execution_line)
+        assert checkout_indexes[0] < source_indexes[0] < setup_indexes[0] < execution_index
 
-    assert covered_jobs == expected_jobs
+        checkout = steps[checkout_indexes[0]]
+        setup = steps[setup_indexes[0]]
+        assert "path" not in checkout.get("with", {})
+        setup_action, setup_sha = setup["uses"].split("@", 1)
+        assert setup_action == "astral-sh/setup-uv"
+        assert re.fullmatch(r"[0-9a-f]{40}", setup_sha)
+        assert setup.get("with") == {"version-file": "pyproject.toml"}
 
 
 def test_reviewer_bot_source_action_validates_checkout_provenance():
