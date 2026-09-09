@@ -362,13 +362,6 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      - This rule maps to functions that are generic and take a type as an argument that can be converted to a container from a reference to the content of the container. If these functions are called with the owning container they don't copy, but if they are called with the non-owning container they do copy. In the std this applies to the Into and From traits and the collections types including Box. The corresponding rust rule should probably disallow using the Into and From traits for these purposes and require the caller to do the copy themselves, if necessary. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=dd9595f92d8a0538379e71c7b5dbf7fb
-   * - Rule 28.6.4
-     -
-     -
-     -
-     - std::remove/std::remove\_if <-> Vec::retain / Vec::extract\_if (completely different API, doesn’t apply, retain can’t be used wrong and is the more common case) std::unique <-> slice::partition\_dedup (nightly, more flexible, applies) / Vec::dedup (doesn’t apply) std::vector::empty <-> std::Vec::empty (marked must\_use https://doc.rust-lang.org/src/core/slice/mod.rs.html#135, does apply)
-
-       Since it applies to at least some I marked it as applies to safe rust
 
 Table 2 – Guidelines additionally applicable in the presence of unsafe code
 ---------------------------------------------------------------------------
@@ -926,6 +919,13 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 28.6.2
      -
      - Rust has no language feature like forwarding references.
+   * - Rule 28.6.4
+     -
+     - std::remove/std::remove\_if <-> Vec::retain / Vec::extract\_if: completely different API, doesn’t apply, retain can’t be used wrong and is the more common case
+
+       std::unique <-> slice::partition\_dedup: nightly, more flexible, may apply depending on the name it is stabilised as / Vec::dedup: doesn’t apply
+
+       std::vector::empty <-> std::Vec::is\_empty: doesn't apply, the different name prevents confusion.
    * - Rule 30.0.1
      -
      - This is about the specific issues of these APIs. filesystem operations are supposed to use the filesystem header in C++. As rust has it's own filesystem APIs this does not map. If there is a specific problem with the filesystem APIs in rust that should probably get its own rule.
