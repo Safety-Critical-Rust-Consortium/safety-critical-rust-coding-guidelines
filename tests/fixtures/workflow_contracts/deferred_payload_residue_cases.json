@@ -1,0 +1,259 @@
+{
+  "residue_cases": [
+    {
+      "id": "disabled_retained_workflow",
+      "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+      "retained_workflow_inventory_matches": true,
+      "workflows": [
+        {
+          "workflow_name": "Reviewer Bot PR Comment Router",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-comment-router.yml",
+          "classification": "required_retained",
+          "state": "disabled_manually"
+        }
+      ],
+      "runs": [],
+      "artifacts": [],
+      "expected": {
+        "retained_workflow_inventory_matches": true,
+        "blocking_workflows": [
+          {
+            "workflow_name": "Reviewer Bot PR Comment Router",
+            "workflow_path": ".github/workflows/reviewer-bot-pr-comment-router.yml",
+            "reason": "required_retained_workflow_disabled"
+          }
+        ],
+        "queued_or_in_progress_runs": [],
+        "legacy_artifacts_remaining": [],
+        "closure_ready": false
+      }
+    },
+    {
+      "id": "removed_legacy_workflow_still_active",
+      "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+      "retained_workflow_inventory_matches": false,
+      "workflows": [
+        {
+          "workflow_name": "Reviewer Bot PR Comment Observer",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+          "classification": "removed_legacy",
+          "state": "active"
+        }
+      ],
+      "runs": [],
+      "artifacts": [],
+      "expected": {
+        "retained_workflow_inventory_matches": false,
+        "blocking_workflows": [
+          {
+            "workflow_name": "Reviewer Bot PR Comment Observer",
+            "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+            "reason": "removed_legacy_workflow_still_active"
+          }
+        ],
+        "queued_or_in_progress_runs": [],
+        "legacy_artifacts_remaining": [],
+        "closure_ready": false
+      }
+    },
+    {
+      "id": "queued_removed_legacy_run",
+      "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+      "retained_workflow_inventory_matches": true,
+      "workflows": [],
+      "runs": [
+        {
+          "workflow_name": "Reviewer Bot PR Comment Observer",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+          "classification": "removed_legacy",
+          "run_id": 9001,
+          "run_attempt": 1,
+          "status": "queued",
+          "head_sha": "74c8f6d25636c1772befbb3cc97e0e7598103047"
+        }
+      ],
+      "artifacts": [],
+      "expected": {
+        "retained_workflow_inventory_matches": true,
+        "blocking_workflows": [],
+        "queued_or_in_progress_runs": [
+          {
+            "workflow_name": "Reviewer Bot PR Comment Observer",
+            "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+            "run_id": 9001,
+            "run_attempt": 1,
+            "status": "queued",
+            "head_sha": "74c8f6d25636c1772befbb3cc97e0e7598103047",
+            "reason": "removed_legacy_workflow_run"
+          }
+        ],
+        "legacy_artifacts_remaining": [],
+        "closure_ready": false
+      }
+    },
+    {
+      "id": "noncurrent_retained_emitter_run",
+      "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+      "retained_workflow_inventory_matches": true,
+      "workflows": [],
+      "runs": [
+        {
+          "workflow_name": "Reviewer Bot PR Review Comment Observer",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+          "classification": "retained_emitter",
+          "run_id": 9002,
+          "run_attempt": 3,
+          "status": "in_progress",
+          "head_sha": "74c8f6d25636c1772befbb3cc97e0e7598103047"
+        }
+      ],
+      "artifacts": [],
+      "expected": {
+        "retained_workflow_inventory_matches": true,
+        "blocking_workflows": [],
+        "queued_or_in_progress_runs": [
+          {
+            "workflow_name": "Reviewer Bot PR Review Comment Observer",
+            "workflow_path": ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+            "run_id": 9002,
+            "run_attempt": 3,
+            "status": "in_progress",
+            "head_sha": "74c8f6d25636c1772befbb3cc97e0e7598103047",
+            "reason": "noncurrent_head_sha"
+          }
+        ],
+        "legacy_artifacts_remaining": [],
+        "closure_ready": false
+      }
+    },
+    {
+      "id": "downloadable_legacy_schema_artifacts",
+      "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+      "retained_workflow_inventory_matches": true,
+      "workflows": [],
+      "runs": [],
+      "artifacts": [
+        {
+          "workflow_name": "Reviewer Bot PR Comment Observer",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+          "run_id": 9003,
+          "run_attempt": 1,
+          "artifact_id": 7001,
+          "payload_schema_version": 1,
+          "payload_kind": "observer_noop",
+          "artifact_name": "reviewer-bot-comment-context-9003-attempt-1",
+          "payload_filename": "deferred-comment.json",
+          "downloadable": true
+        },
+        {
+          "workflow_name": "Reviewer Bot PR Review Comment Observer",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+          "run_id": 9004,
+          "run_attempt": 2,
+          "artifact_id": 7002,
+          "payload_schema_version": 2,
+          "payload_kind": "deferred_review_comment",
+          "artifact_name": "reviewer-bot-review-comment-context-9004-attempt-2",
+          "payload_filename": "deferred-review-comment.json",
+          "downloadable": true
+        }
+      ],
+      "expected": {
+        "retained_workflow_inventory_matches": true,
+        "blocking_workflows": [],
+        "queued_or_in_progress_runs": [],
+        "legacy_artifacts_remaining": [
+          {
+            "workflow_name": "Reviewer Bot PR Comment Observer",
+            "workflow_path": ".github/workflows/reviewer-bot-pr-comment-observer.yml",
+            "run_id": 9003,
+            "run_attempt": 1,
+            "artifact_id": 7001,
+            "payload_schema_version": 1,
+            "payload_kind": "observer_noop",
+            "artifact_name": "reviewer-bot-comment-context-9003-attempt-1",
+            "payload_filename": "deferred-comment.json"
+          },
+          {
+            "workflow_name": "Reviewer Bot PR Review Comment Observer",
+            "workflow_path": ".github/workflows/reviewer-bot-pr-review-comment-observer.yml",
+            "run_id": 9004,
+            "run_attempt": 2,
+            "artifact_id": 7002,
+            "payload_schema_version": 2,
+            "payload_kind": "deferred_review_comment",
+            "artifact_name": "reviewer-bot-review-comment-context-9004-attempt-2",
+            "payload_filename": "deferred-review-comment.json"
+          }
+        ],
+        "closure_ready": false
+      }
+    },
+    {
+      "id": "router_zero_artifact_success",
+      "evaluated_ref": "c158011fd015a27ad5d0cac06675fb2d01276362",
+      "retained_workflow_inventory_matches": true,
+      "workflows": [
+        {
+          "workflow_name": "Reviewer Bot PR Comment Router",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-comment-router.yml",
+          "classification": "required_retained",
+          "state": "active"
+        }
+      ],
+      "runs": [
+        {
+          "workflow_name": "Reviewer Bot PR Comment Router",
+          "workflow_path": ".github/workflows/reviewer-bot-pr-comment-router.yml",
+          "classification": "retained_emitter",
+          "run_id": 9005,
+          "run_attempt": 4,
+          "status": "completed",
+          "head_sha": "c158011fd015a27ad5d0cac06675fb2d01276362"
+        }
+      ],
+      "artifacts": [],
+      "expected": {
+        "retained_workflow_inventory_matches": true,
+        "blocking_workflows": [],
+        "queued_or_in_progress_runs": [],
+        "legacy_artifacts_remaining": [],
+        "closure_ready": true
+      }
+    }
+  ],
+  "artifact_selection_cases": [
+    {
+      "id": "zero_json_files",
+      "files": [],
+      "expected_selected_path": null,
+      "expected_multiple": false
+    },
+    {
+      "id": "one_json_file",
+      "files": [
+        "observer-artifact/deferred-comment.json"
+      ],
+      "expected_selected_path": "observer-artifact/deferred-comment.json",
+      "expected_multiple": false
+    },
+    {
+      "id": "multiple_json_files",
+      "files": [
+        "observer-artifact/deferred-comment.json",
+        "observer-artifact/deferred-review-comment.json"
+      ],
+      "expected_selected_path": null,
+      "expected_multiple": true
+    },
+    {
+      "id": "stray_nested_json_residue",
+      "files": [
+        "observer-artifact/deferred-comment.json",
+        "observer-artifact/nested/extra.json"
+      ],
+      "expected_selected_path": null,
+      "expected_multiple": true
+    }
+  ]
+}

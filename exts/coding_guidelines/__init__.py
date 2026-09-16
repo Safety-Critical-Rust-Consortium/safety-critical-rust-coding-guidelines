@@ -48,6 +48,8 @@ def on_build_finished(app, exception):
     else:
         if not app.config.debug:
             print(f" + Build complete -> {outdir}")
+        for notice in getattr(app, "fls_notices", []):
+            print(f" ! FLS NOTICE: {notice}")
 
 
 def setup(app):
@@ -64,7 +66,7 @@ def setup(app):
     app.add_config_value(name="debug", default=False, rebuild="env")
     app.add_config_value(
         name="fls_paragraph_ids_url",
-        default="https://rust-lang.github.io/fls/paragraph-ids.json",
+        default=fls_checks.fls_paragraph_ids_url,
         rebuild="env",
     )
     app.add_config_value(

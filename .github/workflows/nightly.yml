@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Log build start
         run: echo "Starting nightly build at $(date)"
@@ -24,6 +24,6 @@ jobs:
     needs: trigger-build
     # Call the main build workflow
     uses: ./.github/workflows/build-guidelines.yml
+    with:
+      enforce_spec_lock: true
     # If your main workflow is in a different file, adjust the path accordingly
-
-

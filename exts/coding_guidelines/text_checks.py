@@ -67,7 +67,7 @@ def is_std_url(url: str) -> bool:
 
 
 def is_fls_url(url: str) -> bool:
-    """Check if a URL points to the Ferrocene Language Specification."""
+    """Check if a URL points to the FLS."""
     return bool(FLS_URL_PATTERN.match(url))
 
 

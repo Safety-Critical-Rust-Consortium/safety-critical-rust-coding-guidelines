@@ -292,7 +292,7 @@ This script transforms a GitHub issue's JSON data into reStructuredText format f
 cat path/to/issue.json | uv run python scripts/guideline-from-issue.py
 
 # From GitHub API directly
-curl https://api.github.com/repos/rustfoundation/safety-critical-rust-coding-guidelines/issues/123 | uv run python scripts/guideline-from-issue.py
+curl https://api.github.com/repos/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/123 | uv run python scripts/guideline-from-issue.py
 
 # Save the output to the appropriate chapter file
 cat path/to/issue.json | uv run python scripts/guideline-from-issue.py --save
@@ -315,7 +315,7 @@ This script generates a formatted GitHub comment containing an RST preview of a 
 cat path/to/issue.json | uv run python scripts/generate-rst-comment.py
 
 # From GitHub API directly
-curl https://api.github.com/repos/rustfoundation/safety-critical-rust-coding-guidelines/issues/123 | uv run python scripts/generate-rst-comment.py
+curl https://api.github.com/repos/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/123 | uv run python scripts/generate-rst-comment.py
 ```
 
 ### Features
@@ -338,5 +338,5 @@ curl https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER > issue.json
 For example:
 
 ```bash
-curl https://api.github.com/repos/rustfoundation/safety-critical-rust-coding-guidelines/issues/156 > issue.json
+curl https://api.github.com/repos/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/156 > issue.json
 ```

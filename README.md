@@ -1,127 +1,118 @@
 # Safety-Critical Rust Coding Guidelines
 
-Coding Guidelines for Safety Critical Rust developed by the [Safety Critical Rust Consortium][safety-critical-rust-consortium].
+This repository contains Coding Guidelines for writing Safety Critical Rust, developed by the [Safety Critical Rust Consortium][safety-critical-rust-consortium].
 
-[View the latest rendered guidelines online](https://coding-guidelines.arewesafetycriticalyet.org/)
-
-Check out the [coding guideline goals](GOALS.md).
-
-_Note_: Early, subject to changes.
-
-## Table of Contents
-- [Building the coding guidelines](#building-the-coding-guidelines)
-   - [Running builds offline](#running-builds-offline)
-   - [Build breaking due to out-dated spec lock file](#build-breaking-due-to-out-dated-spec-lock-file)
-   - [Continuing work while on a feature branch](#continuing-work-while-on-a-feature-branch)
-   - [If you need to audit the difference](#if-you-need-to-audit-the-difference)
-- [Outline \& issue breakdown](#outline--issue-breakdown)
-- [Contributing](#contributing)
-- [Code of Conduct](#code-of-conduct)
-- [Licenses](#licenses)
-- [Other Policies](#other-policies)
+- View the [rendered guidelines](https://coding-guidelines.arewesafetycriticalyet.org/) online.
+- Check out the [project goals](GOALS.md).
 
 ## Building the coding guidelines
 
-The Safety-Critical Rust Coding Guidelines use `Sphinx` and `Sphinx-Needs` to build a rendered version of the coding guidelines, and `uv` to install and manage Python dependencies (including Sphinx itself). To simplify building the rendered version, we created a script called `make.py` that takes care of invoking Sphinx with the right flags.
+The Safety-Critical Rust Coding Guidelines website uses `Sphinx` and `Sphinx-Needs` to build a rendered version of the coding guidelines, and `uv` to install and manage Python dependencies (including Sphinx itself). To simplify building the rendered version, we created a script called `make.py` that takes care of invoking Sphinx with the right flags.
 
-If you still need to install `uv` you can follow the [steps outlined](https://docs.astral.sh/uv/getting-started/installation/) on Astral's website.
-
-You can build the rendered version by running:
-
-On Linux-like and macOS systems:
+Build the rendered version by running:
 
 ```shell
-   ./make.py
+uv run --frozen make.py
 ```
 
-On Windows systems:
-
-```shell
-   uv run make.py
-``` 
+The required uv version is pinned in `pyproject.toml`. Until a tooling owner is
+assigned, periodic uv upgrades are a shared maintainer responsibility: update
+the uv runtime pin, the `uv_build` range, the Netlify `UV_VERSION` in
+`netlify.toml`, and `uv.lock` together in one PR. Netlify uses that
+repository-controlled configuration instead of its UI build command so deploy
+previews install the same uv version as local and GitHub Actions builds.
 
 By default, Sphinx uses incremental rebuilds to generate the content that
 changed since the last invocation. If you notice a problem with incremental
-rebuilds, you can pass the `-c` flag to clear the existing artifacts before
-building:
+rebuilds, pass the `-c` flag to clear the existing artifacts before
+building `uv run --frozen make.py -c`.
 
-```shell
-   ./make.py -c
-```
+The following output is generated:
 
-The rendered version will be available in `build/html/`.
+- A rendered version in `build/html/`
+- A machine-parseable artifact in `build/html/needs.json`
+- A record of the contents with checksums in `build/html/guidelines-ids.json`
 
-A machine-parseable artifact will be available at `build/html/needs.json`. (ToDo: Pete LeVasseur) The `needs.json` file could use some cleaning up and some description here of the contents.
-
-A record with checksums of the contents is available at `build/html/guidelines-ids.json`. Users of the coding guidelines can reference this file to determine if there have been changes to coding guidelines contents they should be aware of.
-
+<!-- TODO: Pete LeVasseur The `needs.json` file could use some cleaning up and some description here of the contents. -->
 
 ### Running builds offline
 
 If you're working without internet access or want to avoid reaching out to remote resources, you can pass the `--offline` flag:
 
 ```shell
-   ./make.py --offline
+uv run --frozen make.py --offline
 ```
 
-This prevents the build system from attempting to fetch remote resources, such as updates to the specification. Use this flag when you need reproducible or air-gapped builds.
+With the required dependencies available, this makes FLS validation use the
+committed `src/spec.lock` instead of fetching current FLS paragraph data. It
+does not make the complete command air-gapped or byte-for-byte reproducible:
+`uv` may need to retrieve locked dependencies, and hosted workflows continue to
+use GitHub services.
 
-It is recommended to use `--offline` if you are running `make.py` frequently during development. The builder fetches data from [the Ferrocene Language Specification website](https://spec.ferrocene.dev/paragraph-ids.json), which may rate-limit repeated requests—leading to delays or failed builds. Using `--offline` can significantly improve build speed and avoid unnecessary network issues during iterative work.
+Use `--offline` if you are running `make.py` frequently during development, to prevent rate-limiting due to repeated requests to the [FLS](https://rust-lang.github.io/fls/paragraph-ids.json).
 
+### Checking an out-of-date spec lock file
 
-### Build breaking due to out-dated spec lock file
+It is fairly common for `src/spec.lock` to become outdated while a contributor is developing an unrelated guideline.
 
-It's a fairly common occurrence for the build to break due to an out of date spec lock file, located at:
+Local and normal CI builds print a prominent end-of-build drift summary without
+failing solely because of it; CI also creates a warning annotation and preserves
+the detailed report as an artifact. If the live FLS remains unavailable or
+unusable after bounded retries, these non-enforcing builds validate references
+against the committed lock and report that freshness was not checked. A
+guideline that references an FLS item newer than the committed lock still fails
+validation; synchronize the lock in a reviewed change rather than bypassing the
+reference check. Missing or malformed lock data and invalid FLS references
+still fail the build.
 
-```
-src/spec.lock
-```
+CI enforcement differs by workflow; see the [FLS CI enforcement policy](docs/fls-audit.md#ci-enforcement-policy) for the blocking and nonblocking paths.
 
-The `spec.lock` is checked against the current live version of the specification, which means that your local development may go out of date while you are developing a feature.
+#### Enforcing freshness locally
 
-### Continuing work while on a feature branch
-
-If you run into this while developing a feature, you may ignore this error by running the build with:
+Nightly and Release Preflight enforce freshness. To run the same check locally:
 
 ```shell
-   ./make.py --ignore-spec-lock-diff
+uv run --frozen make.py --enforce-spec-lock-diff
 ```
 
-### If you need to audit the difference
+Freshness enforcement requires live FLS data and cannot be combined with
+`--offline`. The deprecated `--ignore-spec-lock-diff` option remains a no-op for
+command-line compatibility; non-enforcing behavior is already the default.
 
-When the build breaks due to the difference a file is created here:
+#### Auditing the difference
 
-```
-/tmp/fls_diff_<random>.txt
-```
+When the build detects a difference in `spec.lock`, a log is saved in `/tmp/fls_diff_<random>.txt` which you can use to audit the differences.
 
-which can be used to aid in auditing the differences.
-
-For a quick summary:
+To see a quick summary of the difference:
 
 ```shell
-   uv run python scripts/fls_audit.py --summary-only
+uv run python scripts/fls_audit.py --summary-only
 ```
 
-For a full report:
+To see a full report of the difference:
 
 ```shell
-   uv run python scripts/fls_audit.py
+uv run python scripts/fls_audit.py
 ```
 
-See `docs/fls-audit.md` for the full workflow, snapshots, advanced options, and
-the steps to rationalize and update `src/spec.lock`, including the
-rationalization checklist.
+See [FLS audit docs](docs/fls-audit.md) for the full workflow, snapshots, advanced options, and
+the steps to rationalize and update `src/spec.lock`, including the rationalization checklist.
 
-## Outline & issue breakdown
+## Releasing
 
-We will use the Coding Guidelines Work Items [board](https://github.com/orgs/rustfoundation/projects/1) as a means to break the work down into smaller chunks that can be tackled in a reasonable manner.
+Release maintainers must run `Release Preflight` for the exact intended commit
+before creating a version tag. Follow [RELEASING.md](RELEASING.md), the
+canonical release procedure, for selecting a candidate, handling a moving
+`main` branch, tagging the preflighted commit, verifying deployment, and
+recovering from failures.
+
+## What we're working on
+
+The Coding Guidelines [work items board](https://github.com/orgs/Safety-Critical-Rust-Consortium/projects/4) shows tickets actively being worked on, and tickets you can pick up.
 
 ## Contributing
 
-Thank you for your interest in contributing to the Safety-Critical Rust Coding Guidelines!
-
-Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for the details on how to do so.
+Read the [CONTRIBUTING.md](./CONTRIBUTING.md) and [REVIEWING.md](./REVIEWING.md) for the details on contributing and reviewing guidelines.
 
 ## [Code of Conduct][code-of-conduct]
 
@@ -136,8 +127,8 @@ Rust is primarily distributed under the terms of both the MIT license and the
 Apache License (Version 2.0), with documentation portions covered by the
 Creative Commons Attribution 4.0 International license..
 
-See [LICENSE-APACHE](LICENSE-APACHE), [LICENSE-MIT](LICENSE-MIT), 
-[LICENSE-documentation](LICENSE-documentation), and 
+See [LICENSE-APACHE](LICENSE-APACHE), [LICENSE-MIT](LICENSE-MIT),
+[LICENSE-documentation](LICENSE-documentation), and
 [COPYRIGHT](COPYRIGHT) for details.
 
 You can also read more under the Foundation's [intellectual property
@@ -145,12 +136,11 @@ policy][ip-policy].
 
 ## Other Policies
 
-You can read about other Rust Foundation policies in the footer of the Foundation
-[website][foundation-website].
+Read other Rust Foundation [policies][foundation-website].
 
 [code-of-conduct]: https://foundation.rust-lang.org/policies/code-of-conduct/
 [foundation-website]: https://foundation.rust-lang.org
 [ip-policy]: https://foundation.rust-lang.org/policies/intellectual-property-policy/
 [media-guide and trademark]: https://foundation.rust-lang.org/policies/logo-policy-and-media-guide/
 [rust-foundation]: https://foundation.rust-lang.org/
-[safety-critical-rust-consortium]: https://github.com/rustfoundation/safety-critical-rust-consortium
+[safety-critical-rust-consortium]: https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-consortium

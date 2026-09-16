@@ -1,0 +1,6 @@
+[build]
+command = "curl -LsSf https://astral.sh/uv/${UV_VERSION}/install.sh | sh && uv run --frozen make.py"
+publish = "build/html"
+
+[build.environment]
+UV_VERSION = "0.12.6"

@@ -12,8 +12,8 @@ extension is in the ``exts/coding_guidelines`` directory.
 
 .. contents:: In this document:
 
-Ferrocene Language Specification Conformance
-============================================
+FLS Conformance
+===============
 
 Various checks are performed against the ``:fls:`` option present in ``guideline`` directives to
 ensure they are valid.
@@ -23,8 +23,8 @@ Coverage of the coding guidelines over the FLS is calculated.
 Each coding guideline has its ``:fls:`` option turned into a hyperlink to the corresponding element
 within the FLS to be able to navigate there directly.
 
-Further an ``spec.lock`` file located at ``root/src/spec.lock`` is validated against the currently
-deployed version of the Ferrocene Language Spec and the build is failed if there is discrepancy.
+The ``spec.lock`` file at ``root/src/spec.lock`` is compared with the current FLS. Normal builds
+report drift, while builds that explicitly enforce freshness fail when there is a discrepancy.
 
 Links to the Rust Standard Library
 ==================================
@@ -507,8 +507,8 @@ elements. Used for tracking changes and external tooling integration.
 ``spec.lock``
 -------------
 
-A lock file for the Ferrocene Language Specification, ensuring consistency
-between builds and detecting when the FLS changes.
+A lock file for the FLS, ensuring consistency between builds and detecting when
+the FLS changes.
 
 Debug Mode
 ==========

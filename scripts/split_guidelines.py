@@ -479,7 +479,7 @@ def main():
                 old_file = src_dir / f"{chapter}.rst"
                 if old_file.exists():
                     print(f"     rm {old_file}")
-        print("3. Build the documentation to verify: ./make.py")
+        print("3. Build the documentation to verify: uv run --frozen make.py")
         print("4. Update any tooling (guideline-from-issue.py, etc.)")
     else:
         print("\n=== To apply changes ===")

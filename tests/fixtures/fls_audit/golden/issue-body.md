@@ -1,0 +1,17 @@
+<!-- fls-audit:managed:start -->
+## What to do
+- Review the current cumulative report below.
+- If no guideline updates are required, comment `@guidelines-bot /accept-no-fls-changes` (triage+ only).
+- If guideline updates are required, open a synchronization PR and include `Closes #<this issue>`.
+- See `docs/fls-audit.md` for the audit workflow.
+
+## Current audit
+- Generated at: `2026-08-27T00:00:00+00:00`
+
+---
+# Current report
+
+<!-- fls-audit:state:v1
+{"applied":{"body_digest":"sha256:a8c398ea74feb6fb175efd5672bd8e330b55f22c95f36a6b754ad0e08e92a584","current_commit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","items":{"paragraph:fls_added":{"kind":"added","live":{"checksum":"live-a","section":"1:1"},"locked":{"checksum":"","section":""}},"paragraph:fls_changed":{"content_changed":true,"kind":"changed","live":{"checksum":"new","section":"2:1"},"locked":{"checksum":"old","section":"2:1"},"section_changed":false}},"semantic_digest":"sha256:6b82991b36f2252fc8650f9bebea7a4b1128c943800512ab313bd9ef89de87c8"},"campaign":"sha256:7b33cc16e3f337ca9edd51a1c1524e4c5eda3f4e7653593bdb9e3d6d1766b61f","origin_semantic_digest":"sha256:6b82991b36f2252fc8650f9bebea7a4b1128c943800512ab313bd9ef89de87c8","sequence":0,"version":1}
+-->
+<!-- fls-audit:managed:end -->
