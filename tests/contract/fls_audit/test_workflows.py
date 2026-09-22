@@ -55,8 +55,9 @@ def test_build_freshness_policy_and_required_context() -> None:
     assert "tests/integration/fls_audit" in test_step["run"]
     assert "tests/contract/fls_audit" in test_step["run"]
     build = workflow["jobs"]["build"]
-    assert set(build["needs"]) == {"check_rust_examples", "fls_audit_tests"}
-    assert build["if"] == "always()"
+    assert set(build["needs"]) == {"gatekeeper", "check_rust_examples", "fls_audit_tests"}
+    assert "always()" in build["if"]
+    assert "needs.gatekeeper.outputs.run_all == 'true'" in build["if"]
     prerequisite = next(step for step in build["steps"] if step.get("name") == "Fail if prerequisite checks failed")
     assert "needs.check_rust_examples.result" in prerequisite["if"]
     assert "needs.fls_audit_tests.result" in prerequisite["if"]
