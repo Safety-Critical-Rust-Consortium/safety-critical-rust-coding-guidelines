@@ -25,7 +25,7 @@ dependencies = [
 reviewer-bot = "scripts.reviewer_bot:main"
 
 [tool.uv]
-required-version = "==0.12.6"
+required-version = ">=0.12.6"
 
 [tool.uv.workspace]
 members = ["builder", "exts"]
