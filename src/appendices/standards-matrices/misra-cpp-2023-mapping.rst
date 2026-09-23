@@ -384,7 +384,7 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      -
-     - The module and crate systems of Rust make this practically impossible; if you were to define two types with the same names in different files, when calling them you'd still need to do something like ``let x = foo1::Struct`` and ``let y = foo2::Struct``, otherwise the compiler wouldn't allow a more "global" call of ``use foo1::Struct; use foo2::Struct`` due to ambiguity. HOWEVER, in the case of unsafe Rust/FFI, `#[unsafe(no_mangle)]` can lead to potential issues.
+     - The module and crate systems of Rust make this practically impossible; if you were to define two types with the same names in different files, when calling them you'd still need to do something like ``let x = foo1::Struct`` and ``let y = foo2::Struct``, otherwise the compiler wouldn't allow a more "global" call of ``use foo1::Struct; use foo2::Struct`` due to ambiguity. HOWEVER, in the case of unsafe Rust/FFI, ``#[unsafe(no_mangle)]`` or ``extern`` can lead to potential issues.
    * - Rule 6.2.2
      - Rule 8.3 (closely related)
      -
@@ -691,7 +691,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust's module system makes duplicate definitions structurally impossible; the compiler would give you the according errors as well ([E0252])
    * - Rule 6.2.4
      -
-     - Rust does not have neither a header file mechanism or C++-esque external linkage; Using no_mangle is covered by the more general Rule 6.2.1
+     - Rust does not have a header file mechanism or C++-esque external linkage; Using ``no_mangle`` or ``extern`` is covered by the more general Rule 6.2.1
    * - Rule 6.4.2
      - ``-``
      - **Applicability:** Not currently applicable to safe or unsafe Rust; applicable to both upon stabilization.
@@ -716,7 +716,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - In Rust the size of the integer and floating point types is defined. The rule doesn't apply to the C++ types intptr\_t and uintptr\_t, so it shouldn't apply to usize and isize in Rust.
    * - Rule 7.0.3
      -
-     - In Rust the "char" type isn't comparable or assignable to an integer or bool type. It can only be explicitly converted to and from "u32" which matches the recommendation of using explicit conversion functions.
+     - In Rust the ``char`` type isn't comparable or assignable to an integer or bool type. It can only be explicitly converted to and from ``u32`` which matches the recommendation of using explicit conversion functions.
    * - Rule 7.0.5
      -
      - Rust doesn't have integer promotion or implicit conversion. "as" casting isn't affected by this Rule as it is an explicit cast.
