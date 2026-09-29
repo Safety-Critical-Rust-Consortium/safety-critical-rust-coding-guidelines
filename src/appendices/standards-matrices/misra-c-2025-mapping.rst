@@ -6,6 +6,8 @@ first table covers guidelines that are applicable to Rust in general, while the 
 guidelines that are applicable in the presence of unsafe code. The third table lists guidelines that are not applicable
 to Rust.
 
+The mappings use the shared :ref:`standards-matrix-coverage`.
+
 The origin of this assessment can be found at `MISRA C:2025 Addendum 6`_.
 
 
@@ -439,9 +441,10 @@ In addition to the rules from Table 1, these are the additional guidelines that 
      - includes both safe ``as`` and unsafe ``transmute`` operations
    * - R.11.1
      - Required
-     -
-     -
-     - includes both safe ``as`` and unsafe ``transmute`` operations
+     - :need:`gui_ADHABsmK9FXz`, :need:`gui_gghCZVhoRV8Z`
+     - Advisory, Required
+     - partial mapping: covers function-pointer-to-integer ``as`` and direct numeric-to-function-pointer
+       ``transmute`` operations only; other conversions involving function pointers remain uncovered
    * - R.11.2
      - Required
      -
@@ -1032,4 +1035,3 @@ Footnotes
 .. rubric:: Footnotes
 
 .. _MISRA C\:2025 Addendum 6: https://misra.org.uk/app/uploads/2025/03/MISRA-C-2025-ADD6.pdf
-
