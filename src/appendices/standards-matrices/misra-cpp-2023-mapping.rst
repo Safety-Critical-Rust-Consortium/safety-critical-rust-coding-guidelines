@@ -8,6 +8,10 @@ are not currently applicable to Rust.
 
 This assessment covers all 179 MISRA C++ 2023 guidelines.
 
+In cases where the rust std does not provide functionality that is provided by the C++ std or platform APIs the
+use of FFI to access this functionality is not considered in this mapping.
+The use of C++ APIs via FFI needs to consider the C++ guidelines.
+
 
 Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)
 --------------------------------------------------------------------------------------
@@ -597,21 +601,6 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      - Rust supports C-Variadic function in the same way C does. Using the arguments is only possible in unsafe, therefore it only applies to unsafe rust. In rust this maps to the ``VaList`` object of the standard library.
-   * - Rule 21.10.2
-     -
-     -
-     -
-     - While rust doesn't have these functions they can be used from unsafe rust by using FFI or inline assembly. Using them is often UB, see this thread for discussion and examples: https://github.com/rust-lang/rfcs/issues/2625
-   * - Rule 21.10.3
-     -
-     -
-     -
-     - Rust std provides no support for interacting with process signals, libraries out of scope for this mapping. Unsafe rust can use platform APIs for this.
-   * - Rule 22.4.1
-     -
-     -
-     -
-     - Rust std does not provide APIs to edit errno. It can be read using "std::io::Error::last\_os\_error". Unsafe rust can use platform APIs to set errno and therefore this rule applies.
    * - Rule 23.11.1
      -
      -
@@ -908,6 +897,15 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 21.6.5
      -
      - Rust has no forward declaration and therefore also no concept of incomplete types.
+   * - Rule 21.10.2
+     -
+     - Rust does not have ``setjmp`` or ``longjmp`` or similar functionality. Using the C++ function via FFI or inline assembly is covered by the MISRA C++ rules.
+   * - Rule 21.10.3
+     -
+     - Rust std provides no support for interacting with process signals. FFI is out of scope for this mapping.
+   * - Rule 22.4.1
+     -
+     - Rust std does not provide APIs to edit errno. It can be read using "std::io::Error::last\_os\_error". Use of FFI is considered out of scope for this mapping.
    * - Rule 24.5.1
      -
      - isalnum <-> char::is\_alphanumeric isalpha <-> char::is\_alphabetic islower <-> char::is\_lowercase isupper <-> char::is\_uppercase isdigit <-> char::is\_digit / char::is\_numeric isxdigit <-> char::is\_digit (hex is base 16) iscntrl <-> char::is\_control isgraph <-> char::is\_ascii\_graphic isspace <-> char::is\_whitespace isblank <-> ? What does „blank“ mean? isprint <-> ispunct <-> char::is\_ascii\_punctuation tolower <-> char::to\_lowercase toupper <-> char::to\_uppercase
