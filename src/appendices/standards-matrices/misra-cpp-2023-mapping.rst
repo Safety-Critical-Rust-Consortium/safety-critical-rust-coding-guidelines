@@ -109,7 +109,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      -
-     - Rust inference handles these sort of cases explicitly. If the type hasn't been specified (ie. ``42u16``, ``42i32``) and the type cannot be inferred from the context, Rust fallbacks to ``i32``. There are, however, contexts where unsuffixed literals are allowed (ie. ``let num = 0x8000;``). To avoid this, depending on the user's needs, using a lint rule such as ``#![warn(clippy::default_numeric_fallback)]`` can help for these cases.
+     - If the type hasn't been specified (ie. ``42u16``, ``42i32``) and the type cannot be inferred from the context, Rust fallbacks to ``i32``. Because the context that is used to infer the type is nonobvious this rule maps to rust.
    * - Rule 6.0.4
      -
      -
@@ -138,7 +138,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      - ``-``
      -
      -
-     - Translates to ``static`` variables in Rust. In safe Rust the risk is developer confusion when mutating a static variable with interior mutability. For unsafe Rust the use of ``static mut`` is likely to result in UB
+     - Translates to ``static`` variables in Rust, as those can also be declared in functions. In safe Rust the risk is developer confusion when mutating a static variable with interior mutability. For unsafe Rust the use of ``static mut`` is likely to result in UB.
    * - Rule 6.7.2
      -
      -
@@ -162,6 +162,11 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      - :need:`gui_RHvQj8BHlz9b`
      - Advisory
      - While bit-shifting in rust can't cause undefined behaviour, panics could be caused.
+   * - Rule 7.11.1
+     -
+     -
+     -
+     - Rust doesn't have overloaded functions, so the issues regarding overload selection don't apply. Rust also doesn't have a "NULL" macro. While "0" doesn't implicitly coerces to a pointer type explicit syntax (as casting) can be used to create a null pointer, therefore this maps to safe rust. ``nullptr`` maps to ``ptr::null()`` and ``ptr::null_mut()`` in rust. Only these functions should be used to create null pointers in rust.
    * - Rule 8.0.1
      -
      -
@@ -241,6 +246,11 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      - In safe rust overflow of enum variants can occur when "as" casting to a too small integer: https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=65a7d98e2fd1566f32b05eab83dae8a7 Implicit conversion to integer doesn't occur in rust, so the amplification regarding arithmetic or comparisons don't apply. In unsafe rust transmuting to an enum needs to take the enum layout into account (and should be avoided in most cases).
+   * - Rule 10.4.1
+     -
+     -
+     -
+     - The rationale that inline assembly or naked functions should be avoided in favor of language intrinsics applies to rust. Both ``asm`` and ``naked_asm`` require unsafe to use, but ``global_asm`` doesn't, so this rule applies to safe rust.
    * - Rule 11.3.2
      -
      -
@@ -544,11 +554,6 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      - The issue of using volatile memory operations correctly maps to rust, as rust has volatile operations. This does not map to safe rust as using volatile operations requires unsafe code. Incorrectly deciding to use non-volatile operations, where volatile operations would be necessary is a problem, but it does not apply to safe rust as accessing MMIO requires unsafe somewhere.
-   * - Rule 10.4.1
-     -
-     -
-     -
-     - The rationale that inline assembly or naked functions should be avoided in favor of language intrinsics applies to rust. In safe rust the use of inline assembly is not possible, therefore this rule doesn't apply to safe rust.
    * - Rule 11.6.1
      -
      -
@@ -699,7 +704,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - In rust items that are public using their symbol need to be annotated using ``no_mangle`` or ``link_name`` or placed in an ``extern`` block. It is therefore not necessary to explicitly limit the linkage of items in rust.
    * - Rule 6.9.1
      -
-     - In rust functions can not be redeclared in general. In traits and their implementation the declaration is written two times, but the types of arguments or the return type cannot be changed. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=ffda211af1767cb708e5bf2c7acd48f1
+     - In rust functions can not be redeclared in general. In traits and their implementation the declaration is written two times, but this is not a redeclaration and the types of arguments or the return type cannot be changed. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=ffda211af1767cb708e5bf2c7acd48f1
    * - Rule 6.9.2
      -
      - In Rust the size of the integer and floating point types is defined. The rule doesn't apply to the C++ types intptr\_t and uintptr\_t, so it shouldn't apply to usize and isize in Rust.
@@ -712,12 +717,9 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 7.0.6
      -
      - Rust doesn't have implicit integral promotion or overload sets, so the rationale doesn't apply.
-   * - Rule 7.11.1
-     -
-     - Rust doesn't have overloaded functions, so the issues regarding overload selection don't apply. Rust also doesn't have a "NULL" macro. "0" also is not a pointer type in rust and requires explicit syntax to be cast to a pointer.
    * - Rule 7.11.2
      -
-     - In Rust arrays don't decay to pointers.
+     - In Rust arrays don't decay to pointers. Slices contain both the pointer and the lenght, so no bound information is lost by converting to a slice.
    * - Rule 7.11.3
      -
      - Rust doesn't automatically convert a function pointer to a regular pointer, explicit "as" casts have to be used. The use of such a cast complies with the requirement that the taking of the address should be explicit. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=ca80b6738d968336e473ec38cc9405aa
@@ -747,7 +749,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - loop and selection statements in rust always require braces, confusion due to indentation is not possible.
    * - Rule 9.5.2
      -
-     - The mentioned lifetime issues are resolved by the borrow checker. Using multiple iterator combinators in a for loop is considered idiomatic in Rust.
+     - The mentioned lifetime issues are resolved by the borrow checker. Using multiple iterator combinators in a for loop is considered idiomatic in Rust. The rust reference explicitly specifies that temporary values in the iterator expression aren't dropped before the loop is finished https://doc.rust-lang.org/nightly/reference/expressions/loop-expr.html#r-expr.loop.for. This is different from the C++ behaviour and another reason for this rule not to map.
    * - Rule 9.6.1
      -
      - Rust doesn't have a ``goto`` statement
@@ -765,7 +767,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Similar to Rule 9.6.4 the type systems checks that the return type of functions is correct
    * - Rule 10.0.1
      -
-     - Declarations in rust can't introcude more than one variable. Destructuring or pattern matching (structured bindings in C++) are explicitly allowed, so should be allowed in Rust as well.
+     - Declarations in rust can't introduce more than one variable. Destructuring or pattern matching (structured bindings in C++) are explicitly allowed, so should be allowed in Rust as well.
    * - Rule 10.2.2
      -
      - In Rust enums don't implicitly coerce to integers. Overlap of enum and constant names can happen in rust if the enum variant is imported, but an explicit typecast is required. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=ab590204a83054e6a47d6f479f471b13 This rule could be mapped to "don't import enum variants" or "don't shadow other imports", but this feels like it should be a distinct rule as the main issue of implicit coercion doesn't exist in rust.
@@ -885,12 +887,52 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust integer and floating point parsing functions (with the FromStr trait) can't cause UB and return Err on overflow or invalid input.
    * - Rule 21.2.2
      -
-     - Mapping to rust std: strcat: String::push\_str strchr: str::find strcmp: str::cmp (Ord trait) strcoll: no locale support in rust std strcpy: target String: clear + push\_str or clone\_into, target str: no direct mapping, maybe going through bytes. strcspn: str::find takes a pattern which can be a closure strerror: no mapping to rust strlen: str::len strn-variants: same as original + slicing strpbrk: same as strcspn + slicing strrchr: str::rfind + slicing strspn: str::find + closure with inverted predicate strstr: str::find takes a Pattern which can be a string strtok: str::split strxfrm: no locale support in rust std strtol, strtoll, strtoul: from\_str\_radix strtod, strtof, strtold: FromStr trait fgetwc: Read trait (read\_exact in small buffer or bytes take one) fputwc: Write trait (write\_all with short slice) wcstol, wcstoll, wcstoul, wcstoull, wcstod, wcstof, wcstold (assuming wide str = windows utf16): OsStr::to\_string\_lossy + regular parsing/conversion strtoumax, strtoimax, wcstoumax, wcstoimax: regular versions without max
+     - Mapping to rust std:
 
-       Except for locale support all supported in rust std without risk of UB. C++ offers a different API for locale support (locale header) that is not forbidden by this rule, so this does not advise against locale use in general. Therefore it also doesn't map to unsafe rust
+      ``strcat``: ``String::push_str``
+
+      ``strchr``: ``str::find``
+
+      ``strcmp``: ``str::cmp`` (Ord trait)
+
+      ``strcoll``: no locale support in rust std
+
+      ``strcpy``: target ``String``: ``clear`` + ``push\_str`` or ``clone\_into``, target ``str``: no direct mapping, maybe going through bytes
+
+      ``strcspn``: ``str::find`` takes a pattern which can be a closure
+
+      ``strerror``: ``last_os_error`` + ``Display``
+
+      ``strlen``: ``str::len``
+
+      ``strpbrk``: same as ``strcspn`` + slicing
+
+      ``strrchr``: ``str::rfind`` + slicing
+
+      ``strspn``: ``str::find`` + closure with inverted predicate
+
+      ``strstr``: ``str::find`` takes a Pattern which can be a string
+
+      ``strtok``: ``str::split``
+
+      ``strxfrm``: no locale support in rust std
+
+      ``strtol``, ``strtoll``, ``strtoul``, ``strtoumax``, ``strtoimax``, ``wcstoumax``, ``wcstoimax``: ``from_str_radix``
+
+      ``strtod``, ``strtof``, ``strtold``: ``FromStr`` trait
+
+      ``fgetwc``: ``Read`` trait (``read_exact`` in small buffer or bytes take one)
+
+      ``fputwc``: ``Write`` trait (``write_all`` with short slice)
+
+      ``wcstol``, ``wcstoll``, ``wcstoul``, ``wcstoull``, ``wcstod``, ``wcstof``, ``wcstold`` (assuming wide str = windows utf16): ``OsStr::to_string_lossy`` + regular parsing/conversion
+
+      The strn-variants of functions are the same as the regular function + slicing
+
+      Except for locale support all supported in rust std without risk of UB. Locale use is not supported by rust std and FFI is considered out of scope.
    * - Rule 21.2.4
      -
-     - Using offset\_of with fields not visible to the callsite is not possible in rust. Use with methods or associated consts is not possible.
+     - Using offset\_of with fields not visible to the callsite is not possible in rust. Use with methods or associated consts is not possible. Rust does not have bitfields as a language construct.
    * - Rule 21.6.4
      -
      - Global operator delete maps to the trait "std::alloc::GlobalAlloc", whose deallocation function always requires the layout.
