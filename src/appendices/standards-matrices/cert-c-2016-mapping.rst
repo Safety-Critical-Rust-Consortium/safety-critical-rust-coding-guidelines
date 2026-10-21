@@ -1,3 +1,5 @@
+.. _cert_c_mapping:
+
 Rust Cross Reference with CERT-C 2016
 =======================================
 
