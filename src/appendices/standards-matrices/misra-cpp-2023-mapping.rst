@@ -105,11 +105,6 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      - It's encouraged to follow the Rust API Guidelines official naming conventions: https://rust-lang.github.io/api-guidelines/naming.html It is important to mention that, for example, using the wrong notation for ``const`` yields a warning but does not stop the language from compiling; using ``#![deny(...)]`` or ``#![forbid(...)]``  would be the best way to ensure some conventions are being followed.
-   * - Rule 5.13.4
-     -
-     -
-     -
-     - If the type hasn't been specified (ie. ``42u16``, ``42i32``) and the type cannot be inferred from the context, Rust fallbacks to ``i32``. Because the context that is used to infer the type is nonobvious this rule maps to rust.
    * - Rule 6.0.4
      -
      -
@@ -245,7 +240,8 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      -
-     - In safe rust overflow of enum variants can occur when "as" casting to a too small integer: https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=65a7d98e2fd1566f32b05eab83dae8a7 Implicit conversion to integer doesn't occur in rust, so the amplification regarding arithmetic or comparisons don't apply. In unsafe rust transmuting to an enum needs to take the enum layout into account (and should be avoided in most cases).
+     - In rust this rule only maps to fieldless and unit-only enums as only those can be ``as`` casted to integers. An enum without a specified ``repr`` is stored as an ``isize`` or as a smaller type (`Reference <https://doc.rust-lang.org/reference/items/enumerations.html#r-items.enum.discriminant.repr-rust>`__).
+       Therefore for enums without a specified ``repr`` only casting ``isize`` or to types larger than ``isize`` is allowed. For enums with a specified ``repr`` casting is only allowed to that type or types larger than that type.
    * - Rule 10.4.1
      -
      -
@@ -665,6 +661,9 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 5.13.3
      -
      - Rust manages octal prefixes differently (``0o``), making it unambiguous for the user
+   * - Rule 5.13.4
+     -
+     - If the type hasn't been specified (ie. ``42u16``, ``42i32``) and the type cannot be inferred from the context, Rust always fallbacks to ``i32``. The issue of fallback differing between platforms doesn't exist in rust. As this is the main motivation for this rule, it doesn't map to rust.
    * - Rule 5.13.5
      -
      - The "L" and "l" suffixes do not exist in Rust
@@ -830,7 +829,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust does not support specialization or overloaded functions.
    * - Rule 18.1.2
      -
-     - Rust does not have a language construct for handling panics, nor does it have a throw statement that interacts with it. rethrowing is done with the "std::panic::resume\_unwind" function.
+     - In rust panics can be rethrown using ``std::panic::resume_unwind``. This is a regular function that takes the panic payload as an argument. It is therefore not possible to rethrow without a panic payload.
    * - Rule 18.3.1
      -
      - Rust requires a global panic handler to be present. This is called when a panic occurs and controls the behaviour, for example starts unwinding or stops the program in some other way. In rust catching a unwinding program is uncommon. Therefore no unwind catcher is required.
@@ -950,9 +949,35 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust std does not provide APIs to edit errno. It can be read using "std::io::Error::last\_os\_error". Use of FFI is considered out of scope for this mapping.
    * - Rule 24.5.1
      -
-     - isalnum <-> char::is\_alphanumeric isalpha <-> char::is\_alphabetic islower <-> char::is\_lowercase isupper <-> char::is\_uppercase isdigit <-> char::is\_digit / char::is\_numeric isxdigit <-> char::is\_digit (hex is base 16) iscntrl <-> char::is\_control isgraph <-> char::is\_ascii\_graphic isspace <-> char::is\_whitespace isblank <-> ? What does „blank“ mean? isprint <-> ispunct <-> char::is\_ascii\_punctuation tolower <-> char::to\_lowercase toupper <-> char::to\_uppercase
+     - ``isalnum``: ``char::is_alphanumeric``
 
-       Equivalent functions in rust are safe. Missing functions can be implemented in a safe way.
+       ``isalpha``: ``char::is_alphabetic``
+
+       ``islower``: ``char::is_lowercase``
+
+       ``isupper``: ``char::is_uppercase``
+
+       ``isdigit``: ``char::is_digit`` / ``char::is_numeric``
+
+       ``isxdigit``: ``char::is_digit`` (hex is base 16)
+
+       ``iscntrl``: ``char::is_control``
+
+       ``isgraph``: ``char::is_ascii_graphic``
+
+       ``isspace``: ``char::is_whitespace``
+
+       ``isblank``: rust std has no locale support
+
+       ``isprint``: rust std has no locale support
+
+       ``ispunct``: ``char::is_ascii_punctuation``
+
+       ``tolower``: ``char::to_lowercase``
+
+       ``toupper``: ``char::to_uppercase``
+
+       Equivalent functions in rust are safe. Missing functions are locale dependent which is not supported by the rust std.
    * - Rule 26.3.1
      -
      - The rust standard library doesn't specialize the layout of the type Vec<bool>, like C++ does.
@@ -971,4 +996,4 @@ Table 3 – Guidelines not currently applicable to Rust
      - This is about the specific issues of these APIs. filesystem operations are supposed to use the filesystem header in C++. As rust has it's own filesystem APIs this does not map. If there is a specific problem with the filesystem APIs in rust that should probably get its own rule.
    * - Rule 30.0.2
      -
-     - See mapping of FIO39 in https://coding-guidelines.arewesafetycriticalyet.org/appendices/standards-matrices/cert-c-2016-mapping.html (TLDR: no risk of UB, therefore no mapping)
+     - See mapping of FIO39 in :ref:`cert_c_mapping` (TLDR: no risk of UB, therefore no mapping)
