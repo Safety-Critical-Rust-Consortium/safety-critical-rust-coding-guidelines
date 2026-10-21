@@ -889,47 +889,47 @@ Table 3 – Guidelines not currently applicable to Rust
      -
      - Mapping to rust std:
 
-      ``strcat``: ``String::push_str``
+       ``strcat``: ``String::push_str``
 
-      ``strchr``: ``str::find``
+       ``strchr``: ``str::find``
 
-      ``strcmp``: ``str::cmp`` (Ord trait)
+       ``strcmp``: ``str::cmp`` (Ord trait)
 
-      ``strcoll``: no locale support in rust std
+       ``strcoll``: no locale support in rust std
 
-      ``strcpy``: target ``String``: ``clear`` + ``push\_str`` or ``clone\_into``, target ``str``: no direct mapping, maybe going through bytes
+       ``strcpy``: target ``String``: ``clear`` + ``push\_str`` or ``clone\_into``, target ``str``: no direct mapping, maybe going through bytes
 
-      ``strcspn``: ``str::find`` takes a pattern which can be a closure
+       ``strcspn``: ``str::find`` takes a pattern which can be a closure
 
-      ``strerror``: ``last_os_error`` + ``Display``
+       ``strerror``: ``last_os_error`` + ``Display``
 
-      ``strlen``: ``str::len``
+       ``strlen``: ``str::len``
 
-      ``strpbrk``: same as ``strcspn`` + slicing
+       ``strpbrk``: same as ``strcspn`` + slicing
 
-      ``strrchr``: ``str::rfind`` + slicing
+       ``strrchr``: ``str::rfind`` + slicing
 
-      ``strspn``: ``str::find`` + closure with inverted predicate
+       ``strspn``: ``str::find`` + closure with inverted predicate
 
-      ``strstr``: ``str::find`` takes a Pattern which can be a string
+       ``strstr``: ``str::find`` takes a Pattern which can be a string
 
-      ``strtok``: ``str::split``
+       ``strtok``: ``str::split``
 
-      ``strxfrm``: no locale support in rust std
+       ``strxfrm``: no locale support in rust std
 
-      ``strtol``, ``strtoll``, ``strtoul``, ``strtoumax``, ``strtoimax``, ``wcstoumax``, ``wcstoimax``: ``from_str_radix``
+       ``strtol``, ``strtoll``, ``strtoul``, ``strtoumax``, ``strtoimax``, ``wcstoumax``, ``wcstoimax``: ``from_str_radix``
 
-      ``strtod``, ``strtof``, ``strtold``: ``FromStr`` trait
+       ``strtod``, ``strtof``, ``strtold``: ``FromStr`` trait
 
-      ``fgetwc``: ``Read`` trait (``read_exact`` in small buffer or bytes take one)
+       ``fgetwc``: ``Read`` trait (``read_exact`` in small buffer or bytes take one)
 
-      ``fputwc``: ``Write`` trait (``write_all`` with short slice)
+       ``fputwc``: ``Write`` trait (``write_all`` with short slice)
 
-      ``wcstol``, ``wcstoll``, ``wcstoul``, ``wcstoull``, ``wcstod``, ``wcstof``, ``wcstold`` (assuming wide str = windows utf16): ``OsStr::to_string_lossy`` + regular parsing/conversion
+       ``wcstol``, ``wcstoll``, ``wcstoul``, ``wcstoull``, ``wcstod``, ``wcstof``, ``wcstold`` (assuming wide str = windows utf16): ``OsStr::to_string_lossy`` + regular parsing/conversion
 
-      The strn-variants of functions are the same as the regular function + slicing
+       The strn-variants of functions are the same as the regular function + slicing
 
-      Except for locale support all supported in rust std without risk of UB. Locale use is not supported by rust std and FFI is considered out of scope.
+       Except for locale support all supported in rust std without risk of UB. Locale use is not supported by rust std and FFI is considered out of scope.
    * - Rule 21.2.4
      -
      - Using offset\_of with fields not visible to the callsite is not possible in rust. Use with methods or associated consts is not possible. Rust does not have bitfields as a language construct.
