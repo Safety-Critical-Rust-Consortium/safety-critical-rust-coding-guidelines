@@ -832,7 +832,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - In rust panics can be rethrown using ``std::panic::resume_unwind``. This is a regular function that takes the panic payload as an argument. It is therefore not possible to rethrow without a panic payload.
    * - Rule 18.3.1
      -
-     - Rust requires a global panic handler to be present. This is called when a panic occurs and controls the behaviour, for example starts unwinding or stops the program in some other way. In rust catching a unwinding program is uncommon. Therefore no unwind catcher is required.
+     - In Rust there is no need to have a panic catcher in order to use unwinding. The global panic handler controls the behaviour of panics (for example if it unwinds or not). When the std is used a panic handler is provided, whose behaviour can be configures using compiler flags.
    * - Rule 18.3.2
      -
      - When panics are caught in rust they are returned as the Any trait (see catch\_unwind, JoinHandle::join, PanicHookInfo::payload). This is then downcasted into the expected payload type using the Any trait. For a downcast to work the types need to match exactly. Even otherwise implicit coercions (for example from concrete type to trait object) aren't performed during the downcast. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=7cfacafd069f8ca6da20e3a265b21f0b Therefore the issue of catching a base class (trait object) doesn't apply to rust, as downcasting to a base class isn't successful if it wasn't already thrown as that base class. This does mean that downcasting to a trait object (for example dyn Debug) is unlikely to be successful as the std panics with payloads of type String on recent editions (https://doc.rust-lang.org/std/macro.panic.html#editions). This issue does not map to this rule, as this rule is concerned with information loss, which does not occur (failing downcasts always need to be handled). The issue of data races is solved in Rust by requiring the panic payload to implement the Send trait (https://doc.rust-lang.org/std/panic/fn.panic_any.html).
@@ -856,25 +856,21 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust does not implicitly set undefined identifiers to the value 0.
    * - Rule 19.2.2
      -
-     - Not an issue in rust. If the path give to the include macro (or to a module path attribute) is invalid a compile error is raised and no UB occurs.
+     - Not an issue in rust. If the path given to the include macro (or to a module path attribute) is invalid a compile error is raised and no UB occurs.
    * - Rule 19.2.3
      -
      - Rust supports full raw string literals both in the include macro and in the path attribute of module imports https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=d3b6c099b4eec8733a600204a3db185c It is possible to use whatever the OS allows as a file name and still import it.
    * - Rule 19.3.1
      - Rule 20.10
-     - MISRA C has equivalent which is not considered applicable (ADD6). Rust's macro equivalent are ``concat!`` and ``stringify!``, both of which are generally better behaved. Although for ``stringify!`` still not recommended to not rely on its exact output.
+     - MISRA C has equivalent which is not considered applicable (ADD6). Rust's macro equivalent are ``concat!`` and ``stringify!``, both of which are generally better behaved. Although for ``stringify!`` it is still not recommended to rely on its exact output.
    * - Rule 19.3.2
      - Rule 20.11
      - MISRA C mapping does not apply for equivalent rule.
    * - Rule 19.3.3
      -
-     - Constructing new identifiers (like the token-pasting operator used in the rule) is currently not possible using only the stable standard library
-
-       * On nightly there is ``concat_ident`` and ``${concat(...)}`` metavariable
-
-       * There are crates like ``paste`` using proc macros which also enable this.
-
-       However, since both have to create valid identifiers and a macro invocation always contains the non-identifier symbols (e.g. ``!``), this will end up with a compiler error.
+     - A macro invocation in rust always contains the symbol ``!``, which is not valid for identifiers.
+       ..
+         New identifiers can be created using the nightly ``concat_ident`` and ``${concat(...)}`` metavariable or using proc_macros (for example the ``paste`` crate)
    * - Rule 19.3.5
      -
      - This is well defined in rust, see https://lukaswirth.dev/tlborm/decl-macros/patterns/callbacks.html for usecases and a understandable description of the behaviour
