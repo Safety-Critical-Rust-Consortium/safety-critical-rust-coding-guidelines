@@ -31,25 +31,25 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      - MISRA C mapping
    * - Rule 0.0.2
-     - Rule 2.1
+     - Rule 14.3
      -
      -
      - MISRA C mapping
    * - Rule 0.1.1
-     - Rule 2.2, Rule 2.8
+     - Rule 2.2 is similar
      -
      -
-     - MISRA C mapping
+     - Maps to rust completely. The `unused-assignments lint <https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html#unused-assignments>`_ can be used to catch violations.
    * - Rule 0.1.2
      - Rule 17.7
      -
      -
      - While must\_use can assist, it is not active by default for all (non-unit returning) functions
    * - Rule 0.2.1
-     - Rule 2.8
+     - Rule 2.8 is similar
      -
      -
-     - MISRA C mapping, Same rationale as for 2.8 applies for any items that are local to a crate (or module).
+     - Maps to rust. Similar to C++ a variable is considered used if it (recursively) has a user written destructor. Exception 1 maps to the ``#[allow(unused_...)]`` annotation. Exception 2 does not map to rust.
    * - Rule 0.2.2
      - Rule 2.7
      -
@@ -862,7 +862,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust supports full raw string literals both in the include macro and in the path attribute of module imports https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=d3b6c099b4eec8733a600204a3db185c It is possible to use whatever the OS allows as a file name and still import it.
    * - Rule 19.3.1
      - Rule 20.10
-     - MISRA C has equivalent which is not considered applicable (ADD6). Rust's macro equivalent are ``concat!`` and ``stringify!``, both of which are generally better behaved. Although for ``stringify!`` it is still not recommended to rely on its exact output.
+     - MISRA C has an equivalent rule which is not considered applicable (ADD6). Rust's macro equivalent are ``concat!`` and ``stringify!``, both of which are generally better behaved. Although for ``stringify!`` it is still not recommended to rely on its exact output.
    * - Rule 19.3.2
      - Rule 20.11
      - MISRA C mapping does not apply for equivalent rule.
