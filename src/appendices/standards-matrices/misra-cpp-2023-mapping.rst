@@ -89,7 +89,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      - Rule 1.3
      -
      -
-     - MISRA C mapping (not entirely clear why safe rust is applicable, maybe because of "critical unspecified behavior")
+     - For safe rust only "critical unspecified behaviour" is an issue, not undefined behaviour. Examples are drop order of closure captures and arithmetic precision of floating point operations. This maps fully to unsafe rust.
    * - Rule 5.7.1
      - Rule 3.1
      -
@@ -99,7 +99,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      - Dir 4.4
      -
      -
-     - MISRA C mapping, ``#if 0`` is C/C++ equivalent to ``#[cfg(false)]`` and should also be considered commented out code. It is idiomatic rust to provide code examples in doc comments. This should not be considered commented out code.
+     - MISRA C mapping, ``#if 0`` is C/C++ equivalent to ``#[cfg(false)]`` and should also be considered commented out code. It is idiomatic rust to provide code examples in doc comments (also called doctest). This should not be considered commented out code.
    * - Rule 5.10.1
      -
      -
@@ -651,7 +651,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust does not have trigraph sequences or similar token alternatives
    * - Rule 5.7.3
      - Rule 3.2
-     - MISRA C mapping
+     - MISRA C mapping. Rust has no line splicing.
    * - Rule 5.13.1
      -
      - The compiler itself already prevents this even in ``unsafe`` blocks; the only way to "bypass" this is by using, of course, raw strings (``r"<TEXT>"``).
@@ -678,7 +678,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - In Rust, function, variable and const declarations are clearly visually distinguishable.
    * - Rule 6.0.2
      - Rule 8.11
-     - MISRA C mapping
+     - MISRA C mapping. Rust requires the size of the array even in extern static declarations.
    * - Rule 6.2.3
      -
      - Rust's module system makes duplicate definitions structurally impossible; the compiler would give you the according errors as well ([E0252])
@@ -853,7 +853,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust requires braces to be matched and therefore the combination between the cfg\_select (similar to preprocessor if) and include macros can't lead to these issues.
    * - Rule 19.1.3
      -
-     - Rust does not implicitly set undefined identifiers to the value 0.
+     - Rust does not implicitly set undefined identifiers to a value. Use of undefined identifiers leads to a compile error.
    * - Rule 19.2.2
      -
      - Not an issue in rust. If the path given to the include macro (or to a module path attribute) is invalid a compile error is raised and no UB occurs.
