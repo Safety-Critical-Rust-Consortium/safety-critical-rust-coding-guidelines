@@ -79,12 +79,10 @@ Ensure that integer operations do not result in arithmetic overflow
             # #[derive(Debug)]
             #[allow(dead_code)]
             enum ArithmeticError { Overflow, DivisionByZero }
-            use std::i32::{MAX as INT_MAX, MIN as INT_MIN};
-
             #[allow(dead_code)]
             fn add(si_a: i32, si_b: i32) -> Result<i32, ArithmeticError> {
-                if (si_b > 0 && si_a > INT_MAX - si_b)
-                    || (si_b < 0 && si_a < INT_MIN - si_b)
+                if (si_b > 0 && si_a > i32::MAX - si_b)
+                    || (si_b < 0 && si_a < i32::MIN - si_b)
                 {
                     Err(ArithmeticError::Overflow)
                 } else {
@@ -94,8 +92,8 @@ Ensure that integer operations do not result in arithmetic overflow
 
             #[allow(dead_code)]
             fn sub(si_a: i32, si_b: i32) -> Result<i32, ArithmeticError> {
-                if (si_b < 0 && si_a > INT_MAX + si_b)
-                    || (si_b > 0 && si_a < INT_MIN + si_b)
+                if (si_b < 0 && si_a > i32::MAX + si_b)
+                    || (si_b > 0 && si_a < i32::MIN + si_b)
                 {
                     Err(ArithmeticError::Overflow)
                 } else {
@@ -110,10 +108,10 @@ Ensure that integer operations do not result in arithmetic overflow
                 }
 
                 // Detect overflow before performing multiplication
-                if (si_a == -1 && si_b == INT_MIN) || (si_b == -1 && si_a == INT_MIN) {
+                if (si_a == -1 && si_b == i32::MIN) || (si_b == -1 && si_a == i32::MIN) {
                     Err(ArithmeticError::Overflow)
-                } else if (si_a > 0 && (si_b > INT_MAX / si_a || si_b < INT_MIN / si_a))
-                    || (si_a < 0 && (si_b > INT_MIN / si_a || si_b < INT_MAX / si_a))
+                } else if (si_a > 0 && (si_b > i32::MAX / si_a || si_b < i32::MIN / si_a))
+                    || (si_a < 0 && (si_b > i32::MIN / si_a || si_b < i32::MAX / si_a))
                 {
                     Err(ArithmeticError::Overflow)
                 } else {
