@@ -458,7 +458,7 @@
           "id": "gui_dCquvqE1csI3",
           "title": "Ensure that integer operations do not result in arithmetic overflow",
           "link": "coding-guidelines/expressions/gui_dCquvqE1csI3.html#gui_dCquvqE1csI3",
-          "checksum": "3ab52de88c275a80a56d91fb6378c789e647ad13e2afb780e28a6f380151c533",
+          "checksum": "68cf2b65f3a476b8cc8b4ac53297c00ba5391fe96febcede09c5229fa0afc98d",
           "rationale": {
             "id": "rat_LvrS1jTCXEOk",
             "link": "coding-guidelines/expressions/gui_dCquvqE1csI3.html#rat_LvrS1jTCXEOk",
@@ -467,17 +467,17 @@
           "non_compliant_example": {
             "id": "non_compl_ex_cCh2RQUXeH0O",
             "link": "coding-guidelines/expressions/gui_dCquvqE1csI3.html#non_compl_ex_cCh2RQUXeH0O",
-            "checksum": "38ec0081379fa61f5f342a3a0da921d34f987aec723da51c391b83a9158c7633"
+            "checksum": "7c5765ba0beeef548a7831ffc395c57b2637877aae8b914c69a86343f71912c3"
           },
           "compliant_example": {
             "id": "compl_ex_BgUHiRB4kc4d",
             "link": "coding-guidelines/expressions/gui_dCquvqE1csI3.html#compl_ex_BgUHiRB4kc4d",
-            "checksum": "a3d76fe982ac889492365709fc3af67bf26bd9cd67ed7bcb1b632d9649bad79f"
+            "checksum": "17fc8fb462e289fa4ee6b753a1ac862b53fcdad8aa2e1af3377f4b6f31b44f19"
           },
           "bibliography": {
             "id": "bib_dCquvqE1csI3",
             "link": "coding-guidelines/expressions/gui_dCquvqE1csI3.html#bib_dCquvqE1csI3",
-            "checksum": "a6614dad77e8bd4883133ae6d046816314a866895770d3eae756899af58ac396"
+            "checksum": "e019d15d93d4991641d517da2dbcfda804cbdb08ab063c0b0f3c537422ccf0e6"
           }
         },
         {
@@ -596,7 +596,7 @@
           "id": "gui_ZDLZzjeOwLSU",
           "title": "Assure visibility of ``unsafe`` keyword in unsafe code",
           "link": "coding-guidelines/attributes/gui_ZDLZzjeOwLSU.html#gui_ZDLZzjeOwLSU",
-          "checksum": "ea742a794ac602331a4c3f9eca92d5f3205965f6a951f0f5151a8c107f2cca21",
+          "checksum": "1e50e673183205db013c606fcc4e19bf30a835fd8e4b8daaee6b3f8db88a3f64",
           "rationale": {
             "id": "rat_eQV3s9ggNegr",
             "link": "coding-guidelines/attributes/gui_ZDLZzjeOwLSU.html#rat_eQV3s9ggNegr",
@@ -615,7 +615,7 @@
           "bibliography": {
             "id": "bib_n8YJHvQf4mWx",
             "link": "coding-guidelines/attributes/gui_ZDLZzjeOwLSU.html#bib_n8YJHvQf4mWx",
-            "checksum": "694ca5fbaecc482bd8f6d60864b108e4422433cf76445e5f1696131d9b597ecd"
+            "checksum": "b23ade67d3ff6d84a777e86e6be9d1d332d04365c0d5d1f7c04f9043b40f6ba6"
           }
         }
       ]

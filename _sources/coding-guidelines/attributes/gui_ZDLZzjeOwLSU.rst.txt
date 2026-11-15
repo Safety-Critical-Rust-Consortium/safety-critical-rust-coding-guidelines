@@ -291,8 +291,8 @@ Assure visibility of ``unsafe`` keyword in unsafe code
            - The Rust Reference. "External blocks." https://doc.rust-lang.org/reference/items/external-blocks.html.
          * - :bibentry:`gui_ZDLZzjeOwLSU:RUST-REF-UNSAFE-ATTR`
            - The Rust Reference. "Unsafe attributes." https://doc.rust-lang.org/reference/attributes.html#unsafe-attributes.
-         * - :bibentry:`gui_ZDLZzjeOwLSU:FERROCENE-SPEC`
-           - Ferrocene GmbH. "Ferrocene Language Specification." https://spec.ferrocene.dev/.
+         * - :bibentry:`gui_ZDLZzjeOwLSU:FLS`
+           - The Rust Project. "FLS." https://rust-lang.github.io/fls/.
          * - :bibentry:`gui_ZDLZzjeOwLSU:RUST-REF-UNION`
            - The Rust Reference. "Unions." https://doc.rust-lang.org/reference/items/unions.html.
          * - :bibentry:`gui_ZDLZzjeOwLSU:UCG-VALIDITY`

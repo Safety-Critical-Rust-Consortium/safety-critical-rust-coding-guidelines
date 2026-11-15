@@ -567,7 +567,7 @@ Table 3 – Guideline rules that are not applicable to Rust
        bounds checks, and in the mapping of ARR30 we’re already handling
        that.In Unsafe Rust, doing this is to break the Safety Contract
        of the API we’re calling, which `is getting its own
-       rule. <https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/337>`__
+       rule. <https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/337>`__
        and is outside the mapping of this ARR38 (this rule) Recently
        moved out of the applicable bucket
    * - `STR32 <https://wiki.sei.cmu.edu/confluence/display/c/STR32-C.+Do+not+pass+a+non-null-terminated+character+sequence+to+a+library+function+that+expects+a+string>`__
@@ -607,9 +607,9 @@ Table 3 – Guideline rules that are not applicable to Rust
        handling APIs. The implementation of those APIs in Rust is
        different, so the guideline doesn’t really map to it. \ *For more
        information, see* `this
-       comment <https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/336#issuecomment-3764046307>`__
+       comment <https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/336#issuecomment-3764046307>`__
        *and* `this
-       issue <https://github.com/rustfoundation/safety-critical-rust-coding-guidelines/issues/392>`__\ *.*
+       issue <https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/issues/392>`__\ *.*
    * - `FIO44 <https://wiki.sei.cmu.edu/confluence/display/c/FIO44-C.+Only+use+values+for+fsetpos%28%29+that+are+returned+from+fgetpos%28%29>`__
      - Only use values for fsetpos() that are returned from fgetpos()
      - 

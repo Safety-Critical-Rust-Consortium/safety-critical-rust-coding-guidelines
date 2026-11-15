@@ -277,8 +277,8 @@ If a guideline applies to more than one release, the list **MUST** be semicolon 
 -------
 
 Each guideline **MUST** have linkage to an appropriate ``paragraph-id`` from the
-Ferrocene Language Specification (FLS). That linkage to the FLS is the means by which
-the guidelines cover exactly the specification, no more and no less.
+FLS. That linkage to the FLS is the means by which the guidelines cover exactly
+the specification, no more and no less.
 
 A single FLS ``paragraph-id`` **MAY** have more than one guideline which applies to it.
 
