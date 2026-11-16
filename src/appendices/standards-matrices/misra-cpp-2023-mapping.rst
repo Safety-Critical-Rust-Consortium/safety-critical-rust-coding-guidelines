@@ -100,11 +100,6 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      - MISRA C mapping, ``#if 0`` is C/C++ equivalent to ``#[cfg(false)]`` and should also be considered commented out code. It is idiomatic rust to provide code examples in doc comments (also called doctest). This should not be considered commented out code.
-   * - Rule 5.10.1
-     -
-     -
-     -
-     - It's encouraged to follow the Rust API Guidelines official naming conventions: https://rust-lang.github.io/api-guidelines/naming.html It is important to mention that, for example, using the wrong notation for ``const`` yields a warning but does not stop the language from compiling; using ``#![deny(...)]`` or ``#![forbid(...)]``  would be the best way to ensure some conventions are being followed.
    * - Rule 6.0.4
      -
      -
@@ -489,7 +484,7 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
 
        The ``as`` operator cannot convert into bool. Conversions via the ``TryInto``/``TryFrom`` traits correspond with ``explicit operator bool`` and are exempted by the Rule.
 
-       For unsafe Rust, one should also consider ``transmute``\ ing into bool where the safety invariant of bool must be ensured. However, this is simply part of the general unsafe Rust rules and does not need a dedicated rule in the Rust guidelines
+       For unsafe Rust, one should also consider ``transmute``\ ing into bool where the safety invariant of bool must be ensured. However, this is already part of the general unsafe Rust rules.
    * - Rule 8.1.2
      -
      -
@@ -582,11 +577,6 @@ Table 2 – Guidelines additionally applicable in the presence of unsafe code
      -
      -
      - In safe rust the compiler checks that every member of a struct, enum, tuple or array is initialized when it is created. In unsafe rust (especially using MaybeUninit) this rule applies.
-   * - Dir 15.8.1
-     -
-     -
-     -
-     - Rust does not allow customizing the behaviour of move or assignment. In unsafe rust move constructors can be simulated using Pin. If and how self-assignment should be taken into account depends on the move API used. For example if both the current and the future location are passed via mutable references self-assignment becomes impossible due to the uniqueness guarantee of mutable references in rust. If raw pointers are used, there is no such guarantee.
    * - Rule 18.1.1
      -
      -
@@ -652,12 +642,15 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 5.7.3
      - Rule 3.2
      - MISRA C mapping. Rust has no line splicing.
+   * - Rule 5.10.1
+     -
+     - The rust compiler already requires subrules 1 and 2. It also normalizes to NFC, which makes subrule 3 unnecessary. Subrule 4 is not necessary as collisions with std identifiers are not possible due to the module system. Identifiers starting with an "_" are used in rust to disable unused variable warnings. Rust has no user defined literal suffixes. (See `Identifiers (Reference) <https://doc.rust-lang.org/reference/identifiers.html>`__)
    * - Rule 5.13.1
      -
      - The compiler itself already prevents this even in ``unsafe`` blocks; the only way to "bypass" this is by using, of course, raw strings (``r"<TEXT>"``).
    * - Rule 5.13.2
      -
-     - For Unicode, Rust uses the notation of ``\u{...}`` with a maximum of 6 characters allowed inside of the braces; in the case of the hex ``\x``, it will always take the two hex digits that follow it, yielding a compiling result for something like ``\x41g``. Octal escapes are not supported and ``\0`` is always null; their use could be prevented in production by enabling a lint like ``#![deny(clippy:octal_escapes)]``
+     - For Unicode, Rust uses the notation of ``\u{...}`` with a maximum of 6 characters allowed inside of the braces; in the case of the hex ``\x``, it will always take the two hex digits that follow it, yielding a compiling result for something like ``\x41g``. Octal escapes are not supported and ``\0`` is always null.
    * - Rule 5.13.3
      -
      - Rust manages octal prefixes differently (``0o``), making it unambiguous for the user
@@ -815,7 +808,10 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 15.1.5
      -
      - Rust has neither initializer lists nor overloaded functions.
-   * - Rule 16.5.1
+   * - Dir 15.8.1
+     -
+     - Rust does not allow customizing the behaviour of move or assignment. Simulating move constructors using Pin is not a language or std construct and out of scope of these guidelines.
+  * - Rule 16.5.1
      -
      - In rust only the binary OR and AND operators can be customized, not the logical ones.
    * - Rule 16.5.2
