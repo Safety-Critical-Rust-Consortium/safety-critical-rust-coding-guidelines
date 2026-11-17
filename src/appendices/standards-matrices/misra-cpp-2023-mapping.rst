@@ -711,7 +711,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust doesn't have implicit integral promotion or overload sets, so the rationale doesn't apply.
    * - Rule 7.11.2
      -
-     - In Rust arrays don't decay to pointers. Slices contain both the pointer and the lenght, so no bound information is lost by converting to a slice.
+     - In Rust arrays don't decay to pointers. Slices contain both the pointer and the length, so no bound information is lost by converting to a slice.
    * - Rule 7.11.3
      -
      - Rust doesn't automatically convert a function pointer to a regular pointer, explicit "as" casts have to be used. The use of such a cast complies with the requirement that the taking of the address should be explicit. https://play.rust-lang.org/?version=stable&mode=debug&edition=2024&gist=ca80b6738d968336e473ec38cc9405aa
@@ -819,7 +819,7 @@ Table 3 – Guidelines not currently applicable to Rust
      - Rust does not have a customizable addressof operator.
    * - Rule 16.6.1
      -
-     - While it is possible in rust to call different implementations of symmetric operators depending on the order of the paramters, this issue is mostly concerned with implicit conversions. Since rust does not have such implicit conversions this rule does not map to rust.
+     - While it is possible in rust to call different implementations of symmetric operators depending on the order of the parameters, this issue is mostly concerned with implicit conversions. Since rust does not have such implicit conversions this rule does not map to rust.
    * - Rule 17.8.1
      -
      - Rust does not support specialization or overloaded functions.
