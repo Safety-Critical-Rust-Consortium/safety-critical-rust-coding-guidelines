@@ -811,7 +811,7 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Dir 15.8.1
      -
      - Rust does not allow customizing the behaviour of move or assignment. Simulating move constructors using Pin is not a language or std construct and out of scope of these guidelines.
-  * - Rule 16.5.1
+   * - Rule 16.5.1
      -
      - In rust only the binary OR and AND operators can be customized, not the logical ones.
    * - Rule 16.5.2
@@ -865,8 +865,8 @@ Table 3 – Guidelines not currently applicable to Rust
    * - Rule 19.3.3
      -
      - A macro invocation in rust always contains the symbol ``!``, which is not valid for identifiers.
-       ..
-         New identifiers can be created using the nightly ``concat_ident`` and ``${concat(...)}`` metavariable or using proc_macros (for example the ``paste`` crate)
+
+       New identifiers can be created using the nightly ``concat_ident`` and ``${concat(...)}`` metavariable or using proc_macros (for example the ``paste`` crate)
    * - Rule 19.3.5
      -
      - This is well defined in rust, see https://lukaswirth.dev/tlborm/decl-macros/patterns/callbacks.html for usecases and a understandable description of the behaviour
