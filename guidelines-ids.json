@@ -1,60 +1,6 @@
 {
   "documents": [
     {
-      "title": "Types and Traits",
-      "link": "coding-guidelines/types-and-traits/index.html",
-      "guidelines": [
-        {
-          "id": "gui_0cuTYG8RVYjg",
-          "title": "Ensure reads of union fields produce valid values for the field's type",
-          "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#gui_0cuTYG8RVYjg",
-          "checksum": "bef98889ec28516af7c8460cc7da49340477184a44229a04fbf632b61099a35d",
-          "rationale": {
-            "id": "rat_8QeimyAvM7cH",
-            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#rat_8QeimyAvM7cH",
-            "checksum": "e9b732c7a93f5d34300a9d31fc8f324fe261776611c9dc638099fc8d5c29a5f9"
-          },
-          "non_compliant_example": {
-            "id": "non_compl_ex_aEx4HnDD8xIp",
-            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#non_compl_ex_aEx4HnDD8xIp",
-            "checksum": "ae6f585ebf5c98ac534cb83d27b1485b041d65d2b5effa6bc3ca3abc04e6dc4c"
-          },
-          "compliant_example": {
-            "id": "compl_ex_4Z8tmqYLLjtw",
-            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#compl_ex_4Z8tmqYLLjtw",
-            "checksum": "3de6b41026e882dfc61162237185f802ca18148ae7f3f224b5e78f9ff256cb64"
-          },
-          "bibliography": {
-            "id": "bib_WNCi5njUWLuZ",
-            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#bib_WNCi5njUWLuZ",
-            "checksum": "da076bea5d89ecbc99f57913ad6f6a6d3cbc989ecc2734602d5b3b68ca94b5ac"
-          }
-        },
-        {
-          "id": "gui_xztNdXA2oFNC",
-          "title": "Use strong types to differentiate between logically distinct values",
-          "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#gui_xztNdXA2oFNC",
-          "checksum": "60d84742859eb49c1cd30c0fe4ef058d4ae2a43a03dcebd60833ac3e547deb91",
-          "rationale": {
-            "id": "rat_kYiIiW8R2qD2",
-            "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#rat_kYiIiW8R2qD2",
-            "checksum": "4e75f13b2c06a8bbb8ebe0a4f9882f62aa4e4336c6ad613103081ced6c27fd11"
-          },
-          "non_compliant_example": {
-            "id": "non_compl_ex_PO5TyFsRTlWv",
-            "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#non_compl_ex_PO5TyFsRTlWv",
-            "checksum": "992361415a0a8ad7703a45930e36d485fb4714b79f2b3a162614e8569c6127fd"
-          },
-          "compliant_example": {
-            "id": "compl_ex_WTe7GoPu5Ez1",
-            "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#compl_ex_WTe7GoPu5Ez1",
-            "checksum": "81e5e1f68f84b5f243a8702273c6988d62a925628c1e07e7448a07327dd63155"
-          },
-          "bibliography": null
-        }
-      ]
-    },
-    {
       "title": "Macros",
       "link": "coding-guidelines/macros/index.html",
       "guidelines": [
@@ -281,9 +227,89 @@
       ]
     },
     {
+      "title": "Types and Traits",
+      "link": "coding-guidelines/types-and-traits/index.html",
+      "guidelines": [
+        {
+          "id": "gui_0cuTYG8RVYjg",
+          "title": "Ensure reads of union fields produce valid values for the field's type",
+          "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#gui_0cuTYG8RVYjg",
+          "checksum": "bef98889ec28516af7c8460cc7da49340477184a44229a04fbf632b61099a35d",
+          "rationale": {
+            "id": "rat_8QeimyAvM7cH",
+            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#rat_8QeimyAvM7cH",
+            "checksum": "e9b732c7a93f5d34300a9d31fc8f324fe261776611c9dc638099fc8d5c29a5f9"
+          },
+          "non_compliant_example": {
+            "id": "non_compl_ex_aEx4HnDD8xIp",
+            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#non_compl_ex_aEx4HnDD8xIp",
+            "checksum": "ae6f585ebf5c98ac534cb83d27b1485b041d65d2b5effa6bc3ca3abc04e6dc4c"
+          },
+          "compliant_example": {
+            "id": "compl_ex_4Z8tmqYLLjtw",
+            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#compl_ex_4Z8tmqYLLjtw",
+            "checksum": "3de6b41026e882dfc61162237185f802ca18148ae7f3f224b5e78f9ff256cb64"
+          },
+          "bibliography": {
+            "id": "bib_WNCi5njUWLuZ",
+            "link": "coding-guidelines/types-and-traits/gui_0cuTYG8RVYjg.html#bib_WNCi5njUWLuZ",
+            "checksum": "da076bea5d89ecbc99f57913ad6f6a6d3cbc989ecc2734602d5b3b68ca94b5ac"
+          }
+        },
+        {
+          "id": "gui_xztNdXA2oFNC",
+          "title": "Use strong types to differentiate between logically distinct values",
+          "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#gui_xztNdXA2oFNC",
+          "checksum": "60d84742859eb49c1cd30c0fe4ef058d4ae2a43a03dcebd60833ac3e547deb91",
+          "rationale": {
+            "id": "rat_kYiIiW8R2qD2",
+            "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#rat_kYiIiW8R2qD2",
+            "checksum": "4e75f13b2c06a8bbb8ebe0a4f9882f62aa4e4336c6ad613103081ced6c27fd11"
+          },
+          "non_compliant_example": {
+            "id": "non_compl_ex_PO5TyFsRTlWv",
+            "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#non_compl_ex_PO5TyFsRTlWv",
+            "checksum": "992361415a0a8ad7703a45930e36d485fb4714b79f2b3a162614e8569c6127fd"
+          },
+          "compliant_example": {
+            "id": "compl_ex_WTe7GoPu5Ez1",
+            "link": "coding-guidelines/types-and-traits/gui_xztNdXA2oFNC.html#compl_ex_WTe7GoPu5Ez1",
+            "checksum": "81e5e1f68f84b5f243a8702273c6988d62a925628c1e07e7448a07327dd63155"
+          },
+          "bibliography": null
+        }
+      ]
+    },
+    {
       "title": "Expressions",
       "link": "coding-guidelines/expressions/index.html",
       "guidelines": [
+        {
+          "id": "gui_7y0GAMmtMhch",
+          "title": "Do not use an integer type as a divisor during integer division",
+          "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#gui_7y0GAMmtMhch",
+          "checksum": "ad010ae213c9c0f253d8f0d97264b9accbd440c387f230edfb68436a4dade425",
+          "rationale": {
+            "id": "rat_vLFlPWSCHRje",
+            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#rat_vLFlPWSCHRje",
+            "checksum": "efc17fa7c2e6f38a7d988f98aa9c2aeaaebfe8cf9d79e9ea1ab75996fe1e9ff1"
+          },
+          "non_compliant_example": {
+            "id": "non_compl_ex_0XeioBrgfh5z",
+            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#non_compl_ex_0XeioBrgfh5z",
+            "checksum": "18f8ca9600227b4cd44482a7af39c726bf0a598ab863bbe3d652f22942ec1f78"
+          },
+          "compliant_example": {
+            "id": "compl_ex_k1CD6xoZxhXc",
+            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#compl_ex_k1CD6xoZxhXc",
+            "checksum": "41158730b3d72d2dd94d349c9319bdb1c2d1255b64afa0ddd74db6aaf001d455"
+          },
+          "bibliography": {
+            "id": "bib_7y0GAMmtMhch",
+            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#bib_7y0GAMmtMhch",
+            "checksum": "3bdbb0efe635cdd13af70fcd44ee72769fa5d2ec6841b7112bbf6d6de8c44099"
+          }
+        },
         {
           "id": "gui_ADHABsmK9FXz",
           "title": "The 'as' operator should not be used with numeric operands",
@@ -526,32 +552,6 @@
             "id": "bib_kMbiWbn8Z6g5",
             "link": "coding-guidelines/expressions/gui_kMbiWbn8Z6g5.html#bib_kMbiWbn8Z6g5",
             "checksum": "9a7725d1c11d3dc790401e4354eb626f192ec0fee6624a0195006a9526e63553"
-          }
-        },
-        {
-          "id": "gui_7y0GAMmtMhch",
-          "title": "Do not use an integer type as a divisor during integer division",
-          "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#gui_7y0GAMmtMhch",
-          "checksum": "ad010ae213c9c0f253d8f0d97264b9accbd440c387f230edfb68436a4dade425",
-          "rationale": {
-            "id": "rat_vLFlPWSCHRje",
-            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#rat_vLFlPWSCHRje",
-            "checksum": "efc17fa7c2e6f38a7d988f98aa9c2aeaaebfe8cf9d79e9ea1ab75996fe1e9ff1"
-          },
-          "non_compliant_example": {
-            "id": "non_compl_ex_0XeioBrgfh5z",
-            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#non_compl_ex_0XeioBrgfh5z",
-            "checksum": "18f8ca9600227b4cd44482a7af39c726bf0a598ab863bbe3d652f22942ec1f78"
-          },
-          "compliant_example": {
-            "id": "compl_ex_k1CD6xoZxhXc",
-            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#compl_ex_k1CD6xoZxhXc",
-            "checksum": "41158730b3d72d2dd94d349c9319bdb1c2d1255b64afa0ddd74db6aaf001d455"
-          },
-          "bibliography": {
-            "id": "bib_7y0GAMmtMhch",
-            "link": "coding-guidelines/expressions/gui_7y0GAMmtMhch.html#bib_7y0GAMmtMhch",
-            "checksum": "3bdbb0efe635cdd13af70fcd44ee72769fa5d2ec6841b7112bbf6d6de8c44099"
           }
         }
       ]

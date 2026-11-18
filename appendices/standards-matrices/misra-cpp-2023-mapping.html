@@ -1,0 +1,1270 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rust Cross Reference with MISRA C++ 2023 &mdash; Safety-Critical Rust Coding Guidelines 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../_static/rust_playground.css?v=a15f506b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/citation.css?v=569c3786" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-data-viewer/jsonview.bundle.css?v=f6ef2277" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/libs/html/datatables.min.css?v=4b4fd840" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_links.css?v=2150a916" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_style.css?v=92936fa5" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/need_core.css?v=f5b60a78" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/common_css/needstable.css?v=5e1b6797" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-needs/modern.css?v=803738c0" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=558c75d0" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/rust_playground.js?v=acd109cb"></script>
+      <script src="../../_static/citation.js?v=1e6d5203"></script>
+      <script src="../../_static/sphinx-data-viewer/jsonview.bundle.js?v=18cd53c5"></script>
+      <script src="../../_static/sphinx-data-viewer/jsonview_loader.js?v=f7ff7e7d"></script>
+      <script src="../../_static/sphinx-needs/libs/html/datatables.min.js?v=8a4aee21"></script>
+      <script src="../../_static/sphinx-needs/libs/html/datatables_loader.js?v=a2cae175"></script>
+      <script src="../../_static/sphinx-needs/libs/html/sphinx_needs_collapse.js?v=dca66431"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Retired Guidelines" href="../../retired-guidelines/index.html" />
+    <link rel="prev" title="Rust Cross Reference with MISRA C 2025" href="misra-c-2025-mapping.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Safety-Critical Rust Coding Guidelines
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview/index.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../coding-guidelines/index.html">Coding Guidelines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compliance/index.html">Compliance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../process/index.html">Process</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Appendices</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../licenses.html">Licenses</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">Standards Matrices</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="cert-c-2016-mapping.html">Rust Cross Reference with CERT-C 2016</a></li>
+<li class="toctree-l3"><a class="reference internal" href="misra-c-2025-mapping.html">Rust Cross Reference with MISRA C 2025</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Rust Cross Reference with MISRA C++ 2023</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present">Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-2-guidelines-additionally-applicable-in-the-presence-of-unsafe-code">Table 2 – Guidelines additionally applicable in the presence of unsafe code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#table-3-guidelines-not-currently-applicable-to-rust">Table 3 – Guidelines not currently applicable to Rust</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../retired-guidelines/index.html">Retired Guidelines</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Safety-Critical Rust Coding Guidelines</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Appendices</a></li>
+          <li class="breadcrumb-item"><a href="index.html">Standards Matrices</a></li>
+      <li class="breadcrumb-item active">Rust Cross Reference with MISRA C++ 2023</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/appendices/standards-matrices/misra-cpp-2023-mapping.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="rust-cross-reference-with-misra-c-2023">
+<h1>Rust Cross Reference with MISRA C++ 2023<a class="headerlink" href="#rust-cross-reference-with-misra-c-2023" title="Link to this heading"></a></h1>
+<p>The following tables provide a cross reference between the MISRA C++ 2023 guidelines and their applicability to
+Rust. The first table covers guidelines that are applicable to Rust in general, while the second table covers
+additional guidelines that are applicable in the presence of unsafe code. The third table lists guidelines that
+are not currently applicable to Rust.</p>
+<p>This assessment covers all 179 MISRA C++ 2023 guidelines.</p>
+<p>In cases where the rust std does not provide functionality that is provided by the C++ std or platform APIs the
+use of FFI to access this functionality is not considered in this mapping.
+The use of C++ APIs via FFI needs to consider the C++ guidelines.</p>
+<section id="table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present">
+<h2>Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code present)<a class="headerlink" href="#table-1-guidelines-applicable-to-rust-in-general-safe-rust-no-unsafe-code-present" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Related MISRA C 2025 guideline</p></th>
+<th class="head"><p>Safety-critical Rust rule</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Rule 0.0.1</p></td>
+<td><p>Rule 2.1</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 0.0.2</p></td>
+<td><p>Rule 14.3</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 0.1.1</p></td>
+<td><p>Rule 2.2 is similar</p></td>
+<td></td>
+<td></td>
+<td><p>Maps to rust completely. The <a class="reference external" href="https://doc.rust-lang.org/rustc/lints/listing/warn-by-default.html#unused-assignments">unused-assignments lint</a> can be used to catch violations.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 0.1.2</p></td>
+<td><p>Rule 17.7</p></td>
+<td></td>
+<td></td>
+<td><p>While must_use can assist, it is not active by default for all (non-unit returning) functions</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 0.2.1</p></td>
+<td><p>Rule 2.8 is similar</p></td>
+<td></td>
+<td></td>
+<td><p>Maps to rust. Similar to C++ a variable is considered used if it (recursively) has a user written destructor. Exception 1 maps to the <code class="docutils literal notranslate"><span class="pre">#[allow(unused_...)]</span></code> annotation. Exception 2 does not map to rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 0.2.2</p></td>
+<td><p>Rule 2.7</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 0.2.3</p></td>
+<td><p>Rule 2.3</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 0.2.4</p></td>
+<td><p>Rule 8.7 (tangential)</p></td>
+<td></td>
+<td></td>
+<td><p>Rationale of 0.2.4 applies the same to functions that are local to a crate (or module)</p></td>
+</tr>
+<tr class="row-even"><td><p>Dir 0.3.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>Rationale of 0.3.1 is language independent and floats work the same in C++ and Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>Dir 0.3.2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>Rationale mentions “unexpected results” and “undefined behavior” as risks -&gt; both could apply to Rust the same as to C++</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 4.1.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>While the C++ standard is obviously not relevant, the general principle applies to analogous Specifications (e.g. FLS). However, in the safe Rust subset all syntactically programs not rejected by the compiler should be in compliance (otherwise its a bug in the compiler) Unsafe Rust, must be free of UB in order to conform. Rust does not quite have language extensions, but unstable features are similar and should be avoided.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 4.1.2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>The rationale applies about features being superseded by safer or better alternatives, applies to Rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 4.1.3</p></td>
+<td><p>Rule 1.3</p></td>
+<td></td>
+<td></td>
+<td><p>For safe rust only “critical unspecified behaviour” is an issue, not undefined behaviour. Examples are drop order of closure captures and arithmetic precision of floating point operations. This maps fully to unsafe rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 5.7.1</p></td>
+<td><p>Rule 3.1</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping, While Rust does support nesting block comments, it is still, or even especially, likely to accidentally comment out code sections unintentionally.</p></td>
+</tr>
+<tr class="row-even"><td><p>Dir 5.7.2</p></td>
+<td><p>Dir 4.4</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping, <code class="docutils literal notranslate"><span class="pre">#if</span> <span class="pre">0</span></code> is C/C++ equivalent to <code class="docutils literal notranslate"><span class="pre">#[cfg(false)]</span></code> and should also be considered commented out code. It is idiomatic rust to provide code examples in doc comments (also called doctest). This should not be considered commented out code.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.0.4</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>While <code class="docutils literal notranslate"><span class="pre">main</span></code> is a reserved entry point for executable Rust programs, it can still be defined inside of modules or as part of a struct’s <code class="docutils literal notranslate"><span class="pre">impl</span></code> and the program will compile; when defining it in a module it is possible to use it inside the <code class="docutils literal notranslate"><span class="pre">main</span></code> that references the entry point, but only when the full namespace name is used:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="k">mod</span><span class="w"> </span><span class="nn">foo</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;not another fake main!&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="bp">self</span><span class="p">::</span><span class="n">foo</span><span class="p">::</span><span class="n">main</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If we use the notation of <code class="docutils literal notranslate"><span class="pre">use</span> <span class="pre">self::foo::main;</span></code> at the beginning, the compiler will let us know there are multiple definitions of <code class="docutils literal notranslate"><span class="pre">main</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.4.1</p></td>
+<td><p>Rule 5.3</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.7.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>Translates to <code class="docutils literal notranslate"><span class="pre">static</span></code> variables in Rust, as those can also be declared in functions. In safe Rust the risk is developer confusion when mutating a static variable with interior mutability. For unsafe Rust the use of <code class="docutils literal notranslate"><span class="pre">static</span> <span class="pre">mut</span></code> is likely to result in UB.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.7.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Same reasoning as for Rule 6.7.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 7.0.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>The rule is mainly concerned with “integral promotion” and its interaction with conversions from bool, which does not apply to Rust since “integral promotion” does not exist here.</p>
+<p>However, the following other minor points can apply to Rust:</p>
+<ul class="simple">
+<li><p>Confusion caused using &amp;, |, ~ operators with bool instead of the usual &amp;&amp;, ||, ! operators -&gt; The only difference in Rust being the lazy evaluation of their operands</p></li>
+<li><p>When casting a bool to an integral type, its clearer to explicitly name the numerical values that are assigned for each boolean value.</p></li>
+</ul>
+<p>Depending on whether either or both of these aspects are considered important enough to be mapped to our rules, the classification of Rule 7.0.1 is either both “yes” or both “no”.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 7.0.4</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_RHvQj8BHlz9b.html#gui_RHvQj8BHlz9b" title="gui_RHvQj8BHlz9b"><em class="xref need">Do not shift an expression ... (gui_RHvQj8BHlz9b)</em></a></p></td>
+<td><p>Advisory</p></td>
+<td><p>While bit-shifting in rust can’t cause undefined behaviour, panics could be caused.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 7.11.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust doesn’t have overloaded functions, so the issues regarding overload selection don’t apply. Rust also doesn’t have a “NULL” macro. While “0” doesn’t implicitly coerces to a pointer type explicit syntax (as casting) can be used to create a null pointer, therefore this maps to safe rust. <code class="docutils literal notranslate"><span class="pre">nullptr</span></code> maps to <code class="docutils literal notranslate"><span class="pre">ptr::null()</span></code> and <code class="docutils literal notranslate"><span class="pre">ptr::null_mut()</span></code> in rust. Only these functions should be used to create null pointers in rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.0.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust and Cpp have similar a number of operators and while some footguns are less of a problem (assignment returns (), &lt; and &gt; return bool, which can’t be directly compared to integers) it is still possible to write unclear code using operator precedence. There is a warn by default clippy lint about this: <a class="reference external" href="https://rust-lang.github.io/rust-clippy/master/#precedence">https://rust-lang.github.io/rust-clippy/master/#precedence</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.2</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/expressions/gui_ADHABsmK9FXz.html#gui_ADHABsmK9FXz" title="gui_ADHABsmK9FXz"><em class="xref need">The 'as' operator should no... (gui_ADHABsmK9FXz)</em></a></p></td>
+<td><p>Advisory</p></td>
+<td><p>Point 2 of the rationale about missing intent applies to rust “as” casts. specific functions should be used instead.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.2.8</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>“uintptr_t” and “intptr_t” map to “usize” and “isize” in rust. This is marked as applicable to safe rust, because information loss can be important for safe rust as well.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.10</p></td>
+<td></td>
+<td><p><a class="reference internal" href="../../coding-guidelines/associated-items/gui_ot2Zt3dd6of1.html#gui_ot2Zt3dd6of1" title="gui_ot2Zt3dd6of1"><em class="xref need">Recursive function are not ... (gui_ot2Zt3dd6of1)</em></a></p></td>
+<td><p>Required</p></td>
+<td><p>The same issues regarding stack usage apply to rust. clippy has a lint against unconditional recursion. In safety critical even conditional recursion should be used carefully</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.9.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>This can also lead to “surprising or unspecified behaviour” in rust. See discussion: <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/136281-t-opsem/topic/.E2.9C.94.20Eq.20and.20Ord.20in.20raw.20pointers">https://rust-lang.zulipchat.com/#narrow/channel/136281-t-opsem/topic/.E2.9C.94.20Eq.20and.20Ord.20in.20raw.20pointers</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.14.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In rust the evaluation of the “&amp;&amp;” operator is also short-circuiting, so evaluation of the right-hand side depends on the value of the left-hand side.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.20.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Arithmetic overflow in constant evaluation is a compile error if runtime overflow checking is enabled.(<a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=release&amp;edition=2024&amp;gist=15b1f64f02b76e6aff6af79730bae8dc">https://play.rust-lang.org/?version=stable&amp;mode=release&amp;edition=2024&amp;gist=15b1f64f02b76e6aff6af79730bae8dc</a> difference between debug and release build). It shouldn’t happen even if runtime checks are disabled. In some cases (like <code class="docutils literal notranslate"><span class="pre">const</span> <span class="pre">A:</span> <span class="pre">u8</span> <span class="pre">=</span> <span class="pre">200</span> <span class="pre">+</span> <span class="pre">200</span></code>) compilation always errors.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 9.4.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Same rationale as in C++ applies. Clippy has a lint that recommends the opposite (clippy::needless_else) it would have to be disabled.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 9.4.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>This rule includes multiple sub-rules some of which map to rust and some don’t:</p>
+<ol class="arabic simple">
+<li><p>Maps to rust. Should maybe be forbidden completely (also for if, for and while). <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=04d632b9ed40d0526f6392eaab391ada">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=04d632b9ed40d0526f6392eaab391ada</a></p></li>
+<li><p>Does not map</p></li>
+<li><p>Does not map</p></li>
+<li><p>Does not map</p></li>
+<li><p>Does not map</p></li>
+<li><p>Maps to rust (there should maybe be an exception for match statements with zero branches to allow conversion from an uninhabited type)</p></li>
+<li><p>Does not map to rust, as it is checked by the compiler that match statements are always exhaustive. Placement of the default does map to rust as it even influences which branch is taken (unreachable pattern warning)</p></li>
+</ol>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Rule 9.5.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>While Rust does not have C-style for loops, the idea of using iterators instead of manual loops applies to Rust. Especially when using <code class="docutils literal notranslate"><span class="pre">while</span></code> loops where the index is modified in the loop body it is easy to write a loop which does not conform to this rule in rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 10.1.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The rationale of only taking mutable references as function parameters if it is actually necessary also applies to rust. It might also make sense to create an exception for trait definitions where const might be enough for a specific implementation (like it is done in the C++ rule for templates and virtual functions).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 10.2.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The rationale of making the size of the enum explicit also applies to rust. There should be an exception for enums where at least one variant holds data (which is very common in rust) as there using the repr(uN) specifier stops the compiler from optimizing the enum layout, which might pessimize performance. <a class="reference external" href="https://doc.rust-lang.org/nomicon/other-reprs.html#repru-repri">https://doc.rust-lang.org/nomicon/other-reprs.html#repru-repri</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 10.2.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In rust this rule only maps to fieldless and unit-only enums as only those can be <code class="docutils literal notranslate"><span class="pre">as</span></code> casted to integers. An enum without a specified <code class="docutils literal notranslate"><span class="pre">repr</span></code> is stored as an <code class="docutils literal notranslate"><span class="pre">isize</span></code> or as a smaller type (<a class="reference external" href="https://doc.rust-lang.org/reference/items/enumerations.html#r-items.enum.discriminant.repr-rust">Reference</a>).
+Therefore for enums without a specified <code class="docutils literal notranslate"><span class="pre">repr</span></code> only casting <code class="docutils literal notranslate"><span class="pre">isize</span></code> or to types larger than <code class="docutils literal notranslate"><span class="pre">isize</span></code> is allowed. For enums with a specified <code class="docutils literal notranslate"><span class="pre">repr</span></code> casting is only allowed to that type or types larger than that type.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 10.4.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The rationale that inline assembly or naked functions should be avoided in favor of language intrinsics applies to rust. Both <code class="docutils literal notranslate"><span class="pre">asm</span></code> and <code class="docutils literal notranslate"><span class="pre">naked_asm</span></code> require unsafe to use, but <code class="docutils literal notranslate"><span class="pre">global_asm</span></code> doesn’t, so this rule applies to safe rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 11.3.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The rationale fully applies to rust. The impact on understandability of the code isn’t reduced by the use of references instead of pointers, so it also maps to safe rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 13.3.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In Rust it is possible to use different parameter names for a trait definition and the trait implementation. This maps to overriding a function in C++. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=b9fefe14582277f2a79019bd4a26a279">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=b9fefe14582277f2a79019bd4a26a279</a> There is a clippy lint against this: <a class="reference external" href="https://rust-lang.github.io/rust-clippy/master/#renamed_function_params">https://rust-lang.github.io/rust-clippy/master/#renamed_function_params</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 13.3.4</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In Rust every comparison between functions pointers is unspecified, not only for virtual member pointers. Therefore this rule needs to be extended to cover function pointer/vtable pointer comparisons in general. See <a class="reference external" href="https://github.com/rust-lang/unsafe-code-guidelines/issues/589">https://github.com/rust-lang/unsafe-code-guidelines/issues/589</a> and <a class="reference external" href="https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/pull/256">https://github.com/Safety-Critical-Rust-Consortium/safety-critical-rust-coding-guidelines/pull/256</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 14.1.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>rationale applies fully to rust. Rust also has private and public members of structs. Confusion about the possible states of the object therefore also apply to rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 15.0.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The requirements of customized destructor and customized copy constructor apply to rust. Rust defaults the destructor by dropping all fields and can create a default copy constructor using “derive(Clone)”. Customization can be done by implementing the Clone or Drop trait manually. Even though this is most often used for memory management which requires unsafe code the problem is in general not specific to unsafe rust and therefore this rule also applies to safe rust. In rust this rule would be something like “if the clone trait is implemented (unless it is derived) the drop trait should also be implemented. If the drop trait is implemented the clone trait should not be derived. It should either be implemented manually or not implemented at all.”</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 18.4.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The rationale that for certain purposes only non-panicking functions should be used, applies to rust. This is especially the case for Drop implementations as panics in those can easily lead to double-panics which abort the program and extern “C” functions, which aren’t allowed to unwind. In rust it is not possible to mark a function as “noexcept”.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 18.5.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust does not have “noexcept” functions, but extern “C” functions behave similar to them. If a function with this ABI is written in rust the compiler inserts panic guards that abort the program if a panic would exit such a function. Therefore the rationale applies to these functions. A panic exiting such a function is UB.</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">test</span><span class="p">();</span><span class="w"> </span><span class="c1">// program abort</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">tu</span><span class="p">:</span><span class="w"> </span><span class="nc">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="k">fn</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">mem</span><span class="p">::</span><span class="n">transmute</span><span class="p">(</span><span class="n">test_unwind</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="k">extern</span><span class="w"> </span><span class="s">&quot;C-unwind&quot;</span><span class="w"> </span><span class="k">fn</span><span class="p">())</span><span class="w"> </span><span class="p">};</span>
+<span class="w">    </span><span class="n">tu</span><span class="p">();</span><span class="w"> </span><span class="c1">// UB</span>
+<span class="p">}</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C&quot;</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">test</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// compiler inserted panic abort guard</span>
+<span class="w">    </span><span class="fm">panic!</span><span class="p">(</span><span class="s">&quot;test&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">extern</span><span class="w"> </span><span class="s">&quot;C-unwind&quot;</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">test_unwind</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="fm">panic!</span><span class="p">(</span><span class="s">&quot;test2&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In this example the compiler inserts a abort guard in the <code class="docutils literal notranslate"><span class="pre">test</span></code> function, but not in the <code class="docutils literal notranslate"><span class="pre">test_unwind</span></code> function. Calling the <code class="docutils literal notranslate"><span class="pre">test</span></code> function therefore aborts the program. Calling the <code class="docutils literal notranslate"><span class="pre">test_unwind</span></code> function with the “C” ABI is UB, since a panic exits the function.</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Rule 18.5.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rationale applies fully to rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.0.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Similar rationale applies to rust. The list of exceptions would maybe need to be modified to also include variadic functions as those can only be done using a macro in rust currently.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.0.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>As this rule is at least partially concerned with readability it applies to rust (in a reduced category). In rust there is no risk of UB. In rust there should be an additional exception for crate/file attributes as they have to be at the top of the file. This rule also applies to the use of the include macro which does textual inclusion, although in a more limited form (braces must match and syntax must be valid before expanding). This macro should maybe have a rule that forbids it.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.2.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>As rust code should use the module system and not the include macro to import files, the risk of this issue is not severe in rust. It is also not possible to create UB due to conflicting definitions. But it is possible to accidentally override items in outer scopes by redeclaring them in inner scopes, which is made easier when using the include macro as the code is not visible inline.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.3.4</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In declarative macros, non-tt metavariables as arguments (e.g. <code class="docutils literal notranslate"><span class="pre">expr</span></code>) are inserted as AST nodes and cannot be broken up. -&gt; does not apply Using tt-metavariables it is possible, since they are simply inserted as tokens -&gt; applies Since proc macros also operate on streams of token trees, it applies the same.</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="fm">macro_rules!</span><span class="w"> </span><span class="n">mtt</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="cp">$($x</span><span class="p">:</span><span class="nc">tt</span><span class="p">)</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="cp">$($x</span><span class="p">)</span><span class="o">*</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">);</span>
+<span class="p">}</span>
+<span class="fm">macro_rules!</span><span class="w"> </span><span class="n">mexpr</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="p">(</span><span class="cp">$x</span><span class="p">:</span><span class="nc">expr</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="cp">$x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="fm">dbg!</span><span class="p">(</span><span class="n">mexpr</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">));</span>
+<span class="w">    </span><span class="fm">dbg!</span><span class="p">(</span><span class="n">mtt</span><span class="o">!</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">2</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In this example the first macro call evaluates to 9 and the second one to 7.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.2.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust provides the <code class="docutils literal notranslate"><span class="pre">Command</span></code>-API in its standard library that provide similar features. This API has better support for escaping arguments than the C++ equivalent. The issues of platform specific path search and program behaviour still apply fully.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 21.6.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rationale applies fully to Rust</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.6.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In safe rust allocating memory without freeing is allowed (by creating a box and calling “into_raw”), therefore memory leaks could still happen if manual memory management is attempted. In unsafe rust the rule fully applies. This rule also applies to usage of ManuallyDrop, as it disables the automatic memory management of smart pointers.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 22.3.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Same reasoning applies (except for disabling at build time). Applies to every macro of the assert family (debug_, _eq). static_assert maps to const { assert!(expr) }</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 28.3.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rationale applies mostly. Copying of the predicate is not possible (i don’t think a single predicate in the std has a Clone bound) or well behaved (using the Clone impl), but the other issues still remain.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 28.6.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>This rule maps to functions that are generic and take a type as an argument that can be converted to a container from a reference to the content of the container. If these functions are called with the owning container they don’t copy, but if they are called with the non-owning container they do copy. In the std this applies to the Into and From traits and the collections types including Box. The corresponding rust rule should probably disallow using the Into and From traits for these purposes and require the caller to do the copy themselves, if necessary. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=dd9595f92d8a0538379e71c7b5dbf7fb">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=dd9595f92d8a0538379e71c7b5dbf7fb</a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="table-2-guidelines-additionally-applicable-in-the-presence-of-unsafe-code">
+<h2>Table 2 – Guidelines additionally applicable in the presence of unsafe code<a class="headerlink" href="#table-2-guidelines-additionally-applicable-in-the-presence-of-unsafe-code" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Related MISRA C 2025 guideline</p></th>
+<th class="head"><p>Safety-critical Rust rule</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Rule 6.0.3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>In Rust, Items are always part of their crates namespace. -&gt; The majority of this rule is covered out of the box Functions and variables that are declared <code class="docutils literal notranslate"><span class="pre">#[unsafe(no_mangle)]</span></code> can lead to issues.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.2.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The module and crate systems of Rust make this practically impossible; if you were to define two types with the same names in different files, when calling them you’d still need to do something like <code class="docutils literal notranslate"><span class="pre">let</span> <span class="pre">x</span> <span class="pre">=</span> <span class="pre">foo1::Struct</span></code> and <code class="docutils literal notranslate"><span class="pre">let</span> <span class="pre">y</span> <span class="pre">=</span> <span class="pre">foo2::Struct</span></code>, otherwise the compiler wouldn’t allow a more “global” call of <code class="docutils literal notranslate"><span class="pre">use</span> <span class="pre">foo1::Struct;</span> <span class="pre">use</span> <span class="pre">foo2::Struct</span></code> due to ambiguity. HOWEVER, in the case of unsafe Rust/FFI, <code class="docutils literal notranslate"><span class="pre">#[unsafe(no_mangle)]</span></code> or <code class="docutils literal notranslate"><span class="pre">extern</span></code> can lead to potential issues.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.2.2</p></td>
+<td><p>Rule 8.3 (closely related)</p></td>
+<td></td>
+<td></td>
+<td><p>MISRA C mapping, FFI: an extern declaration shall have a type compatible with the C declaration. Besides that Rust does not separate declaration and definition of functions</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.8.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>While in safe Rust the borrow checker guarantees that no reference outlives the object it points to, in unsafe Rust one can create raw pointers and dereference them after the pointee has been dropped</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="kd">let</span><span class="w"> </span><span class="n">p</span><span class="p">:</span><span class="w"> </span><span class="o">*</span><span class="k">const</span><span class="w"> </span><span class="kt">i32</span><span class="p">;</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span>
+<span class="w">    </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">x</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">const</span><span class="w"> </span><span class="kt">i32</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="c1">// x is dropped, p is dangling</span>
+<span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// undefined behaviour</span>
+</pre></div>
+</div>
+<p>In cases like this, an user COULD potentially get a program that runs and compiles correctly due to the memory not being overwritten yet; however, using a tool like Miri gives us the following result:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>error: Undefined Behavior: constructing invalid value of type &amp;i32: encountered a dangling reference (use-after-free)
+ --&gt; src/main.rs:9:24
+  |
+9 |         println!(&quot;{}&quot;, *p);
+  |                        ^^ Undefined Behavior occurred here
+  |
+  = help: this indicates a bug in the program: it performed an invalid operation, and caused Undefined Behavior
+  = help: see https://doc.rust-lang.org/nightly/reference/behavior-considered-undefined.html for further information
+
+note: some details are omitted, run with `MIRIFLAGS=-Zmiri-backtrace=full` for a verbose backtrace
+
+error: aborting due to 1 previous error
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.8.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In safe Rust, we’d get [E0106] if we tried to do the following:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="k">fn</span><span class="w"> </span><span class="nf">f1</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">i32</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="n">x</span><span class="w">  </span><span class="c1">// error[E0106]: missing lifetime specifier</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>However, in unsafe Rust:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="k">fn</span><span class="w"> </span><span class="nf">f1</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="o">*</span><span class="k">const</span><span class="w"> </span><span class="kt">i32</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
+<span class="w">    </span><span class="o">&amp;</span><span class="n">x</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="o">*</span><span class="k">const</span><span class="w"> </span><span class="kt">i32</span><span class="w">  </span><span class="c1">// dangling pointer after return</span>
+<span class="p">}</span>
+
+<span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f1</span><span class="p">();</span>
+<span class="w">    </span><span class="k">unsafe</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span><span class="w"> </span><span class="p">}</span><span class="w">  </span><span class="c1">// UB: &quot;x&quot; is long gone</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>If we run this normally, we could potentially have the program compile and run just fine, but when using Miri:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="nc">Undefined</span><span class="w"> </span><span class="n">Behavior</span><span class="p">:</span><span class="w"> </span><span class="nc">constructing</span><span class="w"> </span><span class="n">invalid</span><span class="w"> </span><span class="n">value</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="k">type</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">i32</span><span class="p">:</span><span class="w"> </span><span class="nc">encountered</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">dangling</span><span class="w"> </span><span class="n">reference</span><span class="w"> </span><span class="p">(</span><span class="k">use</span><span class="o">-</span><span class="n">after</span><span class="o">-</span><span class="n">free</span><span class="p">)</span>
+<span class="w"> </span><span class="o">-</span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">src</span><span class="o">/</span><span class="n">main</span><span class="p">.</span><span class="n">rs</span><span class="p">:</span><span class="mi">9</span><span class="p">:</span><span class="mi">24</span>
+<span class="w">  </span><span class="o">|</span>
+<span class="mi">9</span><span class="w"> </span><span class="o">|</span><span class="w">         </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+<span class="w">  </span><span class="o">|</span><span class="w">                        </span><span class="o">^^</span><span class="w"> </span><span class="n">Undefined</span><span class="w"> </span><span class="n">Behavior</span><span class="w"> </span><span class="n">occurred</span><span class="w"> </span><span class="n">here</span>
+<span class="w">  </span><span class="o">|</span>
+<span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">help</span><span class="p">:</span><span class="w"> </span><span class="nc">this</span><span class="w"> </span><span class="n">indicates</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">bug</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">program</span><span class="p">:</span><span class="w"> </span><span class="nc">it</span><span class="w"> </span><span class="n">performed</span><span class="w"> </span><span class="n">an</span><span class="w"> </span><span class="n">invalid</span><span class="w"> </span><span class="n">operation</span><span class="p">,</span><span class="w"> </span><span class="n">and</span><span class="w"> </span><span class="n">caused</span><span class="w"> </span><span class="n">Undefined</span><span class="w"> </span><span class="n">Behavior</span>
+<span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">help</span><span class="p">:</span><span class="w"> </span><span class="nc">see</span><span class="w"> </span><span class="n">https</span><span class="p">:</span><span class="c1">//doc.rust-lang.org/nightly/reference/behavior-considered-undefined.html for further information</span>
+</pre></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.8.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In safe Rust, Error E0597 is emitted: <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=596fdb2179c4c79b494afb51aaa8b40a">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=596fdb2179c4c79b494afb51aaa8b40a</a> In unsafe Rust this is possible using raw pointers. (similar to Rule 6.8.2)</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.8.4</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In safe rust returning references to temporary objects is prohibited by the borrow checker: <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=10ef1e93de723525be2c60b2aa964be8">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=10ef1e93de723525be2c60b2aa964be8</a> In unsafe rust issues can happen either by returning a raw pointer or by extending the lifetime of a reference incorrectly.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 7.0.2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td></td>
+<td></td>
+<td><p>“Contextual Conversions” to bool do not exist in Rust. The cases listed in the rule all require a value of boolean type in Rust.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">as</span></code> operator cannot convert into bool. Conversions via the <code class="docutils literal notranslate"><span class="pre">TryInto</span></code>/<code class="docutils literal notranslate"><span class="pre">TryFrom</span></code> traits correspond with <code class="docutils literal notranslate"><span class="pre">explicit</span> <span class="pre">operator</span> <span class="pre">bool</span></code> and are exempted by the Rule.</p>
+<p>For unsafe Rust, one should also consider <code class="docutils literal notranslate"><span class="pre">transmute</span></code>ing into bool where the safety invariant of bool must be ensured. However, this is already part of the general unsafe Rust rules.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.1.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust doesn’t allow explicitly specifying the variables captured by a closure. Issues arising from this are also caught by the borrow checker. (similar caveat to Rule 8.1.1 applies here). Capturing raw pointers is not checked, but using them in the closure requires unsafe code, therefore this does map to unsafe rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The exact case doesn’t map as rust doesn’t have class hierarchies like C++ does, but the general issue can occur in unsafe code with trait objects. Casting trait objects to a concrete type should use the “Any” trait, which checks that the conversion is correct (similar to “dynamic_cast” in C++).</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.2.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Creating a mutable reference from a constant reference isn’t possible in safe code. On raw pointers removing (or adding) constness is possible in safe code, but this can only cause UB in the presence of unsafe code. This guideline applies to unsafe code as the mutation permissions of a pointer need to be taken into account when writing unsafe code. (discussion on zulip about safe rust status: <a class="reference external" href="https://rust-lang.zulipchat.com/#narrow/channel/579369-safety-critical-consortium.2Fcoding-guidelines/topic/MISRA.20C.2B.2B.20Mapping.20Interest/near/599857174">https://rust-lang.zulipchat.com/#narrow/channel/579369-safety-critical-consortium.2Fcoding-guidelines/topic/MISRA.20C.2B.2B.20Mapping.20Interest/near/599857174</a>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.4</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Casting of pointer types (including function pointers) by itself can’t cause UB. creating function pointers in safe code is only possible by taking the address of a function, not by casting from a pointer. In unsafe code care must be taken to only call valid function pointers and to not cast a function pointer to a reference to a struct/enum (which can easily lead to UB).</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.2.5</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>“reinterpret_cast” maps to “transmute” in Rust and it is similarly dangerous. In Rust one additional exception might be added in regards to “repr(transparent” types. “transmute” is a unsafe function so safe code isn’t affected.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.6</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Just like in C++ roundtripping pointers through pointers to void (union) is allowed, therefore the rationale fully applies. Casting from integer to pointer requires additional care to not create a pointer without provenance. While casting from integers or pointers to void (union in rust) to pointers is allowed in safe rust, using these pointers requires unsafe. In a program using only safe rust these operations can’t cause issues, therefore this only maps to unsafe rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.2.7</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>While casting between pointers and integers is allowed in safe rust, it can’t cause issues because the created pointers can’t be used. Similar rationale also applies to precision loss in pointer tracking tools (like miri in rust), which is not a problem if the pointer is not used. Therefore this does not apply to safe rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.11</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust can unsafely call variadic functions. As this is interop the C/C++ rules apply directly.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.7.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>This applies to the unsafe “add” and similar functions on pointers. Creating invalid pointers using these functions is UB. The “wrapping_add” family of functions doesn’t create UB when an invalid pointer is created and are callable from safe code. This rule doesn’t apply to safe code as the dereferencing of such pointers is supposed to be covered by rule 4.1.3 and UB can only happen when using the unsafe functions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.7.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The “-” operator isn’t available on pointers in rust. This maps to the “offset_from” family of methods on raw pointers. These are unsafe and introduce UB if used on pointers to different allocations.  Casting pointers to integers and doing arithmetic on them will produce unspecified results if the pointers belong to different allocations and is possible in safe code, but this rule is explicitly concerned with UB and therefore does not apply to safe code.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.18.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Union access is not possible in safe rust. Similar it is not possible in safe rust to create a mut reference to a memory location while also holding another reference to it, which would be required to read and write from the same memory location at once. memmove and memcopy map to unsafe rust functions, this part of the rule does apply to unsafe rust. The union part of this rule doesn’t apply to rust. The right side of the assignment statement is a “value” expression, not a “place” expression (rust reference). Miri does not report UB in this code: <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=6bafaaf6ac8f638c0f67b3a4d9ad5f4b">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=6bafaaf6ac8f638c0f67b3a4d9ad5f4b</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 10.1.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The issue of using volatile memory operations correctly maps to rust, as rust has volatile operations. This does not map to safe rust as using volatile operations requires unsafe code. Incorrectly deciding to use non-volatile operations, where volatile operations would be necessary is a problem, but it does not apply to safe rust as accessing MMIO requires unsafe somewhere.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 11.6.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In safe rust the compiler enforces that a variable is initialized when used. While declarations without initialization are possible the compiler checks that it is initialized before it can be used. Since the value cannot be read it is not a “state” that increases complexity. It can even reduce complexity as it may allow removing a “mut” annotation from a variable. In unsafe rust MaybeUninit can be used to delay initialization of variables without the compiler checking correct usage. Here the rule fully applies.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 11.6.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Catching the use of unset variables for operations is done by the Rust compiler after performing definite assignment analysis. The following snippet will give us an error:</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="k">fn</span><span class="w"> </span><span class="nf">f</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">x</span><span class="p">:</span><span class="w"> </span><span class="kt">i32</span><span class="p">;</span>
+<span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">y</span><span class="p">:</span><span class="w"> </span><span class="kt">i32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Diagnostics: used binding <code class="docutils literal notranslate"><span class="pre">x</span></code> isn’t initialized <code class="docutils literal notranslate"><span class="pre">x</span></code> used here but it isn’t initialized [E0381]</p>
+<p>In unsafe Rust, there is a chance we read a value from uninit memory and it behaves as UB, not necessarily leading to a program crash/panic.
+This especially applies to code using MaybeUninit or doing manual memory management, as new allocations are uninitialized by default.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 12.3.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>It is not possible to create UB with unions in safe rust, because reading from them is not allowed. Issues with memory leaks because of ManuallyDrop (which often is required for unions in rust) are covered by rule 21.6.2 and therefore don’t make this rule apply to safe code. In regards to unions rust has less UB than C++, because rust has untyped memory. For example casting between an integer and float of the same size is fully defined in rust. The rule still applies to unsafe code, because causing UB is easily possible. Since this rule is about union declarations it applies to every union that is accessible from unsafe code.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 15.1.4</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In safe rust the compiler checks that every member of a struct, enum, tuple or array is initialized when it is created. In unsafe rust (especially using MaybeUninit) this rule applies.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 18.1.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>In Rust custom panic payloads can be thrown with the function “std::panic::panic_any”. Using this with raw pointers leads to unclear ownership semantics, just like in C++ which should be avoided. Smartpointers or ‘static references are exceptions as the ownership semantics are clear. Using custom panic types requires coordination between the panic handler and the panic locations. With only safe code in the panic handler misuse of raw pointer is not possible, therefore it does not map to safe rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 21.6.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>explicitly calling a destructor maps to <code class="docutils literal notranslate"><span class="pre">drop_in_place</span></code>, which is unsafe. A constructor or destructor in C++ receives a pointer to the location of the object. Such a constructor or destructor is not possible to write in safe rust. This rule is concerned with UB and does not map to safe rust. It needs adaption to unsafe rust idioms (handling of Pin, MaybeUninit, ManuallyDrop, …)</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.10.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust supports C-Variadic function in the same way C does. Using the arguments is only possible in unsafe, therefore it only applies to unsafe rust. In rust this maps to the <code class="docutils literal notranslate"><span class="pre">VaList</span></code> object of the standard library.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 23.11.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>This maps to the standard library functions “from_raw” on smart pointers and containers in rust. These functions are unsafe, therefore the rule is not applicable to safe Rust</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 24.5.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>“memmove” and “memcpy” map to “std::ptr::copy” and “std::ptr::copy_nonoverlapping” in rust. Both are unsafe. Non-trivially copyable types match to rust types that are !Unpin. “memcmp” is not provided by the rust std, but can be implemented by casting to a u8 slice. This has additional risk of UB if there is uninit memory in the buffer, which isn’t mentioned in the Rule (only “unspecified” behaviour).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 25.5.1</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>The rust std doesn’t provide any locale support. FFI is required to interact with the OS or C APIs therefore maps to unsafe.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 25.5.2</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust std has no locale support. If this is required unsafe has to be used and this rule applies. std::env::var (getenv) returns a string, which is owned and can therefore be modified. errno can be checked from safe rust using std::io::Error::last_os_error. The std::io::Error struct implements display and can therefore be turned into a string. The rule doesn’t apply to this. If the exact OS error string is required FFI and unsafe rust has to be used and this rule applies.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 25.5.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Only getenv (std::env::var) is accessible from rust. It returns an owned string, therefore this part of the rule does not apply. For the other functions no equivalents are provided in the rust std. As they access system information (time zone, locale, errno) FFI and unsafe are required for use and the rules map to unsafe rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 28.6.3</p></td>
+<td></td>
+<td></td>
+<td></td>
+<td><p>Rust uses destructive moves, which don’t allow access to moved from objects in safe code. Unsafe code could circumvent this by keeping a pointer to the location.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="table-3-guidelines-not-currently-applicable-to-rust">
+<h2>Table 3 – Guidelines not currently applicable to Rust<a class="headerlink" href="#table-3-guidelines-not-currently-applicable-to-rust" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guideline</p></th>
+<th class="head"><p>Related MISRA C 2025 guideline</p></th>
+<th class="head"><p>Comment</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Rule 4.6.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p>The evaluation order of expressions in Rust is well defined</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 5.0.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p>Rust does not have trigraph sequences or similar token alternatives</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 5.7.3</p></td>
+<td><p>Rule 3.2</p></td>
+<td><p>MISRA C mapping. Rust has no line splicing.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 5.10.1</p></td>
+<td></td>
+<td><p>The rust compiler already requires subrules 1 and 2. It also normalizes to NFC, which makes subrule 3 unnecessary. Subrule 4 is not necessary as collisions with std identifiers are not possible due to the module system. Identifiers starting with an “_” are used in rust to disable unused variable warnings. Rust has no user defined literal suffixes. (See <a class="reference external" href="https://doc.rust-lang.org/reference/identifiers.html">Identifiers (Reference)</a>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 5.13.1</p></td>
+<td></td>
+<td><p>The compiler itself already prevents this even in <code class="docutils literal notranslate"><span class="pre">unsafe</span></code> blocks; the only way to “bypass” this is by using, of course, raw strings (<code class="docutils literal notranslate"><span class="pre">r&quot;&lt;TEXT&gt;&quot;</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 5.13.2</p></td>
+<td></td>
+<td><p>For Unicode, Rust uses the notation of <code class="docutils literal notranslate"><span class="pre">\u{...}</span></code> with a maximum of 6 characters allowed inside of the braces; in the case of the hex <code class="docutils literal notranslate"><span class="pre">\x</span></code>, it will always take the two hex digits that follow it, yielding a compiling result for something like <code class="docutils literal notranslate"><span class="pre">\x41g</span></code>. Octal escapes are not supported and <code class="docutils literal notranslate"><span class="pre">\0</span></code> is always null.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 5.13.3</p></td>
+<td></td>
+<td><p>Rust manages octal prefixes differently (<code class="docutils literal notranslate"><span class="pre">0o</span></code>), making it unambiguous for the user</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 5.13.4</p></td>
+<td></td>
+<td><p>If the type hasn’t been specified (ie. <code class="docutils literal notranslate"><span class="pre">42u16</span></code>, <code class="docutils literal notranslate"><span class="pre">42i32</span></code>) and the type cannot be inferred from the context, Rust always fallbacks to <code class="docutils literal notranslate"><span class="pre">i32</span></code>. The issue of fallback differing between platforms doesn’t exist in rust. As this is the main motivation for this rule, it doesn’t map to rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 5.13.5</p></td>
+<td></td>
+<td><p>The “L” and “l” suffixes do not exist in Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 5.13.6</p></td>
+<td></td>
+<td><p>Same rationale as for Rule 5.13.5; <code class="docutils literal notranslate"><span class="pre">long</span> <span class="pre">long</span></code> and the aforementioned suffixes do not exist in Rust. Additionally, the C++ style concatenating does not exist in Rust either; we do have <code class="docutils literal notranslate"><span class="pre">concat!()</span></code> but it relies only on whatever expression is used as the argument (calls <code class="docutils literal notranslate"><span class="pre">core::stringify</span></code> when needed which yields a <code class="docutils literal notranslate"><span class="pre">&amp;'static</span> <span class="pre">str</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 5.13.7</p></td>
+<td></td>
+<td><p>Rust string literals are always UTF-8, no way to encode them with prefixes such as <code class="docutils literal notranslate"><span class="pre">u8</span></code> or <code class="docutils literal notranslate"><span class="pre">u</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.0.1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p>In Rust, function, variable and const declarations are clearly visually distinguishable.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.0.2</p></td>
+<td><p>Rule 8.11</p></td>
+<td><p>MISRA C mapping. Rust requires the size of the array even in extern static declarations.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.2.3</p></td>
+<td></td>
+<td><p>Rust’s module system makes duplicate definitions structurally impossible; the compiler would give you the according errors as well ([E0252])</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.2.4</p></td>
+<td></td>
+<td><p>Rust does not have a header file mechanism or C++-esque external linkage; Using <code class="docutils literal notranslate"><span class="pre">no_mangle</span></code> or <code class="docutils literal notranslate"><span class="pre">extern</span></code> is covered by the more general Rule 6.2.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.4.2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p><strong>Applicability:</strong> Not currently applicable to safe or unsafe Rust; applicable to both upon stabilization.</p>
+<p>While Rust does not support C++-style classes, its trait system does support a more limited kind of inheritance. Here, it is possible to have a subtrait relationship where both traits define a function of the same name. However, when a function name is ambiguous Rust will report an error and require disambiguation.</p>
+<p>With the stabilization of <a class="reference external" href="https://github.com/rust-lang/rust/pull/148605">https://github.com/rust-lang/rust/pull/148605</a> it is possible to shadow function in a trait hierarchy as described by this rule</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.4.3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-</span></code></p></td>
+<td><p>This rule is highly specific to the C++ class and template system and does not translate to Rust</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.5.1</p></td>
+<td></td>
+<td><p>Rust does not have header files. Which parts of the code are public interface is specified using the module system. There is no special place to put <code class="docutils literal notranslate"><span class="pre">extern</span></code> definitions.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.5.2</p></td>
+<td></td>
+<td><p>In rust items that are public using their symbol need to be annotated using <code class="docutils literal notranslate"><span class="pre">no_mangle</span></code> or <code class="docutils literal notranslate"><span class="pre">link_name</span></code> or placed in an <code class="docutils literal notranslate"><span class="pre">extern</span></code> block. It is therefore not necessary to explicitly limit the linkage of items in rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 6.9.1</p></td>
+<td></td>
+<td><p>In rust functions can not be redeclared in general. In traits and their implementation the declaration is written two times, but this is not a redeclaration and the types of arguments or the return type cannot be changed. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=ffda211af1767cb708e5bf2c7acd48f1">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=ffda211af1767cb708e5bf2c7acd48f1</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 6.9.2</p></td>
+<td></td>
+<td><p>In Rust the size of the integer and floating point types is defined. The rule doesn’t apply to the C++ types intptr_t and uintptr_t, so it shouldn’t apply to usize and isize in Rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 7.0.3</p></td>
+<td></td>
+<td><p>In Rust the <code class="docutils literal notranslate"><span class="pre">char</span></code> type isn’t comparable or assignable to an integer or bool type. It can only be explicitly converted to and from <code class="docutils literal notranslate"><span class="pre">u32</span></code> which matches the recommendation of using explicit conversion functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 7.0.5</p></td>
+<td></td>
+<td><p>Rust doesn’t have integer promotion or implicit conversion. “as” casting isn’t affected by this Rule as it is an explicit cast.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 7.0.6</p></td>
+<td></td>
+<td><p>Rust doesn’t have implicit integral promotion or overload sets, so the rationale doesn’t apply.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 7.11.2</p></td>
+<td></td>
+<td><p>In Rust arrays don’t decay to pointers. Slices contain both the pointer and the length, so no bound information is lost by converting to a slice.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 7.11.3</p></td>
+<td></td>
+<td><p>Rust doesn’t automatically convert a function pointer to a regular pointer, explicit “as” casts have to be used. The use of such a cast complies with the requirement that the taking of the address should be explicit. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=ca80b6738d968336e473ec38cc9405aa">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=ca80b6738d968336e473ec38cc9405aa</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.1.1</p></td>
+<td></td>
+<td><p>The borrow checker catches attempts to capture shortlived references in closures. Rust also doesn’t have implicit <code class="docutils literal notranslate"><span class="pre">this</span></code>, so in the closure <code class="docutils literal notranslate"><span class="pre">self</span></code> has to be used, which makes it obvious which object is being captured. Closure capture behaves the same in an unsafe block, so this isn’t affected by unsafe code. (this mapping depends on a rule about using unsafe to extend the lifetime of references, if such a rule does not exist this would apply to unsafe rust)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.2.9</p></td>
+<td></td>
+<td><p>Rust has type_id and type_name functions that are always evaluated at compile time, even if they maybe take an argument (std::any::{type_name, type_name_of_val, TypeId::of}). Because they are never evaluated at runtime this rule does not apply. Rust also has a type_id function that is evaluated at runtime (std::any::Any::type_id). Because it just takes a self reference and is always evaluated at runtime there is no confusion about potential sideeffects happening at runtime. This function also does not panic.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.3.1</p></td>
+<td></td>
+<td><p>Rust doesn’t allow applying the “-” operator to unsigned number types. Error code E0600 is emitted: <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=df15120669953ba24471999fafc25c8c">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=df15120669953ba24471999fafc25c8c</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.3.2</p></td>
+<td></td>
+<td><p>Rust doesn’t have a unary “+” operator. <a class="reference external" href="https://doc.rust-lang.org/reference/expressions/operator-expr.html">https://doc.rust-lang.org/reference/expressions/operator-expr.html</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 8.18.2</p></td>
+<td></td>
+<td><p>In Rust assignment always returns the unit type, so it is not possible to use the return type.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 8.19.1</p></td>
+<td></td>
+<td><p>The comma operator maps to the rust code: “{a; b}”, which discards the result of expression a and evaluates to the result of expression b. This syntax is not confusing like the comma operator is in C++.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 9.2.1</p></td>
+<td></td>
+<td><p>variable declarations in rust use the “let” keyword, so confusion is not possible.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 9.3.1</p></td>
+<td></td>
+<td><p>loop and selection statements in rust always require braces, confusion due to indentation is not possible.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 9.5.2</p></td>
+<td></td>
+<td><p>The mentioned lifetime issues are resolved by the borrow checker. Using multiple iterator combinators in a for loop is considered idiomatic in Rust. The rust reference explicitly specifies that temporary values in the iterator expression aren’t dropped before the loop is finished <a class="reference external" href="https://doc.rust-lang.org/nightly/reference/expressions/loop-expr.html#r-expr.loop.for">https://doc.rust-lang.org/nightly/reference/expressions/loop-expr.html#r-expr.loop.for</a>. This is different from the C++ behaviour and another reason for this rule not to map.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 9.6.1</p></td>
+<td></td>
+<td><p>Rust doesn’t have a <code class="docutils literal notranslate"><span class="pre">goto</span></code> statement</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 9.6.2</p></td>
+<td></td>
+<td><p>Rust doesn’t have a <code class="docutils literal notranslate"><span class="pre">goto</span></code> statement.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 9.6.3</p></td>
+<td></td>
+<td><p>Rust doesn’t have a <code class="docutils literal notranslate"><span class="pre">goto</span></code> statement</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 9.6.4</p></td>
+<td></td>
+<td><p>In Rust the equivalent of a <code class="docutils literal notranslate"><span class="pre">noreturn</span></code> function is a function returning the never type <code class="docutils literal notranslate"><span class="pre">!</span></code>. That the return type of a function is correct is checked by the type system. There are no special considerations for the never type.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 9.6.5</p></td>
+<td></td>
+<td><p>Similar to Rule 9.6.4 the type systems checks that the return type of functions is correct</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 10.0.1</p></td>
+<td></td>
+<td><p>Declarations in rust can’t introduce more than one variable. Destructuring or pattern matching (structured bindings in C++) are explicitly allowed, so should be allowed in Rust as well.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 10.2.2</p></td>
+<td></td>
+<td><p>In Rust enums don’t implicitly coerce to integers. Overlap of enum and constant names can happen in rust if the enum variant is imported, but an explicit typecast is required. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=ab590204a83054e6a47d6f479f471b13">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=ab590204a83054e6a47d6f479f471b13</a> This rule could be mapped to “don’t import enum variants” or “don’t shadow other imports”, but this feels like it should be a distinct rule as the main issue of implicit coercion doesn’t exist in rust.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 10.3.1</p></td>
+<td></td>
+<td><p>specific to C++ header files, which don’t exist in rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 11.3.1</p></td>
+<td></td>
+<td><p>In Rust the array type behaves like the C++ type “std::array” in that it has value semantics and the size stays known. As “std::array” is recommended as a compliant alternative, the Rust array type is compliant and this rule doesn’t map.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 11.6.3</p></td>
+<td></td>
+<td><p>Rust doesn’t allow assigning two enum variants the same value, even when done explicitly. Error E0081 is emitted. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=6c72cfac7ae776bf605e7d7f1135a5e6">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=6c72cfac7ae776bf605e7d7f1135a5e6</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 12.2.1</p></td>
+<td></td>
+<td><p>The rust language doesn’t support bitfields. If these guidelines start covering libraries one would have to look at the behaviour of the specific library.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 12.2.2</p></td>
+<td></td>
+<td><p>See Rule 12.2.1</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 12.2.3</p></td>
+<td></td>
+<td><p>See Rule 12.2.1</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 13.1.1</p></td>
+<td></td>
+<td><p>The standard way of implementing class hierarchies in Rust (storing parent Classes in the Child classes) is always non-virtual, therefore there are no issues about initialization. A diamond can be created using traits, but functions with the same name on parent and child traits need to be disambiguated, therefore there are no issues about call resolution. <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=d44a300af1adda1b0b36be11b6bf071b">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=d44a300af1adda1b0b36be11b6bf071b</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 13.1.2</p></td>
+<td></td>
+<td><p>Rust does not have virtual hierarchies. There also is not a feature that deduplicates struct fields.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 13.3.1</p></td>
+<td></td>
+<td><p>Function overriding can be done in Rust with trait default functions. Default functions can always be overridden, no keyword necessary. Overriding also requires no keyword. As this rule is about using the keywords correctly and not doing overrides correctly this does not map to rust. In trait hierarchies ambiguous functions have to be disambiguated at call sites, therefore it is not really function overriding. (<a class="reference external" href="https://github.com/rust-lang/rust/pull/148605">https://github.com/rust-lang/rust/pull/148605</a> would change that, the exact semantics need to be looked at after stabilisation)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 13.3.2</p></td>
+<td></td>
+<td><p>Rust does not allow default arguments.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 15.0.2</p></td>
+<td></td>
+<td><p>Rust doesn’t have move constructors. The signature of the Clone trait (copy constructor) is defined by the trait and deviations from it are a compile error.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 15.1.1</p></td>
+<td></td>
+<td><p>Rust does not store V-Tables inline, but always behind a pointer. Creating dyn pointers is done in one operation, an “unsized coercion”. It is therefore not possible to observe half constructed V-Tables or RTTI.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 15.1.2</p></td>
+<td></td>
+<td><p>This rule is specific to C++ class hierarchies and does not apply to rust, as Rust doesn’t have inheritance. The way this usecase is often done in rust (storing the “superclass” as a struct member) guarantees initialization of that object in the same way that struct initialization regularly works (See rule 15.1.4).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 15.1.3</p></td>
+<td></td>
+<td><p>Rust does not implicitly convert between types in this way.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 15.1.5</p></td>
+<td></td>
+<td><p>Rust has neither initializer lists nor overloaded functions.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Dir 15.8.1</p></td>
+<td></td>
+<td><p>Rust does not allow customizing the behaviour of move or assignment. Simulating move constructors using Pin is not a language or std construct and out of scope of these guidelines.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 16.5.1</p></td>
+<td></td>
+<td><p>In rust only the binary OR and AND operators can be customized, not the logical ones.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 16.5.2</p></td>
+<td></td>
+<td><p>Rust does not have a customizable addressof operator.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 16.6.1</p></td>
+<td></td>
+<td><p>While it is possible in rust to call different implementations of symmetric operators depending on the order of the parameters, this issue is mostly concerned with implicit conversions. Since rust does not have such implicit conversions this rule does not map to rust.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 17.8.1</p></td>
+<td></td>
+<td><p>Rust does not support specialization or overloaded functions.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 18.1.2</p></td>
+<td></td>
+<td><p>In rust panics can be rethrown using <code class="docutils literal notranslate"><span class="pre">std::panic::resume_unwind</span></code>. This is a regular function that takes the panic payload as an argument. It is therefore not possible to rethrow without a panic payload.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 18.3.1</p></td>
+<td></td>
+<td><p>In Rust there is no need to have a panic catcher in order to use unwinding. The global panic handler controls the behaviour of panics (for example if it unwinds or not). When the std is used a panic handler is provided, whose behaviour can be configures using compiler flags.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 18.3.2</p></td>
+<td></td>
+<td><p>When panics are caught in rust they are returned as the Any trait (see catch_unwind, JoinHandle::join, PanicHookInfo::payload). This is then downcasted into the expected payload type using the Any trait. For a downcast to work the types need to match exactly. Even otherwise implicit coercions (for example from concrete type to trait object) aren’t performed during the downcast. https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=7cfacafd069f8ca6da20e3a265b21f0b Therefore the issue of catching a base class (trait object) doesn’t apply to rust, as downcasting to a base class isn’t successful if it wasn’t already thrown as that base class. This does mean that downcasting to a trait object (for example dyn Debug) is unlikely to be successful as the std panics with payloads of type String on recent editions (https://doc.rust-lang.org/std/macro.panic.html#editions). This issue does not map to this rule, as this rule is concerned with information loss, which does not occur (failing downcasts always need to be handled). The issue of data races is solved in Rust by requiring the panic payload to implement the Send trait (https://doc.rust-lang.org/std/panic/fn.panic_any.html).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 18.3.3</p></td>
+<td></td>
+<td><p>In rust there are no function level try-catch blocks. As in normal C++ try-catch blocks care must be taken to avoid accessing objects that are left in an invalid state due to the panic, but this is a more general rule and is covered by rule 18.4.1.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.0.1</p></td>
+<td></td>
+<td><p>The cfg attribute always applies to the next item. This rule does not applies for it, as its syntax doesn’t interleave with the code it applies to. cfg_select does interleave with the code, but since it requires braces in all but the simplest cases, the rule also doesn’t apply here.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.0.4</p></td>
+<td></td>
+<td><p>It is not possible in rust to remove the definition of a macro after it was introduced.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.1.1</p></td>
+<td></td>
+<td><p>Rust has no way of checking if a macro definition is available (ignoring proc-macro crimes to run another compiler, but those still don’t have issues with being defined in another macro).</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.1.2</p></td>
+<td></td>
+<td><p>Rust requires braces to be matched and therefore the combination between the cfg_select (similar to preprocessor if) and include macros can’t lead to these issues.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.1.3</p></td>
+<td></td>
+<td><p>Rust does not implicitly set undefined identifiers to a value. Use of undefined identifiers leads to a compile error.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.2.2</p></td>
+<td></td>
+<td><p>Not an issue in rust. If the path given to the include macro (or to a module path attribute) is invalid a compile error is raised and no UB occurs.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.2.3</p></td>
+<td></td>
+<td><p>Rust supports full raw string literals both in the include macro and in the path attribute of module imports <a class="reference external" href="https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=d3b6c099b4eec8733a600204a3db185c">https://play.rust-lang.org/?version=stable&amp;mode=debug&amp;edition=2024&amp;gist=d3b6c099b4eec8733a600204a3db185c</a> It is possible to use whatever the OS allows as a file name and still import it.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.3.1</p></td>
+<td><p>Rule 20.10</p></td>
+<td><p>MISRA C has an equivalent rule which is not considered applicable (ADD6). Rust’s macro equivalent are <code class="docutils literal notranslate"><span class="pre">concat!</span></code> and <code class="docutils literal notranslate"><span class="pre">stringify!</span></code>, both of which are generally better behaved. Although for <code class="docutils literal notranslate"><span class="pre">stringify!</span></code> it is still not recommended to rely on its exact output.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.3.2</p></td>
+<td><p>Rule 20.11</p></td>
+<td><p>MISRA C mapping does not apply for equivalent rule.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.3.3</p></td>
+<td></td>
+<td><p>A macro invocation in rust always contains the symbol <code class="docutils literal notranslate"><span class="pre">!</span></code>, which is not valid for identifiers.</p>
+<p>New identifiers can be created using the nightly <code class="docutils literal notranslate"><span class="pre">concat_ident</span></code> and <code class="docutils literal notranslate"><span class="pre">${concat(...)}</span></code> metavariable or using proc_macros (for example the <code class="docutils literal notranslate"><span class="pre">paste</span></code> crate)</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 19.3.5</p></td>
+<td></td>
+<td><p>This is well defined in rust, see <a class="reference external" href="https://lukaswirth.dev/tlborm/decl-macros/patterns/callbacks.html">https://lukaswirth.dev/tlborm/decl-macros/patterns/callbacks.html</a> for usecases and a understandable description of the behaviour</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 19.6.1</p></td>
+<td></td>
+<td><p>Rust does not have a general purpose macro for implementation defined behaviour.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.2.1</p></td>
+<td></td>
+<td><p>Rust integer and floating point parsing functions (with the FromStr trait) can’t cause UB and return Err on overflow or invalid input.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 21.2.2</p></td>
+<td></td>
+<td><p>Mapping to rust std:</p>
+<p><code class="docutils literal notranslate"><span class="pre">strcat</span></code>: <code class="docutils literal notranslate"><span class="pre">String::push_str</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">strchr</span></code>: <code class="docutils literal notranslate"><span class="pre">str::find</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">strcmp</span></code>: <code class="docutils literal notranslate"><span class="pre">str::cmp</span></code> (Ord trait)</p>
+<p><code class="docutils literal notranslate"><span class="pre">strcoll</span></code>: no locale support in rust std</p>
+<p><code class="docutils literal notranslate"><span class="pre">strcpy</span></code>: target <code class="docutils literal notranslate"><span class="pre">String</span></code>: <code class="docutils literal notranslate"><span class="pre">clear</span></code> + <code class="docutils literal notranslate"><span class="pre">push\_str</span></code> or <code class="docutils literal notranslate"><span class="pre">clone\_into</span></code>, target <code class="docutils literal notranslate"><span class="pre">str</span></code>: no direct mapping, maybe going through bytes</p>
+<p><code class="docutils literal notranslate"><span class="pre">strcspn</span></code>: <code class="docutils literal notranslate"><span class="pre">str::find</span></code> takes a pattern which can be a closure</p>
+<p><code class="docutils literal notranslate"><span class="pre">strerror</span></code>: <code class="docutils literal notranslate"><span class="pre">last_os_error</span></code> + <code class="docutils literal notranslate"><span class="pre">Display</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">strlen</span></code>: <code class="docutils literal notranslate"><span class="pre">str::len</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">strpbrk</span></code>: same as <code class="docutils literal notranslate"><span class="pre">strcspn</span></code> + slicing</p>
+<p><code class="docutils literal notranslate"><span class="pre">strrchr</span></code>: <code class="docutils literal notranslate"><span class="pre">str::rfind</span></code> + slicing</p>
+<p><code class="docutils literal notranslate"><span class="pre">strspn</span></code>: <code class="docutils literal notranslate"><span class="pre">str::find</span></code> + closure with inverted predicate</p>
+<p><code class="docutils literal notranslate"><span class="pre">strstr</span></code>: <code class="docutils literal notranslate"><span class="pre">str::find</span></code> takes a Pattern which can be a string</p>
+<p><code class="docutils literal notranslate"><span class="pre">strtok</span></code>: <code class="docutils literal notranslate"><span class="pre">str::split</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">strxfrm</span></code>: no locale support in rust std</p>
+<p><code class="docutils literal notranslate"><span class="pre">strtol</span></code>, <code class="docutils literal notranslate"><span class="pre">strtoll</span></code>, <code class="docutils literal notranslate"><span class="pre">strtoul</span></code>, <code class="docutils literal notranslate"><span class="pre">strtoumax</span></code>, <code class="docutils literal notranslate"><span class="pre">strtoimax</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstoumax</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstoimax</span></code>: <code class="docutils literal notranslate"><span class="pre">from_str_radix</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">strtod</span></code>, <code class="docutils literal notranslate"><span class="pre">strtof</span></code>, <code class="docutils literal notranslate"><span class="pre">strtold</span></code>: <code class="docutils literal notranslate"><span class="pre">FromStr</span></code> trait</p>
+<p><code class="docutils literal notranslate"><span class="pre">fgetwc</span></code>: <code class="docutils literal notranslate"><span class="pre">Read</span></code> trait (<code class="docutils literal notranslate"><span class="pre">read_exact</span></code> in small buffer or bytes take one)</p>
+<p><code class="docutils literal notranslate"><span class="pre">fputwc</span></code>: <code class="docutils literal notranslate"><span class="pre">Write</span></code> trait (<code class="docutils literal notranslate"><span class="pre">write_all</span></code> with short slice)</p>
+<p><code class="docutils literal notranslate"><span class="pre">wcstol</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstoll</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstoul</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstoull</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstod</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstof</span></code>, <code class="docutils literal notranslate"><span class="pre">wcstold</span></code> (assuming wide str = windows utf16): <code class="docutils literal notranslate"><span class="pre">OsStr::to_string_lossy</span></code> + regular parsing/conversion</p>
+<p>The strn-variants of functions are the same as the regular function + slicing</p>
+<p>Except for locale support all supported in rust std without risk of UB. Locale use is not supported by rust std and FFI is considered out of scope.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.2.4</p></td>
+<td></td>
+<td><p>Using offset_of with fields not visible to the callsite is not possible in rust. Use with methods or associated consts is not possible. Rust does not have bitfields as a language construct.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 21.6.4</p></td>
+<td></td>
+<td><p>Global operator delete maps to the trait “std::alloc::GlobalAlloc”, whose deallocation function always requires the layout.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.6.5</p></td>
+<td></td>
+<td><p>Rust has no forward declaration and therefore also no concept of incomplete types.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 21.10.2</p></td>
+<td></td>
+<td><p>Rust does not have <code class="docutils literal notranslate"><span class="pre">setjmp</span></code> or <code class="docutils literal notranslate"><span class="pre">longjmp</span></code> or similar functionality. Using the C++ function via FFI or inline assembly is covered by the MISRA C++ rules.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 21.10.3</p></td>
+<td></td>
+<td><p>Rust std provides no support for interacting with process signals. FFI is out of scope for this mapping.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 22.4.1</p></td>
+<td></td>
+<td><p>Rust std does not provide APIs to edit errno. It can be read using “std::io::Error::last_os_error”. Use of FFI is considered out of scope for this mapping.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 24.5.1</p></td>
+<td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">isalnum</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_alphanumeric</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isalpha</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_alphabetic</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">islower</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_lowercase</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isupper</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_uppercase</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isdigit</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_digit</span></code> / <code class="docutils literal notranslate"><span class="pre">char::is_numeric</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isxdigit</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_digit</span></code> (hex is base 16)</p>
+<p><code class="docutils literal notranslate"><span class="pre">iscntrl</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_control</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isgraph</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_ascii_graphic</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isspace</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_whitespace</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">isblank</span></code>: rust std has no locale support</p>
+<p><code class="docutils literal notranslate"><span class="pre">isprint</span></code>: rust std has no locale support</p>
+<p><code class="docutils literal notranslate"><span class="pre">ispunct</span></code>: <code class="docutils literal notranslate"><span class="pre">char::is_ascii_punctuation</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">tolower</span></code>: <code class="docutils literal notranslate"><span class="pre">char::to_lowercase</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">toupper</span></code>: <code class="docutils literal notranslate"><span class="pre">char::to_uppercase</span></code></p>
+<p>Equivalent functions in rust are safe. Missing functions are locale dependent which is not supported by the rust std.</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Rule 26.3.1</p></td>
+<td></td>
+<td><p>The rust standard library doesn’t specialize the layout of the type Vec&lt;bool&gt;, like C++ does.</p></td>
+</tr>
+<tr class="row-even"><td><p>Rule 28.6.2</p></td>
+<td></td>
+<td><p>Rust has no language feature like forwarding references.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 28.6.4</p></td>
+<td></td>
+<td><p>std::remove/std::remove_if &lt;-&gt; Vec::retain / Vec::extract_if: completely different API, doesn’t apply, retain can’t be used wrong and is the more common case</p>
+<p>std::unique &lt;-&gt; slice::partition_dedup: nightly, more flexible, may apply depending on the name it is stabilised as / Vec::dedup: doesn’t apply</p>
+<p>std::vector::empty &lt;-&gt; std::Vec::is_empty: doesn’t apply, the different name prevents confusion.</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Rule 30.0.1</p></td>
+<td></td>
+<td><p>This is about the specific issues of these APIs. filesystem operations are supposed to use the filesystem header in C++. As rust has it’s own filesystem APIs this does not map. If there is a specific problem with the filesystem APIs in rust that should probably get its own rule.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Rule 30.0.2</p></td>
+<td></td>
+<td><p>See mapping of FIO39 in <a class="reference internal" href="cert-c-2016-mapping.html#cert-c-mapping"><span class="std std-ref">Rust Cross Reference with CERT-C 2016</span></a> (TLDR: no risk of UB, therefore no mapping)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="misra-c-2025-mapping.html" class="btn btn-neutral float-left" title="Rust Cross Reference with MISRA C 2025" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../retired-guidelines/index.html" class="btn btn-neutral float-right" title="Retired Guidelines" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Contributors to Coding Guidelines Subcommittee.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  
+        This site is powered through <a href="https://www.netlify.com">Netlify</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
