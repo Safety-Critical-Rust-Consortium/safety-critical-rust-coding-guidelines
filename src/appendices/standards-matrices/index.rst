@@ -11,3 +11,4 @@ Standards Matrices
 
    cert-c-2016-mapping
    misra-c-2025-mapping
+   misra-cpp-2023-mapping
