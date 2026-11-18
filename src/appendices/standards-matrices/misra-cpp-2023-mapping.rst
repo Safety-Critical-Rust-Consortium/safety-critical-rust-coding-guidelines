@@ -104,12 +104,12 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      -
-     - While ``main`` is a reserved entry point for executable Rust programs, it can still be defined inside of modules or as part of a struct's ``impl`` and the program will compile; when defining it in a module it is possible to use it inside the ``main`` that references the entry point, but only when the full namespace name is used:
+     - While ``main`` is a reserved entry point for executable Rust programs, it can still be defined inside of modules or as part of a struct's ``impl`` and the program will compile;
 
        .. code-block:: rust
 
           mod foo {
-              pub fn main() {
+              pub fn main() { // non-compliant
                   println!("not another fake main!")
               }
           }
@@ -118,7 +118,15 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
               self::foo::main();
           }
 
-       If we use the notation of ``use self::foo::main;`` at the beginning, the compiler will let us know there are multiple definitions of ``main``
+       It is possible to use a function from another module as the main function. If two main functions are defined or imported an error about duplicate definitions is emitted.
+
+       .. code-block:: rust
+
+          use t::main;
+
+          mod t {
+              pub fn main() {} // non-compliant
+          }
    * - Rule 6.4.1
      - Rule 5.3
      -
