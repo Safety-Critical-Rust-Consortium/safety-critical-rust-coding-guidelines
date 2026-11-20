@@ -1,6 +1,11 @@
 .. SPDX-License-Identifier: MIT OR Apache-2.0
    SPDX-FileCopyrightText: The Coding Guidelines Subcommittee Contributors
 
+.. default-domain:: coding-guidelines
+
+Prevent OS Command Injection
+============================
+
 .. guideline:: Prevent OS Command Injection
     :id: gui_a3PpM90Fppwh
     :category: mandatory
