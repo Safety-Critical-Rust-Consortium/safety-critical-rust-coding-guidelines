@@ -19,13 +19,89 @@ on:
         description: Build from src/spec.lock without retrieving the live FLS
         type: boolean
         default: false
+      force_full_build:
+        description: Force a full build for workflow calls, bypassing the gatekeeper
+        type: boolean
+        default: true
 
 jobs:
+  # Determine when a full build should run
+  gatekeeper:
+    runs-on: ubuntu-latest
+    outputs:
+      run_all: ${{ steps.detect-changes.outputs.run_all }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes that should trigger a full build
+        id: detect-changes
+        shell: bash
+        run: |
+          if [[ "${{ inputs.force_full_build }}" == "true" ]]; then
+            echo "🔥  Forcing full build on workflow_call."
+            echo "run_all=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "${{ github.ref_name }}" = "main" ]]; then
+            echo "🔥  Forcing full build on push/merge to main."
+            echo "run_all=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Determine the base commit SHA to compare changes against
+          # Supporting pull request, merge, and push
+          BASE_REF="${{
+            github.event.pull_request.base.sha ||
+            github.event.merge_group.base_sha ||
+            github.event.before
+          }}"
+
+          # Fallback for new branch, manual run, or new tag
+          if [[ -z "$BASE_REF" ]] || [[ "$BASE_REF" =~ ^0+$ ]]; then
+            echo "🔥  Forcing full build for new branch, manual run, or new tag"
+            echo "run_all=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 🔍 Files and directories that require a full build when modified
+          WATCH_PATHS=(
+            ".github/workflows/build-guidelines.yml"
+            ".github/workflows/check-rust-examples.yml"
+            "builder/"
+            "exts/"
+            "make.py"
+            "pyproject.toml"
+            "scripts/extract_rust_examples.py"
+            "scripts/migrate_rust_examples.py"
+            "src/"
+            "tests/contract/fls_audit/"
+            "tests/integration/fls_audit/"
+            "tests/rust-examples/"
+            "tests/unit/fls_audit/"
+            "uv.lock"
+          )
+
+          if git diff --quiet "$BASE_REF" HEAD -- "${WATCH_PATHS[@]}"; then
+            echo "⚠️  Skipping full build: no relevant changes detected."
+            echo "run_all=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "🔥  Forcing full build: relevant changes detected."
+            echo "run_all=true" >> "$GITHUB_OUTPUT"
+          fi
+
   # Check Rust examples compile before building docs
   check_rust_examples:
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.run_all == 'true'
     uses: ./.github/workflows/check-rust-examples.yml
 
   fls_audit_tests:
+    needs: gatekeeper
+    if: needs.gatekeeper.outputs.run_all == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -42,12 +118,15 @@ jobs:
 
   build:
     needs:
+      - gatekeeper
       - check_rust_examples
       - fls_audit_tests
     # Always run so that 'build' (the required status check) explicitly fails
     # when a prerequisite fails, rather than being skipped.
     # Skipped jobs don't block merge queue, but failed jobs do.
-    if: always()
+    if: |
+      always() &&
+      needs.gatekeeper.outputs.run_all == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Fail if prerequisite checks failed
@@ -56,15 +135,20 @@ jobs:
           if [[ "${{ needs.check_rust_examples.result }}" != "success" ]]; then
             echo "::error::check_rust_examples workflow failed with result: ${{ needs.check_rust_examples.result }}"
           fi
+
           if [[ "${{ needs.fls_audit_tests.result }}" != "success" ]]; then
             echo "::error::fls_audit_tests job finished with result: ${{ needs.fls_audit_tests.result }}"
           fi
+
           echo "One or more prerequisite checks did not pass. See the prerequisite jobs for details."
           exit 1
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
+
       - name: Build documentation
         shell: bash
         env:
