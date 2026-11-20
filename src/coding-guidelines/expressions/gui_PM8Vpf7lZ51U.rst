@@ -3,10 +3,10 @@
 
 .. default-domain:: coding-guidelines
 
-An integer shall not be converted to a pointer
-==============================================
+A numeric value shall not be converted to a pointer
+===================================================
 
-.. guideline:: An integer shall not be converted to a pointer
+.. guideline:: A numeric value shall not be converted to a pointer
    :id: gui_PM8Vpf7lZ51U
    :category: <TODO>
    :status: draft
@@ -22,6 +22,11 @@ An integer shall not be converted to a pointer
    :std:`std::mem::transmute` shall not be used with any numeric type (including floating point types)
    as the argument to the ``Src`` parameter, and any pointer type as the argument to the ``Dst`` parameter.
 
+   In this guideline, "any pointer type" means a raw pointer type or a reference type, matching the
+   FLS definition of pointer type :cite:`gui_PM8Vpf7lZ51U:FLS-POINTER-TYPES`.
+   Direct transmutation of a numeric value to a function pointer is prohibited by the guideline
+   `A numeric value shall not be transmuted to a function pointer`.
+
    .. rationale::
       :id: rat_YqhEiWTj9z6L
       :status: draft
@@ -30,6 +35,16 @@ An integer shall not be converted to a pointer
       including an address that does not point to a valid object, an address that points to an
       object of the wrong type, or an address that is not properly aligned. Use of such a pointer
       to access memory will result in undefined behavior.
+
+      Satisfying those address, type, and alignment conditions is not sufficient to establish that
+      memory access is permitted. A well-formed pointer may carry no provenance
+      :cite:`gui_PM8Vpf7lZ51U:FLS-WELL-FORMED-POINTER`, and accessing memory through a pointer without
+      provenance permitting the access is undefined behavior
+      :cite:`gui_PM8Vpf7lZ51U:FLS-POINTER-ACCESS-PROVENANCE`.
+
+      The FLS does not specify the provenance result of every numeric-to-pointer conversion. This
+      guideline therefore imposes a conservative subset restriction instead of treating a matching
+      numeric address or pointer representation as proof that the result may be dereferenced.
 
       The ``as`` operator also does not check that the size of the source operand is the same as
       the size of a pointer, which may lead to unexpected results if the address computation was
@@ -42,33 +57,16 @@ An integer shall not be converted to a pointer
       :id: non_compl_ex_0ydPk7VENSrA
       :status: draft
 
-      Any use of ``as`` or ``transmute`` to create a pointer from an arithmetic address value
-      is non-compliant:
+      Reconstructing a pointer from a numeric address is noncompliant even when the address was
+      obtained from a valid pointer:
 
       .. rust-example::
         :miri:
 
         #[allow(dead_code)]
-        fn f1(x: u16, y: i32, z: u64, w: usize) {
-          let _p1 = x as * const u32;  // not compliant
-          let _p2 = y as * const u32;  // not compliant
-          let _p3 = z as * const u32;  // not compliant
-          let _p4 = w as * const u32;  // not compliant despite being the right size
-
-          let _f: f64 = 10.0;
-          // let p5 = f as * const u32;  // not valid
-
-          unsafe {
-            // let p5: * const u32 = std::mem::transmute(x);  // not valid
-            // let p6: * const u32 = std::mem::transmute(y);  // not valid
-
-            #[allow(integer_to_ptr_transmutes)]
-            let _p7: * const u32 = std::mem::transmute(z); // not compliant
-            #[allow(integer_to_ptr_transmutes)]
-            let _p8: * const u32 = std::mem::transmute(w); // not compliant
-
-            let _p9: * const u32 = std::mem::transmute(_f); // not compliant, and very strange
-          }
+        fn f1(value: &u32) {
+          let address = value as * const u32 as usize;
+          let _pointer = address as * const u32; // non-compliant
         }
         #
         # fn main() {}
@@ -77,4 +75,29 @@ An integer shall not be converted to a pointer
       :id: compl_ex_oneKuF52yzrx
       :status: draft
 
-      There is no compliant example of this operation.
+      Preserve a pointer as a pointer instead of converting it through a numeric value:
+
+      .. rust-example::
+
+         #[allow(dead_code)]
+         fn f2(value: &u32) {
+           let _pointer: * const u32 = value;
+         }
+         #
+         # fn main() {}
+
+   .. bibliography::
+      :id: bib_PM8Vpf7lZ51U
+      :status: draft
+
+      .. list-table::
+         :header-rows: 0
+         :widths: auto
+         :class: bibliography-table
+
+         * - :bibentry:`gui_PM8Vpf7lZ51U:FLS-POINTER-TYPES`
+           - The Rust FLS. "Types and Traits - Indirection Types." https://rust-lang.github.io/fls/types-and-traits.html#fls_3qI8FXMsyk0f
+         * - :bibentry:`gui_PM8Vpf7lZ51U:FLS-WELL-FORMED-POINTER`
+           - The Rust FLS. "Values - Pointer Types." https://rust-lang.github.io/fls/values.html#fls_ffh8mAkebORJ
+         * - :bibentry:`gui_PM8Vpf7lZ51U:FLS-POINTER-ACCESS-PROVENANCE`
+           - The Rust FLS. "Values - Pointer Types." https://rust-lang.github.io/fls/values.html#fls_c3DaCLQEBpYQ
