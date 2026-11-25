@@ -230,7 +230,7 @@ Table 1 – Guidelines applicable to Rust in general (safe Rust, no unsafe code 
      -
      -
      -
-     - The rationale of making the size of the enum explicit also applies to rust. There should be an exception for enums where at least one variant holds data (which is very common in rust) as there using the repr(uN) specifier stops the compiler from optimizing the enum layout, which might pessimize performance. https://doc.rust-lang.org/nomicon/other-reprs.html#repru-repri
+     - The rationale of making the size of the enum explicit also applies to rust. Exception 1 directly maps to rust. Exception 2 maps to enums with the ``#[repr(C)]`` annotation.
    * - Rule 10.2.3
      -
      -
