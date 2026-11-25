@@ -26,6 +26,7 @@ reviewer-bot = "scripts.reviewer_bot:main"
 
 [tool.uv]
 required-version = "==0.12.6"
+exclude-newer = false
 
 [tool.uv.workspace]
 members = ["builder", "exts"]
